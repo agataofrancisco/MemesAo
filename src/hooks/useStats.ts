@@ -180,10 +180,18 @@ export function useStats() {
         })
       );
 
-      // Ordenar: categorias com memes primeiro, depois "Outros" no final
+      // Ordenar: primeiro por quantidade de memes (decrescente), depois por nome
       categoriesWithCount.sort((a, b) => {
-        if (a.name === "Outros") return 1;
-        if (b.name === "Outros") return -1;
+        // Se ambas têm 0 memes, ordenar alfabeticamente
+        if (a.count === 0 && b.count === 0) {
+          return a.name.localeCompare(b.name);
+        }
+
+        // Se uma tem 0 memes e outra não, a que tem memes vem primeiro
+        if (a.count === 0) return 1;
+        if (b.count === 0) return -1;
+
+        // Se ambas têm memes, ordenar por quantidade (decrescente)
         return b.count - a.count;
       });
 
