@@ -1,201 +1,247 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { 
-  X, 
-  BarChart3, 
-  Users, 
-  Image, 
-  Settings, 
-  CheckCircle, 
-  XCircle,
-  Eye,
+import React, { useState, useEffect } from 'react'
+import { motion } from 'framer-motion'
+import {
+  Users,
+  Image,
   Download,
-  Heart,
-  TrendingUp,
-  Calendar,
-  AlertTriangle,
+  Eye,
+  Clock,
+  CheckCircle,
+  XCircle,
   Edit,
   Trash2,
   Search,
-  Filter
-} from 'lucide-react';
-import { supabase, isSupabaseConfigured, type Meme } from '../lib/supabase';
-import { useAuth } from '../hooks/useAuth';
-import toast from 'react-hot-toast';
+  Filter,
+} from 'lucide-react'
+import { supabase, isSupabaseConfigured } from '../lib/supabase'
+import type { Meme, PendingMeme } from '../lib/supabase'
+import { useAuth } from '../hooks/useAuth'
+import toast from 'react-hot-toast'
+
+interface PendingMemeWithProfile extends PendingMeme {
+  profiles?: {
+    username?: string
+    avatar_url?: string
+  }
+}
 
 interface AdminDashboardProps {
-  onClose: () => void;
+  isOpen: boolean
+  onClose: () => void
 }
 
-interface PendingMeme extends Meme {
-  profile?: {
-    username?: string;
-    email?: string;
-  };
-}
-
-export default function AdminDashboard({ onClose }: AdminDashboardProps) {
-  const [activeTab, setActiveTab] = useState('dashboard');
-  const [loading, setLoading] = useState(true);
+export default function AdminDashboard({
+  isOpen,
+  onClose,
+}: AdminDashboardProps) {
+  const [activeTab, setActiveTab] = useState('dashboard')
+  const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({
     totalMemes: 0,
     totalUsers: 0,
     totalDownloads: 0,
-    pendingMemes: 0
-  });
-  const [pendingMemes, setPendingMemes] = useState<PendingMeme[]>([]);
-  const [allMemes, setAllMemes] = useState<PendingMeme[]>([]);
-  const [filteredMemes, setFilteredMemes] = useState<PendingMeme[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const { user, profile, loading: authLoading } = useAuth();
+    pendingMemes: 0,
+  })
+  const [pendingMemes, setPendingMemes] = useState<PendingMemeWithProfile[]>([])
+  const [allMemes, setAllMemes] = useState<Meme[]>([])
+  const [searchTerm, setSearchTerm] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
 
-  // Verificar se o usuário é admin/moderador
-  const isAdmin = profile?.role === 'admin' || profile?.role === 'moderator';
+  const { user, profile, loading: authLoading } = useAuth()
+
+  // Função para verificar se o usuário é admin/moderador
+  const isAdmin = profile?.role === 'admin' || profile?.role === 'moderator'
 
   useEffect(() => {
-    // Só verificar acesso após o profile ser carregado
-    if (!authLoading) {
-      if (isAdmin) {
-        loadDashboardData();
-      } else if (profile) {
-        // Profile carregado mas não é admin
-        toast.error('Acesso negado. Apenas administradores podem acessar este painel.');
-        onClose();
+    if (isOpen && !authLoading) {
+      if (!isAdmin) {
+        setLoading(false)
+        return
       }
-      // Se profile for null, ainda está carregando, não fazer nada
+      loadDashboardData()
     }
-  }, [isAdmin, authLoading, profile]);
-
-  useEffect(() => {
-    filterMemes();
-  }, [allMemes, searchTerm, statusFilter]);
+  }, [isOpen, isAdmin, authLoading])
 
   const loadDashboardData = async () => {
-    if (!isSupabaseConfigured || !supabase) return;
+    if (!isSupabaseConfigured) return
 
+    setLoading(true)
     try {
-      setLoading(true);
-
       // Carregar estatísticas
-      const [memesResult, usersResult, downloadsResult, pendingResult] = await Promise.all([
-        supabase.from('memes').select('id', { count: 'exact', head: true }),
-        supabase.from('profiles').select('id', { count: 'exact', head: true }),
-        supabase.from('meme_downloads').select('id', { count: 'exact', head: true }),
-        supabase.from('memes').select('id', { count: 'exact', head: true }).eq('status', 'pending')
-      ]);
+      const [
+        memesCount,
+        usersCount,
+        downloadsCount,
+        pendingCount,
+      ] = await Promise.all([
+        supabase
+          .from('memes')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'approved'),
+        supabase.from('profiles').select('*', { count: 'exact', head: true }),
+        supabase
+          .from('meme_downloads')
+          .select('*', { count: 'exact', head: true }),
+        supabase
+          .from('pending_memes')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'pending'),
+      ])
 
       setStats({
-        totalMemes: memesResult.count || 0,
-        totalUsers: usersResult.count || 0,
-        totalDownloads: downloadsResult.count || 0,
-        pendingMemes: pendingResult.count || 0
-      });
+        totalMemes: memesCount.count || 0,
+        totalUsers: usersCount.count || 0,
+        totalDownloads: downloadsCount.count || 0,
+        pendingMemes: pendingCount.count || 0,
+      })
 
       // Carregar memes pendentes
-      const { data: pendingData } = await supabase
-        .from('memes')
-        .select(`
+      const { data: pendingData, error: pendingError } = await supabase
+        .from('pending_memes')
+        .select(
+          `
           *,
-          categories (name),
-          profiles (username, email)
-        `)
+          profiles:uploaded_by(username, avatar_url)
+        `,
+        )
         .eq('status', 'pending')
-        .order('created_at', { ascending: false });
-
-      setPendingMemes(pendingData || []);
-
-      // Carregar todos os memes para a aba de gerenciamento
-      const { data: allMemesData } = await supabase
-        .from('memes')
-        .select(`
-          *,
-          categories (name),
-          profiles (username, email)
-        `)
         .order('created_at', { ascending: false })
-        .limit(100);
 
-      setAllMemes(allMemesData || []);
+      if (pendingError) throw pendingError
+      setPendingMemes(pendingData || [])
 
+      // Carregar todos os memes para gerenciamento
+      const { data: allMemesData, error: allMemesError } = await supabase
+        .from('memes')
+        .select(
+          `
+          *,
+          profiles:uploaded_by(username, avatar_url)
+        `,
+        )
+        .order('created_at', { ascending: false })
+
+      if (allMemesError) throw allMemesError
+      setAllMemes(allMemesData || [])
     } catch (error) {
-      console.error('Erro ao carregar dados do painel:', error);
-      toast.error('Erro ao carregar dados do painel');
+      console.error('Erro ao carregar dados do dashboard:', error)
+      toast.error('Erro ao carregar dados do dashboard')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
-  const filterMemes = () => {
-    let filtered = allMemes;
+  const approvePendingMeme = async (pendingId: string) => {
+    try {
+      const { data, error } = await supabase.rpc('approve_pending_meme', {
+        pending_id: pendingId,
+        reviewer_id: user?.id,
+      })
 
-    if (searchTerm) {
-      filtered = filtered.filter(meme =>
-        meme.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        meme.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        meme.ocr_text?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+      if (error) throw error
+
+      toast.success('Meme aprovado com sucesso!')
+      loadDashboardData() // Recarregar dados
+    } catch (error) {
+      console.error('Erro ao aprovar meme:', error)
+      toast.error('Erro ao aprovar meme')
+    }
+  }
+
+  const rejectPendingMeme = async (pendingId: string, reason?: string) => {
+    try {
+      const { data, error } = await supabase.rpc('reject_pending_meme', {
+        pending_id: pendingId,
+        reviewer_id: user?.id,
+        reason: reason || 'Meme rejeitado pelo moderador',
+      })
+
+      if (error) throw error
+
+      toast.success('Meme rejeitado')
+      loadDashboardData() // Recarregar dados
+    } catch (error) {
+      console.error('Erro ao rejeitar meme:', error)
+      toast.error('Erro ao rejeitar meme')
+    }
+  }
+
+  const deleteMeme = async (memeId: string) => {
+    if (!confirm('Tem certeza que deseja deletar este meme?')) return
+
+    try {
+      const { error } = await supabase.from('memes').delete().eq('id', memeId)
+
+      if (error) throw error
+
+      toast.success('Meme deletado com sucesso!')
+      loadDashboardData()
+    } catch (error) {
+      console.error('Erro ao deletar meme:', error)
+      toast.error('Erro ao deletar meme')
+    }
+  }
+
+  const filterMemes = (memes: Meme[]) => {
+    let filtered = memes
+
+    if (searchTerm.trim()) {
+      filtered = filtered.filter(
+        (meme) =>
+          meme.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          meme.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          meme.category?.toLowerCase().includes(searchTerm.toLowerCase()),
+      )
     }
 
     if (statusFilter !== 'all') {
-      filtered = filtered.filter(meme => meme.status === statusFilter);
+      filtered = filtered.filter((meme) => meme.status === statusFilter)
     }
 
-    setFilteredMemes(filtered);
-  };
+    return filtered
+  }
 
-  const updateMemeStatus = async (memeId: string, newStatus: 'approved' | 'rejected') => {
-    if (!supabase) return;
+  if (!isOpen) return null
 
-    try {
-      const { error } = await supabase
-        .from('memes')
-        .update({ status: newStatus })
-        .eq('id', memeId);
+  // Mostrar loading enquanto verifica permissões
+  if (authLoading || (!profile && user)) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">
+            Verificando permissões...
+          </p>
+        </div>
+      </div>
+    )
+  }
 
-      if (error) throw error;
-
-      // Atualizar estados locais
-      setPendingMemes(prev => prev.filter(meme => meme.id !== memeId));
-      setAllMemes(prev => prev.map(meme => 
-        meme.id === memeId ? { ...meme, status: newStatus } : meme
-      ));
-
-      setStats(prev => ({
-        ...prev,
-        pendingMemes: prev.pendingMemes - 1,
-        totalMemes: newStatus === 'approved' ? prev.totalMemes + 1 : prev.totalMemes
-      }));
-
-      toast.success(`Meme ${newStatus === 'approved' ? 'aprovado' : 'rejeitado'} com sucesso!`);
-    } catch (error) {
-      console.error('Erro ao atualizar status do meme:', error);
-      toast.error('Erro ao atualizar status do meme');
-    }
-  };
-
-  const deleteMeme = async (memeId: string) => {
-    if (!supabase) return;
-
-    if (!confirm('Tem certeza que deseja excluir este meme permanentemente?')) return;
-
-    try {
-      const { error } = await supabase
-        .from('memes')
-        .delete()
-        .eq('id', memeId);
-
-      if (error) throw error;
-
-      setAllMemes(prev => prev.filter(meme => meme.id !== memeId));
-      setPendingMemes(prev => prev.filter(meme => meme.id !== memeId));
-
-      toast.success('Meme excluído com sucesso!');
-    } catch (error) {
-      console.error('Erro ao excluir meme:', error);
-      toast.error('Erro ao excluir meme');
-    }
-  };
+  if (!isAdmin) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="bg-white dark:bg-gray-800 rounded-2xl p-8 text-center max-w-md mx-4"
+        >
+          <XCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+            Acesso Negado
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">
+            Você não tem permissão para acessar o painel administrativo.
+          </p>
+          <button
+            onClick={onClose}
+            className="px-6 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
+          >
+            Voltar
+          </button>
+        </motion.div>
+      </div>
+    )
+  }
 
   const renderDashboard = () => (
     <div className="space-y-6">
@@ -208,8 +254,12 @@ export default function AdminDashboard({ onClose }: AdminDashboardProps) {
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total de Memes</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{stats.totalMemes}</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                Total de Memes
+              </p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+                {stats.totalMemes}
+              </p>
             </div>
             <Image className="h-8 w-8 text-blue-500" />
           </div>
@@ -223,8 +273,12 @@ export default function AdminDashboard({ onClose }: AdminDashboardProps) {
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Usuários Ativos</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{stats.totalUsers}</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                Usuários Ativos
+              </p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+                {stats.totalUsers}
+              </p>
             </div>
             <Users className="h-8 w-8 text-green-500" />
           </div>
@@ -238,8 +292,12 @@ export default function AdminDashboard({ onClose }: AdminDashboardProps) {
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Downloads</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{stats.totalDownloads}</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                Total Downloads
+              </p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+                {stats.totalDownloads}
+              </p>
             </div>
             <Download className="h-8 w-8 text-purple-500" />
           </div>
@@ -253,15 +311,19 @@ export default function AdminDashboard({ onClose }: AdminDashboardProps) {
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Uploads Pendentes</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{stats.pendingMemes}</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                Uploads Pendentes
+              </p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+                {stats.pendingMemes}
+              </p>
             </div>
-            <AlertTriangle className="h-8 w-8 text-orange-500" />
+            <Clock className="h-8 w-8 text-orange-500" />
           </div>
         </motion.div>
       </div>
     </div>
-  );
+  )
 
   const renderModeration = () => (
     <div className="space-y-6">
@@ -277,18 +339,24 @@ export default function AdminDashboard({ onClose }: AdminDashboardProps) {
       {pendingMemes.length === 0 ? (
         <div className="text-center py-12">
           <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
-          <p className="text-gray-500 dark:text-gray-400">Não há memes pendentes de moderação!</p>
+          <p className="text-gray-500 dark:text-gray-400">
+            Não há memes pendentes de moderação!
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {pendingMemes.map((meme) => (
-            <div key={meme.id} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div
+              key={meme.id}
+              className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden"
+            >
               <img
                 src={meme.image_url}
                 alt={meme.title || 'Meme sem título'}
                 className="w-full h-48 object-cover"
                 onError={(e) => {
-                  (e.target as HTMLImageElement).src = 'https://via.placeholder.com/400x300?text=Imagem+não+encontrada';
+                  ;(e.target as HTMLImageElement).src =
+                    'https://via.placeholder.com/400x300?text=Imagem+não+encontrada'
                 }}
               />
               <div className="p-4">
@@ -296,17 +364,34 @@ export default function AdminDashboard({ onClose }: AdminDashboardProps) {
                   {meme.title || 'Sem título'}
                 </h4>
                 <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400 mb-4">
-                  {meme.description && <p><strong>Descrição:</strong> {meme.description}</p>}
-                  {meme.ocr_text && <p><strong>OCR:</strong> "{meme.ocr_text}"</p>}
-                  <p><strong>Categoria:</strong> {meme.categories?.name || 'Sem categoria'}</p>
-                  <p><strong>Enviado por:</strong> {meme.profile?.username || meme.profile?.email || 'Usuário desconhecido'}</p>
-                  <p><strong>Data:</strong> {new Date(meme.created_at).toLocaleDateString('pt-BR')}</p>
+                  {meme.description && (
+                    <p>
+                      <strong>Descrição:</strong> {meme.description}
+                    </p>
+                  )}
+                  {meme.ocr_text && (
+                    <p>
+                      <strong>OCR:</strong> "{meme.ocr_text}"
+                    </p>
+                  )}
+                  <p>
+                    <strong>Categoria:</strong>{' '}
+                    {meme.category || 'Sem categoria'}
+                  </p>
+                  <p>
+                    <strong>Enviado por:</strong>{' '}
+                    {meme.profiles?.username || 'Usuário desconhecido'}
+                  </p>
+                  <p>
+                    <strong>Data:</strong>{' '}
+                    {new Date(meme.created_at).toLocaleDateString('pt-BR')}
+                  </p>
                 </div>
                 <div className="flex space-x-3">
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    onClick={() => updateMemeStatus(meme.id, 'approved')}
+                    onClick={() => approvePendingMeme(meme.id)}
                     className="flex-1 bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 transition-colors flex items-center justify-center"
                   >
                     <CheckCircle size={16} className="mr-2" />
@@ -315,7 +400,7 @@ export default function AdminDashboard({ onClose }: AdminDashboardProps) {
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    onClick={() => updateMemeStatus(meme.id, 'rejected')}
+                    onClick={() => rejectPendingMeme(meme.id)}
                     className="flex-1 bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600 transition-colors flex items-center justify-center"
                   >
                     <XCircle size={16} className="mr-2" />
@@ -328,7 +413,7 @@ export default function AdminDashboard({ onClose }: AdminDashboardProps) {
         </div>
       )}
     </div>
-  );
+  )
 
   const renderMemes = () => (
     <div className="space-y-6">
@@ -338,7 +423,10 @@ export default function AdminDashboard({ onClose }: AdminDashboardProps) {
         </h3>
         <div className="flex items-center space-x-4">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+            <Search
+              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+              size={16}
+            />
             <input
               type="text"
               placeholder="Buscar memes..."
@@ -365,47 +453,74 @@ export default function AdminDashboard({ onClose }: AdminDashboardProps) {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 dark:bg-gray-700">
               <tr>
-                <th className="px-4 py-3 text-left font-medium text-gray-900 dark:text-white">Imagem</th>
-                <th className="px-4 py-3 text-left font-medium text-gray-900 dark:text-white">Título</th>
-                <th className="px-4 py-3 text-left font-medium text-gray-900 dark:text-white">Categoria</th>
-                <th className="px-4 py-3 text-left font-medium text-gray-900 dark:text-white">Status</th>
-                <th className="px-4 py-3 text-left font-medium text-gray-900 dark:text-white">Estatísticas</th>
-                <th className="px-4 py-3 text-left font-medium text-gray-900 dark:text-white">Data</th>
-                <th className="px-4 py-3 text-left font-medium text-gray-900 dark:text-white">Ações</th>
+                <th className="px-4 py-3 text-left font-medium text-gray-900 dark:text-white">
+                  Imagem
+                </th>
+                <th className="px-4 py-3 text-left font-medium text-gray-900 dark:text-white">
+                  Título
+                </th>
+                <th className="px-4 py-3 text-left font-medium text-gray-900 dark:text-white">
+                  Categoria
+                </th>
+                <th className="px-4 py-3 text-left font-medium text-gray-900 dark:text-white">
+                  Status
+                </th>
+                <th className="px-4 py-3 text-left font-medium text-gray-900 dark:text-white">
+                  Estatísticas
+                </th>
+                <th className="px-4 py-3 text-left font-medium text-gray-900 dark:text-white">
+                  Data
+                </th>
+                <th className="px-4 py-3 text-left font-medium text-gray-900 dark:text-white">
+                  Ações
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
-              {filteredMemes.map((meme) => (
-                <tr key={meme.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+              {filterMemes(allMemes).map((meme) => (
+                <tr
+                  key={meme.id}
+                  className="hover:bg-gray-50 dark:hover:bg-gray-700"
+                >
                   <td className="px-4 py-3">
                     <img
                       src={meme.image_url}
                       alt={meme.title || 'Meme'}
                       className="w-12 h-12 object-cover rounded-lg"
                       onError={(e) => {
-                        (e.target as HTMLImageElement).src = 'https://via.placeholder.com/48x48?text=?';
+                        ;(e.target as HTMLImageElement).src =
+                          'https://via.placeholder.com/48x48?text=?'
                       }}
                     />
                   </td>
                   <td className="px-4 py-3">
                     <div>
-                      <p className="font-medium text-gray-900 dark:text-white">{meme.title || 'Sem título'}</p>
+                      <p className="font-medium text-gray-900 dark:text-white">
+                        {meme.title || 'Sem título'}
+                      </p>
                       <p className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-xs">
                         {meme.description || 'Sem descrição'}
                       </p>
                     </div>
                   </td>
                   <td className="px-4 py-3 text-gray-600 dark:text-gray-300">
-                    {meme.categories?.name || 'Sem categoria'}
+                    {meme.category || 'Sem categoria'}
                   </td>
                   <td className="px-4 py-3">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      meme.status === 'approved' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
-                      meme.status === 'rejected' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
-                      'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                    }`}>
-                      {meme.status === 'approved' ? 'Aprovado' :
-                       meme.status === 'rejected' ? 'Rejeitado' : 'Pendente'}
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        meme.status === 'approved'
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                          : meme.status === 'rejected'
+                          ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                          : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                      }`}
+                    >
+                      {meme.status === 'approved'
+                        ? 'Aprovado'
+                        : meme.status === 'rejected'
+                        ? 'Rejeitado'
+                        : 'Pendente'}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-gray-600 dark:text-gray-300">
@@ -428,14 +543,14 @@ export default function AdminDashboard({ onClose }: AdminDashboardProps) {
                       {meme.status === 'pending' && (
                         <>
                           <button
-                            onClick={() => updateMemeStatus(meme.id, 'approved')}
+                            onClick={() => approvePendingMeme(meme.id)}
                             className="p-1 text-green-600 hover:bg-green-100 dark:hover:bg-green-900 rounded"
                             title="Aprovar"
                           >
                             <CheckCircle size={16} />
                           </button>
                           <button
-                            onClick={() => updateMemeStatus(meme.id, 'rejected')}
+                            onClick={() => rejectPendingMeme(meme.id)}
                             className="p-1 text-red-600 hover:bg-red-100 dark:hover:bg-red-900 rounded"
                             title="Rejeitar"
                           >
@@ -459,30 +574,13 @@ export default function AdminDashboard({ onClose }: AdminDashboardProps) {
         </div>
       </div>
     </div>
-  );
-
-  if (!isAdmin && !authLoading && profile) {
-    return null;
-  }
-
-  // Mostrar loading enquanto verifica permissões
-  if (authLoading || (!profile && user)) {
-    return (
-      <div className="fixed inset-0 z-50 bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4"></div>
-          <p className="text-gray-500 dark:text-gray-400">Verificando permissões...</p>
-        </div>
-      </div>
-    );
-  }
+  )
 
   const tabs = [
-    { id: 'dashboard', name: 'Dashboard', icon: BarChart3 },
-    { id: 'moderation', name: 'Moderação', icon: CheckCircle },
+    { id: 'dashboard', name: 'Dashboard', icon: Image },
+    { id: 'moderation', name: 'Moderação', icon: Clock },
     { id: 'memes', name: 'Gerenciar Memes', icon: Image },
-    { id: 'settings', name: 'Configurações', icon: Settings },
-  ];
+  ]
 
   return (
     <div className="fixed inset-0 z-50 bg-gray-50 dark:bg-gray-900">
@@ -501,7 +599,7 @@ export default function AdminDashboard({ onClose }: AdminDashboardProps) {
               onClick={onClose}
               className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
             >
-              <X size={24} />
+              <XCircle size={24} />
             </button>
           </div>
         </div>
@@ -535,7 +633,9 @@ export default function AdminDashboard({ onClose }: AdminDashboardProps) {
               className="w-full p-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg"
             >
               {tabs.map((tab) => (
-                <option key={tab.id} value={tab.id}>{tab.name}</option>
+                <option key={tab.id} value={tab.id}>
+                  {tab.name}
+                </option>
               ))}
             </select>
           </div>
@@ -545,24 +645,20 @@ export default function AdminDashboard({ onClose }: AdminDashboardProps) {
             {loading ? (
               <div className="text-center py-12">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto"></div>
-                <p className="text-gray-500 dark:text-gray-400 mt-4">Carregando dados...</p>
+                <p className="text-gray-500 dark:text-gray-400 mt-4">
+                  Carregando dados...
+                </p>
               </div>
             ) : (
               <>
                 {activeTab === 'dashboard' && renderDashboard()}
                 {activeTab === 'moderation' && renderModeration()}
                 {activeTab === 'memes' && renderMemes()}
-                {activeTab === 'settings' && (
-                  <div className="text-center py-12">
-                    <Settings className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-500 dark:text-gray-400">Configurações em desenvolvimento...</p>
-                  </div>
-                )}
               </>
             )}
           </div>
         </div>
       </motion.div>
     </div>
-  );
+  )
 }

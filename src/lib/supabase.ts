@@ -92,11 +92,28 @@ export interface MemeDownload {
 export interface Report {
   id: string;
   meme_id: string;
-  reported_by: string;
+  reporter_id: string | null;
   reason: string;
   description?: string;
-  status: "pending" | "reviewed" | "resolved";
-  reviewed_by?: string;
+  status: "pending" | "resolved" | "dismissed";
+  created_at: string;
+}
+
+export interface PendingMeme {
+  id: string;
+  title?: string;
+  description?: string;
+  image_url: string;
+  category: string;
+  tags: string[];
+  uploaded_by: string | null;
+  uploaded_at: string;
+  extracted_text?: string;
+  status: "pending" | "approved" | "rejected";
+  reviewed_by?: string | null;
+  reviewed_at?: string | null;
+  rejection_reason?: string | null;
   created_at: string;
   updated_at: string;
+  profiles?: Profile;
 }

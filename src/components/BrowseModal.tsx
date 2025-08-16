@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, Search, Grid, List, Heart, Download, Eye } from 'lucide-react'
 import { useMemes } from '../hooks/useMemes'
 import { useStats } from '../hooks/useStats'
+import { supabase } from '../lib/supabase'
+import { Meme } from '../lib/supabase'
 import toast from 'react-hot-toast'
 
 interface BrowseModalProps {
@@ -22,12 +24,12 @@ export default function BrowseModal({
   const [searchTerm, setSearchTerm] = useState('')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [loading, setLoading] = useState(false)
-  const [browseMemes, setBrowseMemes] = useState<any[]>([])
+  const [browseMemes, setBrowseMemes] = useState<Meme[]>([])
   const [sortBy, setSortBy] = useState<'recent' | 'popular' | 'downloads'>(
     'recent',
   )
 
-  const { searchMemes, downloadMeme, toggleFavorite, favorites } = useMemes()
+  const { downloadMeme, toggleFavorite, favorites } = useMemes()
   const { categories } = useStats()
 
   // Todas as categorias + "Todas"
@@ -52,29 +54,47 @@ export default function BrowseModal({
   const loadMemes = async () => {
     setLoading(true)
     try {
-      let results
-
-      if (searchTerm.trim()) {
-        results = await searchMemes(
-          searchTerm,
-          selectedCategory === 'Todas' ? undefined : selectedCategory,
+      let query = supabase
+        .from('memes')
+        .select(
+          `
+          *,
+          profiles:uploaded_by(username, avatar_url)
+        `,
         )
-      } else {
-        const categoryName =
-          selectedCategory === 'Todas' ? undefined : selectedCategory
-        results = await searchMemes('', categoryName)
+        .eq('status', 'approved')
+
+      // Filtrar por categoria se não for "Todas"
+      if (selectedCategory !== 'Todas') {
+        query = query.eq('category', selectedCategory)
+      }
+
+      // Aplicar busca por texto se houver termo
+      if (searchTerm.trim()) {
+        query = query.or(
+          `title.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,extracted_text.ilike.%${searchTerm}%`,
+        )
       }
 
       // Aplicar ordenação
       if (sortBy === 'popular') {
-        results.sort((a, b) => (b.view_count || 0) - (a.view_count || 0))
+        query = query.order('view_count', { ascending: false })
       } else if (sortBy === 'downloads') {
-        results.sort(
-          (a, b) => (b.download_count || 0) - (a.download_count || 0),
-        )
+        query = query.order('download_count', { ascending: false })
+      } else {
+        query = query.order('created_at', { ascending: false })
       }
 
-      setBrowseMemes(results)
+      // Limitar a 50 memes por vez
+      query = query.limit(50)
+
+      const { data, error } = await query
+
+      if (error) {
+        throw error
+      }
+
+      setBrowseMemes(data || [])
     } catch (error) {
       console.error('Erro ao carregar memes:', error)
       toast.error('Erro ao carregar memes')
@@ -83,7 +103,7 @@ export default function BrowseModal({
     }
   }
 
-  const handleDownload = async (meme: any) => {
+  const handleDownload = async (meme: Meme) => {
     await downloadMeme(meme)
   }
 
