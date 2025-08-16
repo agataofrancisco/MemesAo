@@ -55,7 +55,7 @@ export default function Hero({ onSearchClick }: HeroProps) {
             transition={{ delay: 0.3 }}
             className="text-5xl md:text-7xl font-bold text-gray-900 dark:text-white mb-6"
           >
-            O Maidfor Acervo de{' '}
+            O Maior Acervo de{' '}
             <span className="bg-gradient-to-r from-primary-500 via-purple-500 to-teal-500 bg-clip-text text-transparent">
               Memes Angolanos
             </span>
