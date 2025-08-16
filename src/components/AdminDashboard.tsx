@@ -48,19 +48,24 @@ export default function AdminDashboard({ onClose }: AdminDashboardProps) {
   const [filteredMemes, setFilteredMemes] = useState<PendingMeme[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const { user, profile } = useAuth();
+  const { user, profile, loading: authLoading } = useAuth();
 
   // Verificar se o usuário é admin/moderador
   const isAdmin = profile?.role === 'admin' || profile?.role === 'moderator';
 
   useEffect(() => {
-    if (isAdmin) {
-      loadDashboardData();
-    } else {
-      toast.error('Acesso negado. Apenas administradores podem acessar este painel.');
-      onClose();
+    // Só verificar acesso após o profile ser carregado
+    if (!authLoading) {
+      if (isAdmin) {
+        loadDashboardData();
+      } else if (profile) {
+        // Profile carregado mas não é admin
+        toast.error('Acesso negado. Apenas administradores podem acessar este painel.');
+        onClose();
+      }
+      // Se profile for null, ainda está carregando, não fazer nada
     }
-  }, [isAdmin]);
+  }, [isAdmin, authLoading, profile]);
 
   useEffect(() => {
     filterMemes();
@@ -456,8 +461,20 @@ export default function AdminDashboard({ onClose }: AdminDashboardProps) {
     </div>
   );
 
-  if (!isAdmin) {
+  if (!isAdmin && !authLoading && profile) {
     return null;
+  }
+
+  // Mostrar loading enquanto verifica permissões
+  if (authLoading || (!profile && user)) {
+    return (
+      <div className="fixed inset-0 z-50 bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4"></div>
+          <p className="text-gray-500 dark:text-gray-400">Verificando permissões...</p>
+        </div>
+      </div>
+    );
   }
 
   const tabs = [

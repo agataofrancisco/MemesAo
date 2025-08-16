@@ -45,6 +45,14 @@ export default function Header({
   // Função para verificar se o usuário é admin/moderador
   const isAdmin = profile?.role === 'admin' || profile?.role === 'moderator'
 
+  // Debug temporário - remover depois
+  console.log('Header Debug:', {
+    user: !!user,
+    profile: profile,
+    isAdmin,
+    loading,
+  })
+
   return (
     <>
       <motion.header
