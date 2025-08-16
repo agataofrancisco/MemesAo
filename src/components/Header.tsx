@@ -28,7 +28,7 @@ export default function Header({
   onAdminClick,
 }: HeaderProps) {
   const { isDark, toggleTheme } = useTheme()
-  const { user, signOut, isConfigured } = useAuth()
+  const { user, profile, signOut, isConfigured } = useAuth()
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
@@ -43,9 +43,7 @@ export default function Header({
   }
 
   // Função para verificar se o usuário é admin/moderador
-  const isAdmin =
-    user?.user_metadata?.role === 'admin' ||
-    user?.user_metadata?.role === 'moderator'
+  const isAdmin = profile?.role === 'admin' || profile?.role === 'moderator'
 
   return (
     <>
@@ -158,7 +156,7 @@ export default function Header({
                     >
                       <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
                         <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                          {user.user_metadata?.username || user.email}
+                          {profile?.username || user?.email}
                         </p>
                         <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                           {user.email}
@@ -277,7 +275,7 @@ export default function Header({
                 {isConfigured && user ? (
                   <>
                     <div className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">
-                      {user.user_metadata?.username || user.email}
+                      {profile?.username || user?.email}
                     </div>
                     {isAdmin && (
                       <button

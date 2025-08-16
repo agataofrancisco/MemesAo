@@ -180,22 +180,13 @@ export function useStats() {
         })
       );
 
-      // Ordenar: primeiro por quantidade de memes (decrescente), depois por nome
-      categoriesWithCount.sort((a, b) => {
-        // Se ambas têm 0 memes, ordenar alfabeticamente
-        if (a.count === 0 && b.count === 0) {
-          return a.name.localeCompare(b.name);
-        }
+      // Filtrar apenas categorias que têm memes e ordenar por quantidade (decrescente)
+      const categoriesWithMemes = categoriesWithCount
+        .filter((category) => category.count > 0)
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5); // Mostrar apenas os top 5
 
-        // Se uma tem 0 memes e outra não, a que tem memes vem primeiro
-        if (a.count === 0) return 1;
-        if (b.count === 0) return -1;
-
-        // Se ambas têm memes, ordenar por quantidade (decrescente)
-        return b.count - a.count;
-      });
-
-      setCategories(categoriesWithCount);
+      setCategories(categoriesWithMemes);
     } catch (error) {
       console.error("Erro ao carregar categorias:", error);
       setCategories([]);

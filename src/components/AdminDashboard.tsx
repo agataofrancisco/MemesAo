@@ -48,10 +48,10 @@ export default function AdminDashboard({ onClose }: AdminDashboardProps) {
   const [filteredMemes, setFilteredMemes] = useState<PendingMeme[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
 
   // Verificar se o usuário é admin/moderador
-  const isAdmin = user?.user_metadata?.role === 'admin' || user?.user_metadata?.role === 'moderator';
+  const isAdmin = profile?.role === 'admin' || profile?.role === 'moderator';
 
   useEffect(() => {
     if (isAdmin) {
