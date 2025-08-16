@@ -1,15 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import {
-  X,
-  Search,
-  Grid,
-  List,
-  Heart,
-  Download,
-  Eye,
-  Filter,
-} from 'lucide-react'
+import { X, Search, Grid, List, Heart, Download, Eye } from 'lucide-react'
 import { useMemes } from '../hooks/useMemes'
 import { useStats } from '../hooks/useStats'
 import toast from 'react-hot-toast'
@@ -64,13 +55,11 @@ export default function BrowseModal({
       let results
 
       if (searchTerm.trim()) {
-        // Se há termo de busca, usar search
         results = await searchMemes(
           searchTerm,
           selectedCategory === 'Todas' ? undefined : selectedCategory,
         )
       } else {
-        // Se não há busca, carregar memes da categoria
         const categoryName =
           selectedCategory === 'Todas' ? undefined : selectedCategory
         results = await searchMemes('', categoryName)
@@ -83,8 +72,6 @@ export default function BrowseModal({
         results.sort(
           (a, b) => (b.download_count || 0) - (a.download_count || 0),
         )
-      } else {
-        // recent - já vem ordenado por data
       }
 
       setBrowseMemes(results)
@@ -113,7 +100,7 @@ export default function BrowseModal({
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
-          className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-7xl max-h-[95vh] overflow-hidden"
+          className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden"
         >
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
@@ -135,7 +122,7 @@ export default function BrowseModal({
 
           {/* Filters */}
           <div className="p-6 border-b border-gray-200 dark:border-gray-700 space-y-4">
-            {/* Search and View Mode */}
+            {/* Search and Controls */}
             <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
               <div className="relative flex-1 max-w-md">
                 <Search
@@ -211,7 +198,7 @@ export default function BrowseModal({
           </div>
 
           {/* Content */}
-          <div className="flex-1 overflow-y-auto p-6">
+          <div className="flex-1 overflow-y-auto p-6 max-h-96">
             {loading ? (
               <div className="text-center py-12">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4"></div>
@@ -237,7 +224,7 @@ export default function BrowseModal({
               <div
                 className={
                   viewMode === 'grid'
-                    ? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6'
+                    ? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4'
                     : 'space-y-4'
                 }
               >
@@ -258,7 +245,7 @@ export default function BrowseModal({
                       className={
                         viewMode === 'grid'
                           ? 'aspect-square'
-                          : 'w-32 h-24 flex-shrink-0'
+                          : 'w-24 h-20 flex-shrink-0'
                       }
                     >
                       <img
@@ -273,7 +260,7 @@ export default function BrowseModal({
                     </div>
 
                     {/* Content */}
-                    <div className={viewMode === 'grid' ? 'p-4' : 'p-4 flex-1'}>
+                    <div className={viewMode === 'grid' ? 'p-4' : 'p-3 flex-1'}>
                       <h3
                         className={`font-semibold text-gray-900 dark:text-white mb-2 ${
                           viewMode === 'list' ? 'text-sm' : ''
@@ -282,21 +269,9 @@ export default function BrowseModal({
                         {meme.title || 'Meme sem título'}
                       </h3>
 
-                      {meme.description && (
-                        <p
-                          className={`text-gray-600 dark:text-gray-400 mb-3 ${
-                            viewMode === 'list'
-                              ? 'text-xs line-clamp-2'
-                              : 'text-sm line-clamp-3'
-                          }`}
-                        >
-                          {meme.description}
-                        </p>
-                      )}
-
                       {/* Stats */}
                       <div
-                        className={`flex items-center space-x-4 text-xs text-gray-500 dark:text-gray-400 mb-3 ${
+                        className={`flex items-center space-x-3 text-xs text-gray-500 dark:text-gray-400 mb-3 ${
                           viewMode === 'list' ? 'mb-2' : ''
                         }`}
                       >
@@ -317,14 +292,14 @@ export default function BrowseModal({
                       <div className="flex items-center justify-between">
                         <button
                           onClick={() => handleFavorite(meme.id)}
-                          className={`flex items-center space-x-1 px-3 py-1.5 rounded-lg transition-colors ${
+                          className={`flex items-center space-x-1 px-2 py-1 rounded-lg transition-colors ${
                             favorites.includes(meme.id)
                               ? 'bg-red-500 text-white'
                               : 'bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/20'
                           }`}
                         >
                           <Heart
-                            size={14}
+                            size={12}
                             className={
                               favorites.includes(meme.id) ? 'fill-current' : ''
                             }
@@ -336,9 +311,9 @@ export default function BrowseModal({
 
                         <button
                           onClick={() => handleDownload(meme)}
-                          className="flex items-center space-x-1 px-3 py-1.5 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
+                          className="flex items-center space-x-1 px-2 py-1 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
                         >
-                          <Download size={14} />
+                          <Download size={12} />
                           {viewMode === 'grid' && (
                             <span className="text-xs">Baixar</span>
                           )}
