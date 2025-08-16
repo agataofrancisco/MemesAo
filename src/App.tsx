@@ -1,25 +1,26 @@
-import React, { useState } from 'react'
-import { motion } from 'framer-motion'
+import { useState } from 'react'
 import { Toaster } from 'react-hot-toast'
+import { ThemeProvider } from './contexts/ThemeContext'
 import Header from './components/Header'
 import Hero from './components/Hero'
 import FeaturedMemes from './components/FeaturedMemes'
 import Categories from './components/Categories'
 import Statistics from './components/Statistics'
 import Features from './components/Features'
-import UploadSection from './components/UploadSection'
 import Footer from './components/Footer'
-import SearchModal from './components/SearchModal'
+import AuthModal from './components/AuthModal'
 import UploadModal from './components/UploadModal'
-import BrowseModal from './components/BrowseModal'
+import SearchModal from './components/SearchModal'
 import AdminDashboard from './components/AdminDashboard'
-import { ThemeProvider } from './contexts/ThemeContext'
+import BrowseModal from './components/BrowseModal'
+import TestMemes from './components/TestMemes'
 
-export default function App() {
-  const [isSearchOpen, setIsSearchOpen] = useState(false)
+function App() {
+  const [isAuthOpen, setIsAuthOpen] = useState(false)
   const [isUploadOpen, setIsUploadOpen] = useState(false)
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const [isAdminOpen, setIsAdminOpen] = useState(false)
   const [isBrowseOpen, setIsBrowseOpen] = useState(false)
-  const [isAdminMode, setIsAdminMode] = useState(false)
   const [browseCategory, setBrowseCategory] = useState<string | undefined>()
 
   const handleCategoryClick = (categoryName: string) => {
@@ -34,66 +35,51 @@ export default function App() {
 
   return (
     <ThemeProvider>
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 transition-colors duration-300">
-        <Toaster
-          position="top-right"
-          toastOptions={{
-            duration: 4000,
-            style: {
-              background: 'var(--toast-bg)',
-              color: 'var(--toast-color)',
-            },
-          }}
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
+        <Header
+          onAuthClick={() => setIsAuthOpen(true)}
+          onUploadClick={() => setIsUploadOpen(true)}
+          onSearchClick={() => setIsSearchOpen(true)}
+          onAdminClick={() => setIsAdminOpen(true)}
         />
 
-        {isAdminMode ? (
-          <AdminDashboard onClose={() => setIsAdminMode(false)} />
-        ) : (
-          <>
-            <Header
-              onSearchClick={() => setIsSearchOpen(true)}
-              onUploadClick={() => setIsUploadOpen(true)}
-              onAdminClick={() => setIsAdminMode(true)}
-            />
+        <main>
+          <Hero onBrowseClick={handleBrowseOpen} />
+          <FeaturedMemes />
+          <Categories onCategoryClick={handleCategoryClick} />
+          <Statistics />
+          <Features />
+        </main>
 
-            <main className="relative">
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.6 }}
-              >
-                <Hero
-                  onSearchClick={() => setIsSearchOpen(true)}
-                  onBrowseClick={handleBrowseOpen}
-                />
-                <Statistics />
-                <FeaturedMemes />
-                <Categories onCategoryClick={handleCategoryClick} />
-                <Features />
-                <UploadSection onUploadClick={() => setIsUploadOpen(true)} />
-              </motion.div>
-            </main>
+        <Footer />
 
-            <Footer />
+        {/* Modals */}
+        <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
+        <UploadModal
+          isOpen={isUploadOpen}
+          onClose={() => setIsUploadOpen(false)}
+        />
+        <SearchModal
+          isOpen={isSearchOpen}
+          onClose={() => setIsSearchOpen(false)}
+        />
+        <AdminDashboard
+          isOpen={isAdminOpen}
+          onClose={() => setIsAdminOpen(false)}
+        />
+        <BrowseModal
+          isOpen={isBrowseOpen}
+          onClose={() => setIsBrowseOpen(false)}
+          initialCategory={browseCategory}
+        />
 
-            <SearchModal
-              isOpen={isSearchOpen}
-              onClose={() => setIsSearchOpen(false)}
-            />
+        {/* Componente de teste temporário */}
+        <TestMemes />
 
-            <UploadModal
-              isOpen={isUploadOpen}
-              onClose={() => setIsUploadOpen(false)}
-            />
-
-            <BrowseModal
-              isOpen={isBrowseOpen}
-              onClose={() => setIsBrowseOpen(false)}
-              initialCategory={browseCategory}
-            />
-          </>
-        )}
+        <Toaster position="top-right" />
       </div>
     </ThemeProvider>
   )
 }
+
+export default App

@@ -128,6 +128,25 @@ CREATE INDEX idx_pending_memes_category ON pending_memes(category);
 CREATE INDEX idx_pending_memes_extracted_text ON pending_memes USING gin(to_tsvector('portuguese', extracted_text));
 ```
 
+## 🎯 Criar Memes de Exemplo (OPCIONAL)
+
+Se não tiver memes para testar, execute este script para criar alguns exemplos:
+
+```sql
+-- Inserir memes de exemplo na tabela principal (aprovados)
+INSERT INTO memes (title, description, image_url, category, status, view_count, download_count) VALUES
+('Quando é segunda-feira', 'Aquela cara de segunda', 'https://picsum.photos/400/400?random=1', 'Cotidiano', 'approved', 150, 25),
+('Programador vs Bug', 'A luta diária', 'https://picsum.photos/400/400?random=2', 'Tecnologia', 'approved', 89, 12),
+('Mãe angolana vs filho', 'Conversa típica', 'https://picsum.photos/400/400?random=3', 'Família', 'approved', 234, 45),
+('Fim do mês', 'Quando a conta não fecha', 'https://picsum.photos/400/400?random=4', 'Cotidiano', 'approved', 178, 32),
+('Professor de matemática', 'Explicando algo simples', 'https://picsum.photos/400/400?random=5', 'Educação', 'approved', 95, 18);
+
+-- Inserir memes pendentes de exemplo
+INSERT INTO pending_memes (title, description, image_url, category, status) VALUES
+('Novo meme pendente', 'Aguardando aprovação', 'https://picsum.photos/400/400?random=6', 'Cotidiano', 'pending'),
+('Outro meme', 'Também pendente', 'https://picsum.photos/400/400?random=7', 'Tecnologia', 'pending');
+```
+
 ## 📋 Passo a Passo
 
 1. **Acesse seu projeto Supabase**
@@ -135,6 +154,7 @@ CREATE INDEX idx_pending_memes_extracted_text ON pending_memes USING gin(to_tsve
 3. **Cole todo o código SQL acima**
 4. **Execute o script** (clique em "Run")
 5. **Verifique se as tabelas foram criadas** em Database > Tables
+6. **(OPCIONAL)** Execute o script de memes de exemplo
 
 ## ✅ Funcionalidades Implementadas
 
@@ -194,4 +214,10 @@ WHERE email = 'seu-email@exemplo.com';
 ### Memes não aparecem no BrowseModal
 
 - Verifique se existem memes com `status = 'approved'`
+- Execute o script de memes de exemplo
 - Aprove alguns memes pendentes primeiro
+
+### "Nenhum meme encontrado" na seção explorar
+
+- Execute o script de memes de exemplo acima
+- Ou faça upload de alguns memes e aprove-os no painel admin
