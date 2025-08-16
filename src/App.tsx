@@ -1,23 +1,36 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Toaster } from 'react-hot-toast';
-import Header from './components/Header';
-import Hero from './components/Hero';
-import FeaturedMemes from './components/FeaturedMemes';
-import Categories from './components/Categories';
-import Statistics from './components/Statistics';
-import Features from './components/Features';
-import UploadSection from './components/UploadSection';
-import Footer from './components/Footer';
-import SearchModal from './components/SearchModal';
-import UploadModal from './components/UploadModal';
-import AdminDashboard from './components/AdminDashboard';
-import { ThemeProvider } from './contexts/ThemeContext';
+import React, { useState } from 'react'
+import { motion } from 'framer-motion'
+import { Toaster } from 'react-hot-toast'
+import Header from './components/Header'
+import Hero from './components/Hero'
+import FeaturedMemes from './components/FeaturedMemes'
+import Categories from './components/Categories'
+import Statistics from './components/Statistics'
+import Features from './components/Features'
+import UploadSection from './components/UploadSection'
+import Footer from './components/Footer'
+import SearchModal from './components/SearchModal'
+import UploadModal from './components/UploadModal'
+import BrowseModal from './components/BrowseModal'
+import AdminDashboard from './components/AdminDashboard'
+import { ThemeProvider } from './contexts/ThemeContext'
 
 export default function App() {
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [isUploadOpen, setIsUploadOpen] = useState(false);
-  const [isAdminMode, setIsAdminMode] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const [isUploadOpen, setIsUploadOpen] = useState(false)
+  const [isBrowseOpen, setIsBrowseOpen] = useState(false)
+  const [isAdminMode, setIsAdminMode] = useState(false)
+  const [browseCategory, setBrowseCategory] = useState<string | undefined>()
+
+  const handleCategoryClick = (categoryName: string) => {
+    setBrowseCategory(categoryName)
+    setIsBrowseOpen(true)
+  }
+
+  const handleBrowseOpen = () => {
+    setBrowseCategory(undefined)
+    setIsBrowseOpen(true)
+  }
 
   return (
     <ThemeProvider>
@@ -32,27 +45,30 @@ export default function App() {
             },
           }}
         />
-        
+
         {isAdminMode ? (
           <AdminDashboard onClose={() => setIsAdminMode(false)} />
         ) : (
           <>
-            <Header 
+            <Header
               onSearchClick={() => setIsSearchOpen(true)}
               onUploadClick={() => setIsUploadOpen(true)}
               onAdminClick={() => setIsAdminMode(true)}
             />
-            
+
             <main className="relative">
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.6 }}
               >
-                <Hero onSearchClick={() => setIsSearchOpen(true)} />
+                <Hero
+                  onSearchClick={() => setIsSearchOpen(true)}
+                  onBrowseClick={handleBrowseOpen}
+                />
                 <Statistics />
                 <FeaturedMemes />
-                <Categories />
+                <Categories onCategoryClick={handleCategoryClick} />
                 <Features />
                 <UploadSection onUploadClick={() => setIsUploadOpen(true)} />
               </motion.div>
@@ -60,18 +76,24 @@ export default function App() {
 
             <Footer />
 
-            <SearchModal 
+            <SearchModal
               isOpen={isSearchOpen}
               onClose={() => setIsSearchOpen(false)}
             />
-            
-            <UploadModal 
+
+            <UploadModal
               isOpen={isUploadOpen}
               onClose={() => setIsUploadOpen(false)}
+            />
+
+            <BrowseModal
+              isOpen={isBrowseOpen}
+              onClose={() => setIsBrowseOpen(false)}
+              initialCategory={browseCategory}
             />
           </>
         )}
       </div>
     </ThemeProvider>
-  );
+  )
 }

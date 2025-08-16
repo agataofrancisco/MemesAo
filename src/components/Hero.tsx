@@ -1,12 +1,13 @@
 import React from 'react'
 import { motion } from 'framer-motion'
-import { Search, Sparkles, Zap, Brain } from 'lucide-react'
+import { Search, Sparkles, Zap, Brain, Grid } from 'lucide-react'
 
 interface HeroProps {
-  onSearchClick: () => void
+  onSearchClick: () => void;
+  onBrowseClick?: () => void;
 }
 
-export default function Hero({ onSearchClick }: HeroProps) {
+export default function Hero({ onSearchClick, onBrowseClick }: HeroProps) {
   return (
     <section
       id="home"
@@ -71,17 +72,16 @@ export default function Hero({ onSearchClick }: HeroProps) {
             transition={{ delay: 0.4 }}
             className="text-base sm:text-lg md:text-xl lg:text-2xl text-gray-600 dark:text-gray-300 mb-8 sm:mb-12 max-w-4xl mx-auto leading-relaxed px-2"
           >
-            Descubra, compartilhe e contribua para a maior coleção digital de
-            memes angolanos. Sistema de OCR integrado para busca inteligente e
-            categorização automática.
+            Descubra, compartilhe e contribua para a maior coleção digital de memes angolanos. 
+            Sistema de OCR integrado para busca inteligente e categorização automática.
           </motion.p>
 
-          {/* Search Bar */}
+          {/* Search Bar and Browse Button */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
-            className="max-w-2xl mx-auto mb-8 sm:mb-12 px-2"
+            className="max-w-2xl mx-auto mb-8 sm:mb-12 px-2 space-y-4"
           >
             <div className="relative">
               <input
@@ -91,10 +91,7 @@ export default function Hero({ onSearchClick }: HeroProps) {
                 onClick={onSearchClick}
                 readOnly
               />
-              <Search
-                className="absolute left-3 sm:left-5 top-1/2 transform -translate-y-1/2 text-gray-400"
-                size={16}
-              />
+              <Search className="absolute left-3 sm:left-5 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -104,6 +101,19 @@ export default function Hero({ onSearchClick }: HeroProps) {
                 Buscar
               </motion.button>
             </div>
+
+            {/* Browse Button */}
+            {onBrowseClick && (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={onBrowseClick}
+                className="w-full sm:w-auto bg-gradient-to-r from-teal-500 to-green-500 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-medium hover:shadow-lg transition-all duration-300 inline-flex items-center justify-center space-x-2"
+              >
+                <Grid size={18} />
+                <span>Explorar por Categoria</span>
+              </motion.button>
+            )}
           </motion.div>
 
           {/* Features Grid */}
@@ -118,12 +128,8 @@ export default function Hero({ onSearchClick }: HeroProps) {
                 <Brain className="h-4 w-4 sm:h-6 sm:w-6 text-white" />
               </div>
               <div className="text-left">
-                <h3 className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white">
-                  OCR Inteligente
-                </h3>
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                  Busca por texto nas imagens
-                </p>
+                <h3 className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white">OCR Inteligente</h3>
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Busca por texto nas imagens</p>
               </div>
             </div>
 
@@ -132,12 +138,8 @@ export default function Hero({ onSearchClick }: HeroProps) {
                 <Zap className="h-4 w-4 sm:h-6 sm:w-6 text-white" />
               </div>
               <div className="text-left">
-                <h3 className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white">
-                  Categorização Automática
-                </h3>
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                  IA organiza os memes
-                </p>
+                <h3 className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white">Categorização Automática</h3>
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">IA organiza os memes</p>
               </div>
             </div>
 
@@ -146,17 +148,13 @@ export default function Hero({ onSearchClick }: HeroProps) {
                 <Sparkles className="h-4 w-4 sm:h-6 sm:w-6 text-white" />
               </div>
               <div className="text-left">
-                <h3 className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white">
-                  Upload Fácil
-                </h3>
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                  Contribua com a comunidade
-                </p>
+                <h3 className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white">Upload Fácil</h3>
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Contribua com a comunidade</p>
               </div>
             </div>
           </motion.div>
         </div>
       </div>
     </section>
-  )
+  );
 }
