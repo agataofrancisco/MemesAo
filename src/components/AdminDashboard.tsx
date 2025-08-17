@@ -96,7 +96,7 @@ export default function AdminDashboard({
         pendingMemes: pendingCount.count || 0,
       })
 
-      // Carregar memes pendentes (da tabela memes, não pending_memes) - OTIMIZADO
+      // Carregar memes pendentes (da tabela memes, não memes) - OTIMIZADO
       const { data: pendingData, error: pendingError } = await supabase
         .from('memes')
         .select(
@@ -159,13 +159,10 @@ export default function AdminDashboard({
         `Erro ao carregar dados: ${error.message || 'Erro desconhecido'}`,
       )
 
-      // Se a tabela pending_memes não existir, mostrar mensagem específica
-      if (
-        error.message?.includes('pending_memes') ||
-        error.code === 'PGRST116'
-      ) {
+      // Se a tabela memes não existir, mostrar mensagem específica
+      if (error.message?.includes('memes') || error.code === 'PGRST116') {
         toast.error(
-          'Tabela pending_memes não encontrada. Execute o script SQL primeiro!',
+          'Tabela memes não encontrada. Execute o script SQL primeiro!',
           {
             duration: 8000,
           },

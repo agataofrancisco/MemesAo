@@ -153,7 +153,7 @@ DECLARE
   pending_count INTEGER;
 BEGIN
   -- Verificar se já existem memes pendentes
-  SELECT COUNT(*) INTO pending_count FROM pending_memes WHERE status = 'pending';
+  SELECT COUNT(*) INTO pending_count FROM memes WHERE status = 'pending';
   
   -- Se não houver memes pendentes, criar alguns exemplos
   IF pending_count = 0 THEN
@@ -162,7 +162,7 @@ BEGIN
     SELECT id INTO categoria_reacao_id FROM categories WHERE slug = 'reacao' LIMIT 1;
     
     -- Inserir memes pendentes de exemplo
-    INSERT INTO pending_memes (
+    INSERT INTO memes (
       title, 
       description, 
       image_url, 
@@ -203,7 +203,7 @@ END $$;
 SELECT 
   (SELECT COUNT(*) FROM categories) as total_categorias,
   (SELECT COUNT(*) FROM memes WHERE status = 'approved') as memes_aprovados,
-  (SELECT COUNT(*) FROM pending_memes WHERE status = 'pending') as memes_pendentes,
+  (SELECT COUNT(*) FROM memes WHERE status = 'pending') as memes_pendentes,
   'Dados inseridos com sucesso!' as status;
 
 -- 8. Listar categorias criadas

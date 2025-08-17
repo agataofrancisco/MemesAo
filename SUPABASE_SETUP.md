@@ -1,14 +1,14 @@
-# Configuração do Supabase - Tabela pending_memes
+# Configuração do Supabase - Tabela memes
 
 ## ⚠️ IMPORTANTE: Executar no SQL Editor do Supabase
 
 Para implementar o sistema de moderação de memes, você precisa executar o seguinte código SQL no **SQL Editor** do seu projeto Supabase:
 
-## 🗄️ Criar Tabela pending_memes
+## 🗄️ Criar Tabela memes
 
 ```sql
 -- Criar tabela para memes pendentes de aprovação
-CREATE TABLE pending_memes (
+CREATE TABLE memes (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   title TEXT,
   description TEXT,
@@ -27,16 +27,16 @@ CREATE TABLE pending_memes (
 );
 
 -- Habilitar RLS
-ALTER TABLE pending_memes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE memes ENABLE ROW LEVEL SECURITY;
 
--- Políticas de RLS para pending_memes
-CREATE POLICY "Usuários podem inserir próprios memes pendentes" ON pending_memes
+-- Políticas de RLS para memes
+CREATE POLICY "Usuários podem inserir próprios memes pendentes" ON memes
   FOR INSERT WITH CHECK (uploaded_by = auth.uid());
 
-CREATE POLICY "Usuários podem ver próprios memes pendentes" ON pending_memes
+CREATE POLICY "Usuários podem ver próprios memes pendentes" ON memes
   FOR SELECT USING (uploaded_by = auth.uid());
 
-CREATE POLICY "Admins podem ver todos os memes pendentes" ON pending_memes
+CREATE POLICY "Admins podem ver todos os memes pendentes" ON memes
   FOR SELECT USING (
     EXISTS (
       SELECT 1 FROM profiles
@@ -45,7 +45,7 @@ CREATE POLICY "Admins podem ver todos os memes pendentes" ON pending_memes
     )
   );
 
-CREATE POLICY "Admins podem atualizar memes pendentes" ON pending_memes
+CREATE POLICY "Admins podem atualizar memes pendentes" ON memes
   FOR UPDATE USING (
     EXISTS (
       SELECT 1 FROM profiles
@@ -54,7 +54,7 @@ CREATE POLICY "Admins podem atualizar memes pendentes" ON pending_memes
     )
   );
 
-CREATE POLICY "Admins podem deletar memes pendentes" ON pending_memes
+CREATE POLICY "Admins podem deletar memes pendentes" ON memes
   FOR DELETE USING (
     EXISTS (
       SELECT 1 FROM profiles
@@ -71,7 +71,7 @@ DECLARE
   new_meme_id UUID;
 BEGIN
   -- Buscar o meme pendente
-  SELECT * INTO pending_meme FROM pending_memes WHERE id = pending_id AND status = 'pending';
+  SELECT * INTO pending_meme FROM memes WHERE id = pending_id AND status = 'pending';
 
   IF NOT FOUND THEN
     RAISE EXCEPTION 'Meme pendente não encontrado ou já processado';
@@ -87,7 +87,7 @@ BEGIN
   ) RETURNING id INTO new_meme_id;
 
   -- Atualizar status do meme pendente
-  UPDATE pending_memes
+  UPDATE memes
   SET status = 'approved', reviewed_by = reviewer_id, reviewed_at = NOW()
   WHERE id = pending_id;
 
@@ -99,7 +99,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE OR REPLACE FUNCTION reject_pending_meme(pending_id UUID, reviewer_id UUID, reason TEXT DEFAULT NULL)
 RETURNS BOOLEAN AS $$
 BEGIN
-  UPDATE pending_memes
+  UPDATE memes
   SET status = 'rejected', reviewed_by = reviewer_id, reviewed_at = NOW(), rejection_reason = reason
   WHERE id = pending_id AND status = 'pending';
 
@@ -108,7 +108,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Trigger para atualizar updated_at
-CREATE OR REPLACE FUNCTION update_pending_memes_updated_at()
+CREATE OR REPLACE FUNCTION update_memes_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
   NEW.updated_at = NOW();
@@ -116,16 +116,16 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER update_pending_memes_updated_at_trigger
-  BEFORE UPDATE ON pending_memes
+CREATE TRIGGER update_memes_updated_at_trigger
+  BEFORE UPDATE ON memes
   FOR EACH ROW
-  EXECUTE FUNCTION update_pending_memes_updated_at();
+  EXECUTE FUNCTION update_memes_updated_at();
 
 -- Índices para performance
-CREATE INDEX idx_pending_memes_status ON pending_memes(status);
-CREATE INDEX idx_pending_memes_uploaded_by ON pending_memes(uploaded_by);
-CREATE INDEX idx_pending_memes_category ON pending_memes(category);
-CREATE INDEX idx_pending_memes_extracted_text ON pending_memes USING gin(to_tsvector('portuguese', extracted_text));
+CREATE INDEX idx_memes_status ON memes(status);
+CREATE INDEX idx_memes_uploaded_by ON memes(uploaded_by);
+CREATE INDEX idx_memes_category ON memes(category);
+CREATE INDEX idx_memes_extracted_text ON memes USING gin(to_tsvector('portuguese', extracted_text));
 ```
 
 ## 🎯 Criar Memes de Exemplo (OPCIONAL)
@@ -161,8 +161,8 @@ SELECT * FROM (
 ) AS v(title, description, image_url, image_path, category_id, status, view_count, download_count, ocr_text);
 
 -- Inserir memes pendentes de exemplo
--- Estes usam category (string) porque pending_memes tem estrutura diferente
-INSERT INTO pending_memes (title, description, image_url, category, status, extracted_text) VALUES
+-- Estes usam category (string) porque memes tem estrutura diferente
+INSERT INTO memes (title, description, image_url, category, status, extracted_text) VALUES
 ('Novo meme pendente', 'Aguardando aprovação', 'https://picsum.photos/400/400?random=6', 'Cotidiano', 'pending', 'novo meme aguardando aprovacao'),
 ('Outro meme', 'Também pendente', 'https://picsum.photos/400/400?random=7', 'Tecnologia', 'pending', 'outro meme pendente tecnologia');
 
@@ -187,7 +187,7 @@ UPDATE categories SET meme_count = (
 
 ### 🔍 **Sistema de Moderação**
 
-- Todos os uploads vão para `pending_memes`
+- Todos os uploads vão para `memes`
 - Admins/moderadores aprovam ou rejeitam
 - Memes aprovados são movidos para `memes` principal
 
@@ -211,7 +211,7 @@ UPDATE categories SET meme_count = (
 
 ## 🚀 Como Testar
 
-1. **Upload um meme** - vai para pending_memes
+1. **Upload um meme** - vai para memes
 2. **Login como admin** - acesse o painel administrativo
 3. **Modere memes** - aprove ou rejeite uploads
 4. **Teste OCR** - tente fazer upload de imagem similar
@@ -233,7 +233,7 @@ WHERE email = 'seu-email@exemplo.com';
 - Certifique-se de executar TODO o código SQL
 - Verifique se não houve erros na execução
 
-### Erro: "relation pending_memes does not exist"
+### Erro: "relation memes does not exist"
 
 - A tabela não foi criada
 - Execute novamente a primeira parte do script

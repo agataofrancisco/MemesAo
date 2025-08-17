@@ -15,8 +15,8 @@ LIMIT 10;
 -- 2. Verificar memes pendentes
 SELECT 
   id, title, status, category_id, created_at,
-  (SELECT name FROM categories WHERE id = pending_memes.category_id) as category_name
-FROM pending_memes 
+  (SELECT name FROM categories WHERE id = memes.category_id) as category_name
+FROM memes 
 WHERE status = 'pending' 
 ORDER BY created_at DESC 
 LIMIT 10;
@@ -55,21 +55,21 @@ LEFT JOIN profiles ON memes.uploaded_by = profiles.id
 ORDER BY memes.created_at DESC
 LIMIT 5;
 
--- 6. Verificar query de pending_memes do AdminDashboard
+-- 6. Verificar query de memes do AdminDashboard
 SELECT 
-  pending_memes.*,
+  memes.*,
   profiles.username as profile_username,
   profiles.avatar_url as profile_avatar
-FROM pending_memes
-LEFT JOIN profiles ON pending_memes.uploaded_by = profiles.id
-WHERE pending_memes.status = 'pending'
-ORDER BY pending_memes.created_at DESC;
+FROM memes
+LEFT JOIN profiles ON memes.uploaded_by = profiles.id
+WHERE memes.status = 'pending'
+ORDER BY memes.created_at DESC;
 
 -- 7. Verificar se há problema com RLS (Row Level Security)
 -- Mostrar políticas ativas
 SELECT schemaname, tablename, policyname, roles, cmd, qual
 FROM pg_policies 
-WHERE tablename IN ('memes', 'pending_memes')
+WHERE tablename IN ('memes', 'memes')
 ORDER BY tablename, policyname;
 
 -- 8. Testar acesso anônimo aos memes (como o site faz)

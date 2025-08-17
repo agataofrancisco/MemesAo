@@ -57,5 +57,5 @@
 
 -- Table: reports (no data found)
 
--- Table: pending_memes (no data found)
+-- Table: memes (no data found)
 

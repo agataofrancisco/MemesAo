@@ -26,7 +26,7 @@ export default function TestMemes() {
 
       // Testar memes pendentes
       const { data: pendingData, error: pendingError } = await supabase
-        .from('pending_memes')
+        .from('memes')
         .select('*')
         .limit(5)
 

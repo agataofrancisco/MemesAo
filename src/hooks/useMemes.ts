@@ -177,7 +177,7 @@ export function useMemes() {
 
       // Verificar duplicados nos memes pendentes
       const { data: pendingMemes, error: pendingError } = await supabase
-        .from("pending_memes")
+        .from("memes")
         .select("id, extracted_text")
         .eq("status", "pending")
         .not("extracted_text", "is", null);
@@ -273,10 +273,10 @@ export function useMemes() {
         data: { publicUrl },
       } = supabase.storage.from("memes").getPublicUrl(filePath);
 
-      // 5. Inserir na tabela pending_memes
+      // 5. Inserir na tabela memes
       toast.loading("Salvando meme para aprovação...", { id: "upload" });
       const { data, error } = await supabase
-        .from("pending_memes")
+        .from("memes")
         .insert({
           title,
           description,

@@ -58,14 +58,14 @@ export default function DebugPanel() {
             SELECT table_name 
             FROM information_schema.tables 
             WHERE table_schema = 'public' 
-            AND table_name IN ('memes', 'pending_memes', 'categories', 'profiles')
+            AND table_name IN ('memes', 'memes', 'categories', 'profiles')
           `,
         },
       )
 
       if (tablesError) {
         // Fallback: tentar verificar tabelas individualmente
-        const tableChecks = ['memes', 'pending_memes', 'categories', 'profiles']
+        const tableChecks = ['memes', 'memes', 'categories', 'profiles']
         for (const table of tableChecks) {
           try {
             const { error } = await supabase
@@ -100,24 +100,24 @@ export default function DebugPanel() {
         }
       }
 
-      if (tables.includes('pending_memes')) {
+      if (tables.includes('memes')) {
         try {
           const { count: pendingCount } = await supabase
-            .from('pending_memes')
+            .from('memes')
             .select('*', { count: 'exact', head: true })
           counts.pendingMemes = pendingCount || 0
 
           const { count: pendingPendingCount } = await supabase
-            .from('pending_memes')
+            .from('memes')
             .select('*', { count: 'exact', head: true })
             .eq('status', 'pending')
           counts.pendingMemesPending = pendingPendingCount || 0
         } catch (e) {
-          errors.push(`Erro ao contar pending_memes: ${e.message}`)
+          errors.push(`Erro ao contar memes: ${e.message}`)
         }
       } else {
         errors.push(
-          'Tabela pending_memes não existe - execute o script create_pending_memes_table.sql',
+          'Tabela memes não existe - execute o script create_memes_table.sql',
         )
       }
 
@@ -179,26 +179,24 @@ export default function DebugPanel() {
             Tabelas:
           </h4>
           <div className="space-y-1">
-            {['memes', 'pending_memes', 'categories', 'profiles'].map(
-              (table) => (
-                <div key={table} className="flex items-center space-x-2">
-                  {debugInfo.tables.includes(table) ? (
-                    <Check className="h-3 w-3 text-green-500" />
-                  ) : (
-                    <X className="h-3 w-3 text-red-500" />
-                  )}
-                  <span
-                    className={
-                      debugInfo.tables.includes(table)
-                        ? 'text-green-600 dark:text-green-400'
-                        : 'text-red-600 dark:text-red-400'
-                    }
-                  >
-                    {table}
-                  </span>
-                </div>
-              ),
-            )}
+            {['memes', 'memes', 'categories', 'profiles'].map((table) => (
+              <div key={table} className="flex items-center space-x-2">
+                {debugInfo.tables.includes(table) ? (
+                  <Check className="h-3 w-3 text-green-500" />
+                ) : (
+                  <X className="h-3 w-3 text-red-500" />
+                )}
+                <span
+                  className={
+                    debugInfo.tables.includes(table)
+                      ? 'text-green-600 dark:text-green-400'
+                      : 'text-red-600 dark:text-red-400'
+                  }
+                >
+                  {table}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -244,9 +242,9 @@ export default function DebugPanel() {
               Ações:
             </h4>
             <div className="text-xs space-y-1">
-              {!debugInfo.tables.includes('pending_memes') && (
+              {!debugInfo.tables.includes('memes') && (
                 <div className="text-blue-600 dark:text-blue-400">
-                  → Execute create_pending_memes_table.sql no Supabase
+                  → Execute create_memes_table.sql no Supabase
                 </div>
               )}
               {debugInfo.counts.categories === 0 && (

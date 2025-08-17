@@ -1,10 +1,10 @@
 -- ================================================
--- TABELA PENDING_MEMES COM VERIFICAÇÃO OCR
+-- TABELA memes COM VERIFICAÇÃO OCR
 -- ================================================
 -- Execute este código no SQL Editor do Supabase
 
--- 1. Criar tabela pending_memes
-CREATE TABLE IF NOT EXISTS pending_memes (
+-- 1. Criar tabela memes
+CREATE TABLE IF NOT EXISTS memes (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   title TEXT,
   description TEXT,
@@ -29,23 +29,23 @@ CREATE TABLE IF NOT EXISTS pending_memes (
 );
 
 -- 2. Habilitar RLS
-ALTER TABLE pending_memes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE memes ENABLE ROW LEVEL SECURITY;
 
 -- 3. Criar índices para performance
-CREATE INDEX IF NOT EXISTS idx_pending_memes_status ON pending_memes(status);
-CREATE INDEX IF NOT EXISTS idx_pending_memes_uploaded_by ON pending_memes(uploaded_by);
-CREATE INDEX IF NOT EXISTS idx_pending_memes_category ON pending_memes(category_id);
-CREATE INDEX IF NOT EXISTS idx_pending_memes_extracted_text ON pending_memes USING gin(to_tsvector('portuguese', extracted_text));
-CREATE INDEX IF NOT EXISTS idx_pending_memes_similarity ON pending_memes(similarity_score DESC);
+CREATE INDEX IF NOT EXISTS idx_memes_status ON memes(status);
+CREATE INDEX IF NOT EXISTS idx_memes_uploaded_by ON memes(uploaded_by);
+CREATE INDEX IF NOT EXISTS idx_memes_category ON memes(category_id);
+CREATE INDEX IF NOT EXISTS idx_memes_extracted_text ON memes USING gin(to_tsvector('portuguese', extracted_text));
+CREATE INDEX IF NOT EXISTS idx_memes_similarity ON memes(similarity_score DESC);
 
--- 4. Políticas RLS para pending_memes
-CREATE POLICY "Usuários podem inserir próprios memes pendentes" ON pending_memes
+-- 4. Políticas RLS para memes
+CREATE POLICY "Usuários podem inserir próprios memes pendentes" ON memes
   FOR INSERT WITH CHECK (uploaded_by = auth.uid());
 
-CREATE POLICY "Usuários podem ver próprios memes pendentes" ON pending_memes
+CREATE POLICY "Usuários podem ver próprios memes pendentes" ON memes
   FOR SELECT USING (uploaded_by = auth.uid());
 
-CREATE POLICY "Admins podem ver todos os memes pendentes" ON pending_memes
+CREATE POLICY "Admins podem ver todos os memes pendentes" ON memes
   FOR SELECT USING (
     EXISTS (
       SELECT 1 FROM profiles 
@@ -54,7 +54,7 @@ CREATE POLICY "Admins podem ver todos os memes pendentes" ON pending_memes
     )
   );
 
-CREATE POLICY "Admins podem atualizar memes pendentes" ON pending_memes
+CREATE POLICY "Admins podem atualizar memes pendentes" ON memes
   FOR UPDATE USING (
     EXISTS (
       SELECT 1 FROM profiles 
@@ -63,7 +63,7 @@ CREATE POLICY "Admins podem atualizar memes pendentes" ON pending_memes
     )
   );
 
-CREATE POLICY "Admins podem deletar memes pendentes" ON pending_memes
+CREATE POLICY "Admins podem deletar memes pendentes" ON memes
   FOR DELETE USING (
     EXISTS (
       SELECT 1 FROM profiles 
@@ -106,7 +106,7 @@ DECLARE
   new_meme_id UUID;
 BEGIN
   -- Buscar o meme pendente
-  SELECT * INTO pending_meme FROM pending_memes WHERE id = pending_id AND status = 'pending';
+  SELECT * INTO pending_meme FROM memes WHERE id = pending_id AND status = 'pending';
   
   IF NOT FOUND THEN
     RAISE EXCEPTION 'Meme pendente não encontrado ou já processado';
@@ -131,7 +131,7 @@ BEGIN
   END IF;
   
   -- Atualizar status do meme pendente
-  UPDATE pending_memes 
+  UPDATE memes 
   SET status = 'approved', reviewed_by = reviewer_id, reviewed_at = NOW()
   WHERE id = pending_id;
   
@@ -143,7 +143,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE OR REPLACE FUNCTION reject_pending_meme(pending_id UUID, reviewer_id UUID, reason TEXT DEFAULT NULL)
 RETURNS BOOLEAN AS $$
 BEGIN
-  UPDATE pending_memes 
+  UPDATE memes 
   SET status = 'rejected', reviewed_by = reviewer_id, reviewed_at = NOW(), rejection_reason = reason
   WHERE id = pending_id AND status = 'pending';
   
@@ -152,7 +152,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- 8. Trigger para atualizar updated_at
-CREATE OR REPLACE FUNCTION update_pending_memes_updated_at()
+CREATE OR REPLACE FUNCTION update_memes_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
   NEW.updated_at = NOW();
@@ -160,10 +160,10 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER update_pending_memes_updated_at_trigger
-  BEFORE UPDATE ON pending_memes
+CREATE TRIGGER update_memes_updated_at_trigger
+  BEFORE UPDATE ON memes
   FOR EACH ROW
-  EXECUTE FUNCTION update_pending_memes_updated_at();
+  EXECUTE FUNCTION update_memes_updated_at();
 
 -- 9. Trigger para verificar duplicados automaticamente
 CREATE OR REPLACE FUNCTION check_pending_meme_duplicates()
@@ -190,12 +190,12 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER check_pending_meme_duplicates_trigger
-  BEFORE INSERT ON pending_memes
+  BEFORE INSERT ON memes
   FOR EACH ROW
   EXECUTE FUNCTION check_pending_meme_duplicates();
 
 -- 10. Função para obter estatísticas de memes pendentes
-CREATE OR REPLACE FUNCTION get_pending_memes_stats()
+CREATE OR REPLACE FUNCTION get_memes_stats()
 RETURNS TABLE(
   total_pending INTEGER,
   approved_today INTEGER,
@@ -205,10 +205,10 @@ RETURNS TABLE(
 BEGIN
   RETURN QUERY
   SELECT 
-    (SELECT COUNT(*)::INTEGER FROM pending_memes WHERE status = 'pending'),
-    (SELECT COUNT(*)::INTEGER FROM pending_memes WHERE status = 'approved' AND reviewed_at::DATE = CURRENT_DATE),
-    (SELECT COUNT(*)::INTEGER FROM pending_memes WHERE status = 'rejected' AND reviewed_at::DATE = CURRENT_DATE),
-    (SELECT ROUND(AVG(similarity_score), 2) FROM pending_memes WHERE status = 'pending');
+    (SELECT COUNT(*)::INTEGER FROM memes WHERE status = 'pending'),
+    (SELECT COUNT(*)::INTEGER FROM memes WHERE status = 'approved' AND reviewed_at::DATE = CURRENT_DATE),
+    (SELECT COUNT(*)::INTEGER FROM memes WHERE status = 'rejected' AND reviewed_at::DATE = CURRENT_DATE),
+    (SELECT ROUND(AVG(similarity_score), 2) FROM memes WHERE status = 'pending');
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -216,8 +216,8 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- INSTRUÇÕES DE USO:
 -- ================================================
 -- 1. Execute este script no SQL Editor do Supabase
--- 2. A tabela pending_memes será criada com verificação automática de duplicados
+-- 2. A tabela memes será criada com verificação automática de duplicados
 -- 3. Memes com similaridade > 85% são rejeitados automaticamente
 -- 4. Use approve_pending_meme(id, reviewer_id) para aprovar
 -- 5. Use reject_pending_meme(id, reviewer_id, 'motivo') para rejeitar
--- 6. Use get_pending_memes_stats() para estatísticas 
+-- 6. Use get_memes_stats() para estatísticas 

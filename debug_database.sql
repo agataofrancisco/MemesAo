@@ -7,14 +7,14 @@
 SELECT table_name 
 FROM information_schema.tables 
 WHERE table_schema = 'public' 
-AND table_name IN ('memes', 'pending_memes', 'categories', 'profiles');
+AND table_name IN ('memes', 'memes', 'categories', 'profiles');
 
 -- 2. Contar registros em cada tabela
 SELECT 
   (SELECT COUNT(*) FROM memes) as total_memes,
   (SELECT COUNT(*) FROM memes WHERE status = 'approved') as memes_aprovados,
-  (SELECT COUNT(*) FROM pending_memes) as total_pending,
-  (SELECT COUNT(*) FROM pending_memes WHERE status = 'pending') as pending_aguardando,
+  (SELECT COUNT(*) FROM memes) as total_pending,
+  (SELECT COUNT(*) FROM memes WHERE status = 'pending') as pending_aguardando,
   (SELECT COUNT(*) FROM categories) as total_categorias,
   (SELECT COUNT(*) FROM profiles) as total_usuarios;
 
@@ -24,10 +24,10 @@ FROM information_schema.columns
 WHERE table_name = 'memes' 
 ORDER BY ordinal_position;
 
--- 4. Verificar estrutura da tabela pending_memes
+-- 4. Verificar estrutura da tabela memes
 SELECT column_name, data_type, is_nullable 
 FROM information_schema.columns 
-WHERE table_name = 'pending_memes' 
+WHERE table_name = 'memes' 
 ORDER BY ordinal_position;
 
 -- 5. Listar categorias existentes
@@ -44,7 +44,7 @@ LIMIT 5;
 
 -- 7. Listar memes pendentes (últimos 5)
 SELECT id, title, status, category_id, created_at
-FROM pending_memes 
+FROM memes 
 ORDER BY created_at DESC 
 LIMIT 5;
 
@@ -56,7 +56,7 @@ WHERE category_id IS NULL;
 -- 9. Verificar políticas RLS ativas
 SELECT schemaname, tablename, policyname, permissive, roles, cmd, qual
 FROM pg_policies 
-WHERE tablename IN ('memes', 'pending_memes', 'categories')
+WHERE tablename IN ('memes', 'memes', 'categories')
 ORDER BY tablename, policyname;
 
 -- 10. Verificar se a função check_meme_duplicates existe
@@ -118,7 +118,7 @@ INSERT INTO memes (
 
 -- Inserir um meme pendente de teste (SE NECESSÁRIO):
 /*
-INSERT INTO pending_memes (
+INSERT INTO memes (
   title, 
   description, 
   image_url, 
