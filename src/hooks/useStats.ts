@@ -19,22 +19,27 @@ interface CategoryStats {
 
 export function useStats() {
   const [stats, setStats] = useState<Stats>({
-    totalMemes: 6,
-    totalDownloads: 23,
-    totalUsers: 4,
-    totalFavorites: 12,
+    totalMemes: 0,
+    totalDownloads: 0,
+    totalUsers: 0,
+    totalFavorites: 0,
   });
 
   const [categories, setCategories] = useState<CategoryStats[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const loadStats = async () => {
     if (!isSupabaseConfigured || !supabase) {
+      setError("Supabase não configurado");
       setLoading(false);
       return;
     }
 
     try {
+      setError(null);
+      console.log("Carregando estatísticas do Supabase...");
+
       // Buscar estatísticas reais do banco
       const [memesResult, usersResult, downloadsResult, favoritesResult] =
         await Promise.all([
@@ -53,91 +58,42 @@ export function useStats() {
             .select("id", { count: "exact", head: true }),
         ]);
 
-      setStats({
+      // Verificar se houve erros
+      if (memesResult.error) throw memesResult.error;
+      if (usersResult.error) throw usersResult.error;
+      if (downloadsResult.error) throw downloadsResult.error;
+      if (favoritesResult.error) throw favoritesResult.error;
+
+      const newStats = {
         totalMemes: memesResult.count || 0,
         totalUsers: usersResult.count || 0,
         totalDownloads: downloadsResult.count || 0,
         totalFavorites: favoritesResult.count || 0,
-      });
+      };
+
+      console.log("Estatísticas carregadas:", newStats);
+      setStats(newStats);
     } catch (error) {
       console.error("Erro ao carregar estatísticas:", error);
+      setError(
+        `Erro ao carregar estatísticas: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
     }
   };
 
   const loadCategories = async () => {
     if (!isSupabaseConfigured || !supabase) {
-      // Categorias mock quando Supabase não está configurado
-      setCategories([
-        {
-          id: "1",
-          name: "Reação",
-          count: 2,
-          icon: "Smile",
-          color: "from-primary-500 to-blue-500",
-          description: "Expressões e reações",
-        },
-        {
-          id: "2",
-          name: "Games",
-          count: 1,
-          icon: "Gamepad",
-          color: "from-purple-500 to-pink-500",
-          description: "Mundo dos jogos",
-        },
-        {
-          id: "3",
-          name: "Filmes/TV",
-          count: 0,
-          icon: "Film",
-          color: "from-teal-500 to-green-500",
-          description: "Cinema e televisão",
-        },
-        {
-          id: "4",
-          name: "Esportes",
-          count: 1,
-          icon: "Trophy",
-          color: "from-accent-500 to-red-500",
-          description: "Futebol e outros esportes",
-        },
-        {
-          id: "5",
-          name: "Trabalho",
-          count: 0,
-          icon: "Briefcase",
-          color: "from-indigo-500 to-purple-500",
-          description: "Vida profissional",
-        },
-        {
-          id: "6",
-          name: "Amor",
-          count: 0,
-          icon: "Heart",
-          color: "from-pink-500 to-red-500",
-          description: "Relacionamentos",
-        },
-        {
-          id: "7",
-          name: "Música",
-          count: 0,
-          icon: "Music",
-          color: "from-green-500 to-teal-500",
-          description: "Artistas e música",
-        },
-        {
-          id: "8",
-          name: "Cotidiano",
-          count: 2,
-          icon: "Coffee",
-          color: "from-yellow-500 to-orange-500",
-          description: "Dia a dia angolano",
-        },
-      ]);
+      setError("Supabase não configurado");
       setLoading(false);
       return;
     }
 
     try {
+      setError(null);
+      console.log("Carregando categorias do Supabase...");
+
       // Buscar categorias do banco de dados
       const { data: categoriesData, error } = await supabase
         .from("categories")
@@ -146,20 +102,43 @@ export function useStats() {
 
       if (error) {
         console.error("Erro ao buscar categorias:", error);
-        // Se falhar, usar categorias mock
+        throw error;
+      }
+
+      console.log("Categorias encontradas:", categoriesData?.length || 0);
+
+      if (!categoriesData || categoriesData.length === 0) {
+        console.log("Nenhuma categoria encontrada no banco");
         setCategories([]);
         return;
       }
 
       // Para cada categoria, contar memes aprovados
+      console.log("Contando memes por categoria...");
       const categoriesWithCount = await Promise.all(
-        (categoriesData || []).map(async (category) => {
+        categoriesData.map(async (category) => {
           try {
-            const { count } = await supabase
+            const { count, error: countError } = await supabase
               .from("memes")
               .select("*", { count: "exact", head: true })
               .eq("category_id", category.id)
               .eq("status", "approved");
+
+            if (countError) {
+              console.error(
+                `Erro ao contar memes da categoria ${category.name}:`,
+                countError
+              );
+              return {
+                id: category.id,
+                name: category.name,
+                count: 0,
+                icon: category.icon || "Tag",
+                color: category.color || "from-gray-500 to-gray-600",
+                description:
+                  category.description || `Categoria ${category.name}`,
+              };
+            }
 
             return {
               id: category.id,
@@ -171,7 +150,7 @@ export function useStats() {
             };
           } catch (error) {
             console.error(
-              `Erro ao contar memes da categoria ${category.name}:`,
+              `Erro ao processar categoria ${category.name}:`,
               error
             );
             return {
@@ -186,12 +165,12 @@ export function useStats() {
         })
       );
 
+      console.log("Categorias processadas:", categoriesWithCount);
       setCategories(categoriesWithCount);
     } catch (error) {
       console.error("Erro ao carregar categorias:", error);
+      setError(`Erro ao carregar categorias: ${error.message}`);
       setCategories([]);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -199,8 +178,13 @@ export function useStats() {
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
+      setError(null);
+
+      console.log("Iniciando carregamento de dados...");
       await Promise.all([loadStats(), loadCategories()]);
+
       setLoading(false);
+      console.log("Carregamento de dados concluído");
     };
 
     loadData();
@@ -210,10 +194,12 @@ export function useStats() {
     stats,
     categories,
     loading,
+    error,
     refreshStats: loadStats,
     refreshCategories: loadCategories,
     refresh: async () => {
       setLoading(true);
+      setError(null);
       await Promise.all([loadStats(), loadCategories()]);
       setLoading(false);
     },
