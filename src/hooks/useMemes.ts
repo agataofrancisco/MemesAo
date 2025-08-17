@@ -14,25 +14,20 @@ interface UploadResult {
 export function useMemes() {
   const [memes, setMemes] = useState<Meme[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [favorites, setFavorites] = useState<string[]>([]);
   const { user } = useAuth();
   const { extractText } = useOCR();
 
-  // Callback para notificar mudanças nos memes (usado pelo useStats)
-  const [memesChangeCallback, setMemesChangeCallback] = useState<
-    (() => void) | null
-  >(null);
-
   const loadMemes = useCallback(async () => {
     if (!isSupabaseConfigured || !supabase) {
-      console.log("Supabase não configurado, usando dados mock");
-      // Dados mock para desenvolvimento
-      setMemes([]);
+      setError("Supabase não configurado");
       setLoading(false);
       return;
     }
 
     try {
+      setError(null);
       console.log("Carregando memes do Supabase...");
 
       // Query simplificada primeiro - buscar apenas memes aprovados
@@ -69,6 +64,7 @@ export function useMemes() {
       console.log(`Encontrados ${memesData?.length || 0} memes`);
 
       if (!memesData || memesData.length === 0) {
+        console.log("Nenhum meme encontrado no banco");
         setMemes([]);
         setLoading(false);
         return;
@@ -120,6 +116,9 @@ export function useMemes() {
       setMemes(transformedMemes);
     } catch (error) {
       console.error("Erro ao carregar memes:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      setError(`Erro ao carregar memes: ${errorMessage}`);
       toast.error("Erro ao carregar memes");
       setMemes([]);
     } finally {
@@ -135,7 +134,7 @@ export function useMemes() {
     setFavorites(localFavorites);
 
     // Se o usuário estiver logado, também carregar do Supabase
-    if (user && isSupabaseConfigured) {
+    if (user && isSupabaseConfigured && supabase) {
       try {
         const { data, error } = await supabase
           .from("user_favorites")
@@ -163,7 +162,8 @@ export function useMemes() {
   const checkDuplicateByOCR = async (
     extractedText: string
   ): Promise<boolean> => {
-    if (!isSupabaseConfigured || !extractedText.trim()) return false;
+    if (!isSupabaseConfigured || !extractedText.trim() || !supabase)
+      return false;
 
     try {
       // Verificar duplicados nos memes aprovados
@@ -204,11 +204,6 @@ export function useMemes() {
       };
 
       // Verificar similaridade com texto extraído
-      const inputWords = extractedText
-        .toLowerCase()
-        .split(/\s+/)
-        .filter((word) => word.length > 2);
-
       for (const meme of allMemes) {
         const memeText = meme.ocr_text || meme.extracted_text;
         if (memeText) {
@@ -235,7 +230,7 @@ export function useMemes() {
     category: string,
     tags: string[] = []
   ): Promise<UploadResult> => {
-    if (!isSupabaseConfigured) {
+    if (!isSupabaseConfigured || !supabase) {
       return { success: false, message: "Supabase não configurado" };
     }
 
@@ -322,7 +317,7 @@ export function useMemes() {
     localStorage.setItem("favorites", JSON.stringify(newFavorites));
 
     // Se usuário logado, tentar salvar no Supabase também
-    if (user && isSupabaseConfigured) {
+    if (user && isSupabaseConfigured && supabase) {
       try {
         if (isFavorited) {
           await supabase
@@ -354,7 +349,7 @@ export function useMemes() {
   const downloadMeme = async (meme: Meme) => {
     try {
       // Registrar download no Supabase se possível
-      if (isSupabaseConfigured) {
+      if (isSupabaseConfigured && supabase) {
         await supabase.from("meme_downloads").insert({
           meme_id: meme.id,
           user_id: user?.id || null,
@@ -388,7 +383,7 @@ export function useMemes() {
     query: string,
     category?: string
   ): Promise<Meme[]> => {
-    if (!isSupabaseConfigured) return [];
+    if (!isSupabaseConfigured || !supabase) return [];
 
     try {
       let queryBuilder = supabase
@@ -477,6 +472,7 @@ export function useMemes() {
   return {
     memes,
     loading,
+    error,
     favorites,
     toggleFavorite,
     downloadMeme,

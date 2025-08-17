@@ -10,6 +10,7 @@ import {
   Music,
   Coffee,
   Tag,
+  AlertCircle,
 } from 'lucide-react'
 import { useStats } from '../hooks/useStats'
 
@@ -25,90 +26,18 @@ const iconMap = {
   Tag: Tag,
 }
 
-// Categorias mock para quando não há dados no banco
-const mockCategories = [
-  {
-    id: '1',
-    name: 'Reação',
-    count: 2,
-    icon: 'Smile',
-    color: 'from-primary-500 to-blue-500',
-    description: 'Expressões e reações do dia a dia',
-  },
-  {
-    id: '2',
-    name: 'Games',
-    count: 1,
-    icon: 'Gamepad',
-    color: 'from-purple-500 to-pink-500',
-    description: 'Mundo dos jogos e gaming',
-  },
-  {
-    id: '3',
-    name: 'Filmes/TV',
-    count: 0,
-    icon: 'Film',
-    color: 'from-teal-500 to-green-500',
-    description: 'Cinema e televisão',
-  },
-  {
-    id: '4',
-    name: 'Esportes',
-    count: 1,
-    icon: 'Trophy',
-    color: 'from-accent-500 to-red-500',
-    description: 'Futebol e outros esportes',
-  },
-  {
-    id: '5',
-    name: 'Trabalho',
-    count: 0,
-    icon: 'Briefcase',
-    color: 'from-indigo-500 to-purple-500',
-    description: 'Vida profissional',
-  },
-  {
-    id: '6',
-    name: 'Amor',
-    count: 0,
-    icon: 'Heart',
-    color: 'from-pink-500 to-red-500',
-    description: 'Relacionamentos e amor',
-  },
-  {
-    id: '7',
-    name: 'Música',
-    count: 0,
-    icon: 'Music',
-    color: 'from-green-500 to-teal-500',
-    description: 'Artistas e música',
-  },
-  {
-    id: '8',
-    name: 'Cotidiano',
-    count: 2,
-    icon: 'Coffee',
-    color: 'from-yellow-500 to-orange-500',
-    description: 'Dia a dia angolano',
-  },
-]
-
 interface CategoriesProps {
   onCategoryClick?: (categoryName: string) => void
 }
 
 export default function Categories({ onCategoryClick }: CategoriesProps) {
-  const { categories: dbCategories, loading } = useStats()
+  const { categories, loading, error } = useStats()
 
   const handleCategoryClick = (categoryName: string) => {
     if (onCategoryClick) {
       onCategoryClick(categoryName)
     }
   }
-
-  // Usar categorias do banco se disponíveis, senão usar mock
-  const categoriesToShow =
-    dbCategories.length > 0 ? dbCategories : mockCategories
 
   if (loading) {
     return (
@@ -144,6 +73,37 @@ export default function Categories({ onCategoryClick }: CategoriesProps) {
     )
   }
 
+  if (error) {
+    return (
+      <section
+        id="categorias"
+        className="py-20 bg-white/30 dark:bg-gray-800/30 backdrop-blur-sm"
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+              Categorias Populares
+            </h2>
+            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+              Explore os memes organizados por categoria para encontrar
+              exatamente o que procura
+            </p>
+          </div>
+
+          <div className="text-center py-12">
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-8 max-w-md mx-auto">
+              <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-red-800 dark:text-red-200 mb-2">
+                Erro ao carregar categorias
+              </h3>
+              <p className="text-red-600 dark:text-red-300 text-sm">{error}</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
   return (
     <section
       id="categorias"
@@ -166,18 +126,21 @@ export default function Categories({ onCategoryClick }: CategoriesProps) {
           </p>
         </motion.div>
 
-        {categoriesToShow.length === 0 ? (
+        {categories.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-gray-500 dark:text-gray-400 text-lg">
-              Nenhuma categoria disponível no momento.
-            </p>
-            <p className="text-gray-400 dark:text-gray-500 text-sm mt-2">
-              Configure o Supabase para ver as categorias da comunidade.
-            </p>
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-8 shadow-lg border border-gray-200 dark:border-gray-700 max-w-md mx-auto">
+              <Tag className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                Nenhuma categoria encontrada
+              </h3>
+              <p className="text-gray-500 dark:text-gray-400 text-sm">
+                Não há categorias cadastradas no banco de dados.
+              </p>
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {categoriesToShow.map((category, index) => {
+            {categories.map((category, index) => {
               const IconComponent =
                 iconMap[category.icon as keyof typeof iconMap] || Tag
 
@@ -191,7 +154,7 @@ export default function Categories({ onCategoryClick }: CategoriesProps) {
                   whileHover={{ scale: 1.05, y: -5 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => handleCategoryClick(category.name)}
-                  className={`bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-all duration-300 cursor-pointer group text-left w-full`}
+                  className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-all duration-300 cursor-pointer group text-left w-full"
                 >
                   <div
                     className={`inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r ${category.color} rounded-full mb-4 group-hover:scale-110 transition-transform duration-300`}
@@ -222,18 +185,6 @@ export default function Categories({ onCategoryClick }: CategoriesProps) {
                 </motion.button>
               )
             })}
-          </div>
-        )}
-
-        {/* Aviso quando usando dados mock */}
-        {dbCategories.length === 0 && (
-          <div className="mt-8 text-center">
-            <div className="inline-flex items-center px-4 py-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-              <div className="text-sm text-blue-700 dark:text-blue-300">
-                <strong>Modo Demo:</strong> Mostrando categorias de exemplo.{' '}
-                Configure o banco de dados para ver dados reais.
-              </div>
-            </div>
           </div>
         )}
       </div>
