@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   Users,
   Image,
@@ -12,10 +12,14 @@ import {
   Trash2,
   Search,
   Filter,
+  Plus,
+  Save,
+  X,
 } from 'lucide-react'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 import type { Meme, PendingMeme } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
+import { useAllCategories } from '../hooks/useAllCategories'
 import toast from 'react-hot-toast'
 
 interface PendingMemeWithProfile extends PendingMeme {
@@ -47,7 +51,18 @@ export default function AdminDashboard({
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
 
+  // Estados para CRUD de memes
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [editingMeme, setEditingMeme] = useState<Meme | null>(null)
+  const [editForm, setEditForm] = useState({
+    title: '',
+    description: '',
+    category_id: '',
+    status: 'pending',
+  })
+
   const { user, profile, loading: authLoading } = useAuth()
+  const { categories: allCategories } = useAllCategories()
 
   // Função para verificar se o usuário é admin/moderador
   const isAdmin = profile?.role === 'admin' || profile?.role === 'moderator'
@@ -610,6 +625,13 @@ export default function AdminDashboard({
                         </>
                       )}
                       <button
+                        onClick={() => openEditModal(meme)}
+                        className="p-1 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900 rounded"
+                        title="Editar"
+                      >
+                        <Edit size={16} />
+                      </button>
+                      <button
                         onClick={() => deleteMeme(meme.id)}
                         className="p-1 text-red-600 hover:bg-red-100 dark:hover:bg-red-900 rounded"
                         title="Excluir"
@@ -625,6 +647,178 @@ export default function AdminDashboard({
         </div>
       </div>
     </div>
+  )
+
+  // Funções CRUD para memes
+  const openEditModal = (meme: Meme) => {
+    setEditingMeme(meme)
+    setEditForm({
+      title: meme.title || '',
+      description: meme.description || '',
+      category_id: meme.category_id || '',
+      status: meme.status || 'pending',
+    })
+    setIsEditModalOpen(true)
+  }
+
+  const closeEditModal = () => {
+    setIsEditModalOpen(false)
+    setEditingMeme(null)
+    setEditForm({
+      title: '',
+      description: '',
+      category_id: '',
+      status: 'pending',
+    })
+  }
+
+  const updateMeme = async () => {
+    if (!editingMeme || !supabase) return
+
+    try {
+      const { error } = await supabase
+        .from('memes')
+        .update({
+          title: editForm.title,
+          description: editForm.description,
+          category_id: editForm.category_id,
+          status: editForm.status,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', editingMeme.id)
+
+      if (error) throw error
+
+      toast.success('Meme atualizado com sucesso!')
+      closeEditModal()
+      await loadDashboardData()
+    } catch (error) {
+      console.error('Erro ao atualizar meme:', error)
+      toast.error('Erro ao atualizar meme')
+    }
+  }
+
+  // Modal de edição
+  const renderEditModal = () => (
+    <AnimatePresence>
+      {isEditModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden"
+          >
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                Editar Meme
+              </h2>
+              <button
+                onClick={closeEditModal}
+                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4 max-h-[calc(90vh-140px)] overflow-y-auto">
+              {editingMeme && (
+                <div className="mb-4">
+                  <img
+                    src={editingMeme.image_url}
+                    alt={editingMeme.title || 'Meme'}
+                    className="w-full max-h-64 object-contain rounded-lg bg-gray-100 dark:bg-gray-700"
+                  />
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Título
+                </label>
+                <input
+                  type="text"
+                  value={editForm.title}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, title: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  placeholder="Título do meme"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Descrição
+                </label>
+                <textarea
+                  value={editForm.description}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, description: e.target.value })
+                  }
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white resize-none"
+                  placeholder="Descrição do meme"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Categoria
+                </label>
+                <select
+                  value={editForm.category_id}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, category_id: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                >
+                  <option value="">Selecione uma categoria</option>
+                  {allCategories.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Status
+                </label>
+                <select
+                  value={editForm.status}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, status: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                >
+                  <option value="pending">Pendente</option>
+                  <option value="approved">Aprovado</option>
+                  <option value="rejected">Rejeitado</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={closeEditModal}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={updateMeme}
+                className="px-4 py-2 bg-primary-500 text-white rounded-xl hover:bg-primary-600 transition-colors flex items-center"
+              >
+                <Save className="h-4 w-4 mr-2" />
+                Salvar
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
   )
 
   const tabs = [
@@ -710,6 +904,9 @@ export default function AdminDashboard({
           </div>
         </div>
       </motion.div>
+
+      {/* Modal de edição */}
+      {renderEditModal()}
     </div>
   )
 }

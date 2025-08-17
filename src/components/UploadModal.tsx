@@ -9,7 +9,7 @@ import {
   Loader,
 } from 'lucide-react'
 import { useMemes } from '../hooks/useMemes'
-import { useStats } from '../hooks/useStats'
+import { useAllCategories } from '../hooks/useAllCategories'
 import toast from 'react-hot-toast'
 
 interface UploadModalProps {
@@ -27,7 +27,7 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
   const [uploading, setUploading] = useState(false)
 
   const { uploadMeme } = useMemes()
-  const { categories, loading: categoriesLoading } = useStats()
+  const { categories, loading: categoriesLoading } = useAllCategories()
 
   // Reset form quando modal fecha
   useEffect(() => {
@@ -260,7 +260,7 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
                   <option value="">Selecione uma categoria</option>
                   {categories.map((category) => (
                     <option key={category.id} value={category.id}>
-                      {category.name} ({category.count} memes)
+                      {category.name}
                     </option>
                   ))}
                 </select>
