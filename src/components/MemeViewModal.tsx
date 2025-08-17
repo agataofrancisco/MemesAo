@@ -4,7 +4,6 @@ import {
   X,
   Heart,
   Download,
-  Eye,
   Calendar,
   User,
   Tag,
@@ -32,12 +31,12 @@ export default function MemeViewModal({
   const [isFavoriting, setIsFavoriting] = useState(false)
   const [imageLoaded, setImageLoaded] = useState(false)
 
-  const { downloadMeme, favoriteMeme, unfavoriteMeme, favorites } = useMemes()
+  const { downloadMeme, toggleFavorite, favorites } = useMemes()
   const { user } = useAuth()
 
   if (!isOpen || !meme) return null
 
-  const isFavorited = favorites.some((fav) => fav.id === meme.id)
+  const isFavorited = favorites.includes(meme.id)
   const formattedDate = new Date(meme.created_at).toLocaleDateString('pt-BR')
 
   const handleDownload = async () => {
@@ -45,12 +44,7 @@ export default function MemeViewModal({
 
     setIsDownloading(true)
     try {
-      const result = await downloadMeme(meme.id)
-      if (result.success) {
-        toast.success('Download iniciado!')
-      } else {
-        toast.error(result.message || 'Erro ao baixar')
-      }
+      await downloadMeme(meme)
     } catch (error) {
       console.error('Erro no download:', error)
       toast.error('Erro ao baixar meme')
@@ -60,29 +54,14 @@ export default function MemeViewModal({
   }
 
   const handleFavorite = async () => {
-    if (!user) {
-      toast.error('Faça login para favoritar memes')
-      return
-    }
-
     if (isFavoriting) return
 
     setIsFavoriting(true)
     try {
-      const result = isFavorited
-        ? await unfavoriteMeme(meme.id)
-        : await favoriteMeme(meme.id)
-
-      if (result.success) {
-        toast.success(
-          isFavorited ? 'Removido dos favoritos' : 'Adicionado aos favoritos',
-        )
-      } else {
-        toast.error(result.message || 'Erro ao favoritar')
-      }
+      await toggleFavorite(meme.id)
     } catch (error) {
-      console.error('Erro ao favoritar:', error)
-      toast.error('Erro ao favoritar meme')
+      console.error('Erro ao curtir:', error)
+      toast.error('Erro ao curtir meme')
     } finally {
       setIsFavoriting(false)
     }
@@ -112,12 +91,16 @@ export default function MemeViewModal({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto"
+        onClick={onClose}
+      >
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.9 }}
-          className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden"
+          className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] my-4 overflow-hidden"
+          onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
           <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
@@ -152,9 +135,9 @@ export default function MemeViewModal({
           </div>
 
           {/* Content */}
-          <div className="flex flex-col lg:flex-row max-h-[calc(90vh-140px)]">
+          <div className="flex flex-col lg:flex-row max-h-[calc(90vh-140px)] overflow-hidden">
             {/* Image */}
-            <div className="flex-1 flex items-center justify-center bg-gray-100 dark:bg-gray-900 relative">
+            <div className="flex-1 flex items-center justify-center bg-gray-100 dark:bg-gray-900 relative overflow-hidden">
               {!imageLoaded && (
                 <div className="absolute inset-0 flex items-center justify-center">
                   <Loader className="h-8 w-8 animate-spin text-gray-400" />
@@ -177,7 +160,7 @@ export default function MemeViewModal({
             </div>
 
             {/* Sidebar */}
-            <div className="w-full lg:w-80 border-t lg:border-t-0 lg:border-l border-gray-200 dark:border-gray-700 flex flex-col">
+            <div className="w-full lg:w-80 border-t lg:border-t-0 lg:border-l border-gray-200 dark:border-gray-700 flex flex-col overflow-y-auto">
               {/* Actions */}
               <div className="p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
                 <div className="grid grid-cols-2 gap-3">
@@ -200,7 +183,7 @@ export default function MemeViewModal({
                           }`}
                         />
                         <span className="hidden sm:inline">
-                          {isFavorited ? 'Favoritado' : 'Favoritar'}
+                          {isFavorited ? 'Favoritado' : 'curtir'}
                         </span>
                       </>
                     )}
@@ -249,18 +232,6 @@ export default function MemeViewModal({
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center">
-                      <Eye className="h-4 w-4 text-gray-500 mr-2" />
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
-                        Visualizações
-                      </span>
-                    </div>
-                    <span className="font-medium text-gray-900 dark:text-white">
-                      {(meme.view_count || 0).toLocaleString()}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
                       <Download className="h-4 w-4 text-gray-500 mr-2" />
                       <span className="text-sm text-gray-600 dark:text-gray-400">
                         Downloads
@@ -275,13 +246,11 @@ export default function MemeViewModal({
                     <div className="flex items-center">
                       <Heart className="h-4 w-4 text-gray-500 mr-2" />
                       <span className="text-sm text-gray-600 dark:text-gray-400">
-                        Popularidade
+                        Likes
                       </span>
                     </div>
                     <span className="font-medium text-gray-900 dark:text-white">
-                      {(
-                        (meme.view_count || 0) + (meme.download_count || 0)
-                      ).toLocaleString()}
+                      {(meme.download_count || 0).toLocaleString()}
                     </span>
                   </div>
                 </div>

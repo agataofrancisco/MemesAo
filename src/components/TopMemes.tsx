@@ -1,14 +1,6 @@
 import React, { useState } from 'react'
 import { motion } from 'framer-motion'
-import {
-  Heart,
-  Download,
-  Eye,
-  Star,
-  Trophy,
-  Flame,
-  TrendingUp,
-} from 'lucide-react'
+import { Heart, Download, Star, Trophy, Flame, TrendingUp } from 'lucide-react'
 import { useMemes } from '../hooks/useMemes'
 import MemeViewModal from './MemeViewModal'
 import type { Meme } from '../lib/supabase'
@@ -28,8 +20,8 @@ export default function TopMemes({ onMemeClick }: TopMemesProps) {
 
     return [...memes]
       .sort((a, b) => {
-        const aScore = (a.view_count || 0) + (a.download_count || 0)
-        const bScore = (b.view_count || 0) + (b.download_count || 0)
+        const aScore = a.download_count || 0
+        const bScore = b.download_count || 0
         return bScore - aScore
       })
       .slice(0, 3) // Apenas top 3 memes
@@ -190,10 +182,6 @@ export default function TopMemes({ onMemeClick }: TopMemesProps) {
                     <div className="text-white text-center">
                       <div className="flex items-center justify-center space-x-4 text-sm">
                         <div className="flex items-center">
-                          <Eye className="h-4 w-4 mr-1" />
-                          <span>{meme.view_count || 0}</span>
-                        </div>
-                        <div className="flex items-center">
                           <Download className="h-4 w-4 mr-1" />
                           <span>{meme.download_count || 0}</span>
                         </div>
@@ -217,10 +205,6 @@ export default function TopMemes({ onMemeClick }: TopMemesProps) {
                   <div className="flex items-center justify-between text-xs sm:text-sm">
                     <div className="flex items-center space-x-3">
                       <div className="flex items-center text-gray-600 dark:text-gray-400">
-                        <Eye className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                        <span>{(meme.view_count || 0).toLocaleString()}</span>
-                      </div>
-                      <div className="flex items-center text-gray-600 dark:text-gray-400">
                         <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                         <span>
                           {(meme.download_count || 0).toLocaleString()}
@@ -231,11 +215,7 @@ export default function TopMemes({ onMemeClick }: TopMemesProps) {
                     {/* Score total */}
                     <div className="flex items-center text-primary-600 dark:text-primary-400 font-semibold">
                       <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                      <span>
-                        {(
-                          (meme.view_count || 0) + (meme.download_count || 0)
-                        ).toLocaleString()}
-                      </span>
+                      <span>{(meme.download_count || 0).toLocaleString()}</span>
                     </div>
                   </div>
                 </div>

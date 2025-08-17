@@ -1,12 +1,23 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Search, X, Filter, Tag, Calendar, TrendingUp, Download, Heart, Loader2, Zap } from 'lucide-react';
-import { useMemes } from '../hooks/useMemes';
-import { useStats } from '../hooks/useStats';
+import React, { useState, useEffect, useCallback, useRef } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import {
+  Search,
+  X,
+  Filter,
+  Tag,
+  Calendar,
+  TrendingUp,
+  Download,
+  Heart,
+  Loader2,
+  Zap,
+} from 'lucide-react'
+import { useMemes } from '../hooks/useMemes'
+import { useStats } from '../hooks/useStats'
 
 interface SearchModalProps {
-  isOpen: boolean;
-  onClose: () => void;
+  isOpen: boolean
+  onClose: () => void
 }
 
 const searchSuggestions = [
@@ -21,161 +32,170 @@ const searchSuggestions = [
   'petro',
   'golo',
   'salário',
-  'amor'
-];
+  'amor',
+]
 
 export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [showFilters, setShowFilters] = useState(false);
-  const [results, setResults] = useState<any[]>([]);
-  const [searching, setSearching] = useState(false);
-  const [searchHistory, setSearchHistory] = useState<string[]>([]);
-  const [searchCache, setSearchCache] = useState<Map<string, any[]>>(new Map());
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState('')
+  const [showFilters, setShowFilters] = useState(false)
+  const [results, setResults] = useState<any[]>([])
+  const [searching, setSearching] = useState(false)
+  const [searchHistory, setSearchHistory] = useState<string[]>([])
+  const [searchCache, setSearchCache] = useState<Map<string, any[]>>(new Map())
 
-  const { searchMemes, downloadMeme, toggleFavorite, favorites } = useMemes();
-  const { categories } = useStats();
+  const { searchMemes, downloadMeme, toggleFavorite, favorites } = useMemes()
+  const { categories } = useStats()
 
   // Refs para controlar debounce e cancelar requests
-  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const lastSearchRef = useRef<string>('');
-  const searchAbortControllerRef = useRef<AbortController | null>(null);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const lastSearchRef = useRef<string>('')
+  const searchAbortControllerRef = useRef<AbortController | null>(null)
 
   // Carregar histórico de busca do localStorage
   useEffect(() => {
-    const history = localStorage.getItem('memesao_search_history');
+    const history = localStorage.getItem('memesao_search_history')
     if (history) {
-      setSearchHistory(JSON.parse(history));
+      setSearchHistory(JSON.parse(history))
     }
-  }, []);
+  }, [])
 
   // Limpar cache e estados quando modal fecha
   useEffect(() => {
     if (!isOpen) {
-      setSearchTerm('');
-      setResults([]);
-      setSearching(false);
-      setSelectedCategory('');
+      setSearchTerm('')
+      setResults([])
+      setSearching(false)
+      setSelectedCategory('')
       if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
+        clearTimeout(searchTimeoutRef.current)
       }
       if (searchAbortControllerRef.current) {
-        searchAbortControllerRef.current.abort();
+        searchAbortControllerRef.current.abort()
       }
     }
-  }, [isOpen]);
+  }, [isOpen])
 
-  const performSearch = useCallback(async (query: string, category: string = '') => {
-    // Evitar busca duplicada
-    const searchKey = `${query}|${category}`;
-    if (lastSearchRef.current === searchKey) {
-      return;
-    }
-    lastSearchRef.current = searchKey;
+  const performSearch = useCallback(
+    async (query: string, category: string = '') => {
+      // Evitar busca duplicada
+      const searchKey = `${query}|${category}`
+      if (lastSearchRef.current === searchKey) {
+        return
+      }
+      lastSearchRef.current = searchKey
 
-    // Cancelar busca anterior se existir
-    if (searchAbortControllerRef.current) {
-      searchAbortControllerRef.current.abort();
-    }
+      // Cancelar busca anterior se existir
+      if (searchAbortControllerRef.current) {
+        searchAbortControllerRef.current.abort()
+      }
 
-    // Verificar cache primeiro
-    const cacheKey = searchKey;
-    if (searchCache.has(cacheKey)) {
-      setResults(searchCache.get(cacheKey) || []);
-      setSearching(false);
-      return;
-    }
+      // Verificar cache primeiro
+      const cacheKey = searchKey
+      if (searchCache.has(cacheKey)) {
+        setResults(searchCache.get(cacheKey) || [])
+        setSearching(false)
+        return
+      }
 
-    setSearching(true);
-    searchAbortControllerRef.current = new AbortController();
+      setSearching(true)
+      searchAbortControllerRef.current = new AbortController()
 
-    try {
-      const searchResults = await searchMemes(query, category);
-      
-      // Verificar se a busca não foi cancelada
-      if (!searchAbortControllerRef.current?.signal.aborted) {
-        setResults(searchResults);
-        
-        // Adicionar ao cache (máximo 10 entradas)
-        const newCache = new Map(searchCache);
-        if (newCache.size >= 10) {
-          const firstKey = newCache.keys().next().value;
-          newCache.delete(firstKey);
+      try {
+        const searchResults = await searchMemes(query, category)
+
+        // Verificar se a busca não foi cancelada
+        if (!searchAbortControllerRef.current?.signal.aborted) {
+          setResults(searchResults)
+
+          // Adicionar ao cache (máximo 10 entradas)
+          const newCache = new Map(searchCache)
+          if (newCache.size >= 10) {
+            const firstKey = newCache.keys().next().value
+            newCache.delete(firstKey)
+          }
+          newCache.set(cacheKey, searchResults)
+          setSearchCache(newCache)
+
+          // Adicionar ao histórico de busca apenas se houver resultados
+          if (searchResults.length > 0) {
+            const newHistory = [
+              query,
+              ...searchHistory.filter((h) => h !== query),
+            ].slice(0, 5)
+            setSearchHistory(newHistory)
+            localStorage.setItem(
+              'memesao_search_history',
+              JSON.stringify(newHistory),
+            )
+          }
         }
-        newCache.set(cacheKey, searchResults);
-        setSearchCache(newCache);
-        
-        // Adicionar ao histórico de busca apenas se houver resultados
-        if (searchResults.length > 0) {
-          const newHistory = [query, ...searchHistory.filter(h => h !== query)].slice(0, 5);
-          setSearchHistory(newHistory);
-          localStorage.setItem('memesao_search_history', JSON.stringify(newHistory));
+      } catch (error) {
+        if (!searchAbortControllerRef.current?.signal.aborted) {
+          console.error('Erro na busca:', error)
+          setResults([])
+        }
+      } finally {
+        if (!searchAbortControllerRef.current?.signal.aborted) {
+          setSearching(false)
         }
       }
-    } catch (error) {
-      if (!searchAbortControllerRef.current?.signal.aborted) {
-        console.error('Erro na busca:', error);
-        setResults([]);
-      }
-    } finally {
-      if (!searchAbortControllerRef.current?.signal.aborted) {
-        setSearching(false);
-      }
-    }
-  }, [searchMemes, searchHistory, searchCache]);
+    },
+    [searchMemes, searchHistory, searchCache],
+  )
 
   // Debounce para busca
   useEffect(() => {
     // Limpar timeout anterior
     if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
+      clearTimeout(searchTimeoutRef.current)
     }
 
     if (searchTerm.trim()) {
       searchTimeoutRef.current = setTimeout(() => {
-        performSearch(searchTerm.trim(), selectedCategory);
-      }, 500); // Aumentado para 500ms para reduzir requests
+        performSearch(searchTerm.trim(), selectedCategory)
+      }, 500) // Aumentado para 500ms para reduzir requests
     } else {
-      setResults([]);
-      setSearching(false);
-      lastSearchRef.current = '';
+      setResults([])
+      setSearching(false)
+      lastSearchRef.current = ''
     }
 
     return () => {
       if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
+        clearTimeout(searchTimeoutRef.current)
       }
-    };
-  }, [searchTerm, selectedCategory, performSearch]);
+    }
+  }, [searchTerm, selectedCategory, performSearch])
 
   const handleSearchTermChange = (value: string) => {
-    setSearchTerm(value);
-  };
+    setSearchTerm(value)
+  }
 
   const handleCategoryChange = (category: string) => {
-    setSelectedCategory(category);
+    setSelectedCategory(category)
     // Reset cache quando categoria muda
-    setSearchCache(new Map());
-    lastSearchRef.current = '';
-  };
+    setSearchCache(new Map())
+    lastSearchRef.current = ''
+  }
 
   const handleSuggestionClick = (suggestion: string) => {
-    setSearchTerm(suggestion);
-  };
+    setSearchTerm(suggestion)
+  }
 
   const clearSearch = () => {
-    setSearchTerm('');
-    setResults([]);
-    setSelectedCategory('');
-    setSearchCache(new Map());
-    lastSearchRef.current = '';
+    setSearchTerm('')
+    setResults([])
+    setSelectedCategory('')
+    setSearchCache(new Map())
+    lastSearchRef.current = ''
     if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
+      clearTimeout(searchTimeoutRef.current)
     }
     if (searchAbortControllerRef.current) {
-      searchAbortControllerRef.current.abort();
+      searchAbortControllerRef.current.abort()
     }
-  };
+  }
 
   return (
     <AnimatePresence>
@@ -184,14 +204,14 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-start justify-center p-4 bg-black/50 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-start justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto"
           onClick={onClose}
         >
           <motion.div
             initial={{ scale: 0.9, y: -50 }}
             animate={{ scale: 1, y: 0 }}
             exit={{ scale: 0.9, y: -50 }}
-            className="w-full max-w-4xl bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-h-[85vh] overflow-hidden mt-8"
+            className="w-full max-w-4xl bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-h-[85vh] overflow-hidden mt-8 mb-8"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
@@ -216,7 +236,10 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
 
               {/* Search Input */}
               <div className="relative mb-4">
-                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                <Search
+                  className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"
+                  size={20}
+                />
                 <input
                   type="text"
                   placeholder="Buscar por título, texto OCR ou conteúdo..."
@@ -226,7 +249,10 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
                   autoFocus
                 />
                 {searching && (
-                  <Loader2 className="absolute right-4 top-1/2 transform -translate-y-1/2 text-primary-500 animate-spin" size={20} />
+                  <Loader2
+                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-primary-500 animate-spin"
+                    size={20}
+                  />
                 )}
                 {searchTerm && !searching && (
                   <button
@@ -280,8 +306,10 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
                           className="w-full p-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg"
                         >
                           <option value="">Todas as categorias</option>
-                          {categories.map(cat => (
-                            <option key={cat.id} value={cat.name}>{cat.name}</option>
+                          {categories.map((cat) => (
+                            <option key={cat.id} value={cat.name}>
+                              {cat.name}
+                            </option>
                           ))}
                         </select>
                       </div>
@@ -313,7 +341,7 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
             </div>
 
             {/* Content */}
-            <div className="p-6 overflow-y-auto max-h-96">
+            <div className="p-6 overflow-y-auto max-h-[calc(85vh-200px)]">
               {searchTerm ? (
                 <div>
                   <div className="flex items-center justify-between mb-4">
@@ -333,11 +361,14 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
                       </span>
                     )}
                   </div>
-                  
+
                   {searching ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {[...Array(6)].map((_, i) => (
-                        <div key={i} className="bg-gray-50 dark:bg-gray-800 rounded-lg overflow-hidden animate-pulse">
+                        <div
+                          key={i}
+                          className="bg-gray-50 dark:bg-gray-800 rounded-lg overflow-hidden animate-pulse"
+                        >
                           <div className="w-full h-32 bg-gray-300 dark:bg-gray-700" />
                           <div className="p-3">
                             <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded mb-2" />
@@ -349,7 +380,7 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
                     </div>
                   ) : results.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {results.map(result => (
+                      {results.map((result) => (
                         <motion.div
                           key={result.id}
                           whileHover={{ scale: 1.02 }}
@@ -387,8 +418,17 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
                                     : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
                                 }`}
                               >
-                                <Heart size={14} className={`mr-1 ${favorites.includes(result.id) ? 'fill-current' : ''}`} />
-                                {favorites.includes(result.id) ? 'Favoritado' : 'Favoritar'}
+                                <Heart
+                                  size={14}
+                                  className={`mr-1 ${
+                                    favorites.includes(result.id)
+                                      ? 'fill-current'
+                                      : ''
+                                  }`}
+                                />
+                                {favorites.includes(result.id)
+                                  ? 'Favoritado'
+                                  : 'curtir'}
                               </motion.button>
                               <motion.button
                                 whileHover={{ scale: 1.05 }}
@@ -408,7 +448,8 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
                     <div className="text-center py-8">
                       <p className="text-gray-500 dark:text-gray-400 mb-2">
                         Nenhum meme encontrado para "{searchTerm}"
-                        {selectedCategory && ` na categoria "${selectedCategory}"`}
+                        {selectedCategory &&
+                          ` na categoria "${selectedCategory}"`}
                       </p>
                       <p className="text-sm text-gray-400">
                         Tente usar palavras-chave diferentes ou remover filtros
@@ -464,5 +505,5 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
         </motion.div>
       )}
     </AnimatePresence>
-  );
+  )
 }

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { motion } from 'framer-motion'
-import { Eye, Download, ArrowRight, Sparkles } from 'lucide-react'
+import { Download, ArrowRight, Sparkles } from 'lucide-react'
 import { useMemes } from '../hooks/useMemes'
 import { useStats } from '../hooks/useStats'
 import MemeViewModal from './MemeViewModal'
@@ -51,8 +51,8 @@ export default function FeaturedMemes({
 
       const sortedMemes = categoryMemes
         .sort((a, b) => {
-          const aScore = (a.view_count || 0) + (a.download_count || 0)
-          const bScore = (b.view_count || 0) + (b.download_count || 0)
+          const aScore = a.download_count || 0
+          const bScore = b.download_count || 0
           return bScore - aScore
         })
         .slice(0, 3)
@@ -265,10 +265,6 @@ export default function FeaturedMemes({
                           <div className="text-white text-center">
                             <div className="flex items-center justify-center space-x-4 text-sm">
                               <div className="flex items-center">
-                                <Eye className="h-4 w-4 mr-1" />
-                                <span>{meme.view_count || 0}</span>
-                              </div>
-                              <div className="flex items-center">
                                 <Download className="h-4 w-4 mr-1" />
                                 <span>{meme.download_count || 0}</span>
                               </div>
@@ -288,12 +284,6 @@ export default function FeaturedMemes({
 
                         <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
                           <div className="flex items-center space-x-3">
-                            <div className="flex items-center">
-                              <Eye className="h-3 w-3 mr-1" />
-                              <span>
-                                {(meme.view_count || 0).toLocaleString()}
-                              </span>
-                            </div>
                             <div className="flex items-center">
                               <Download className="h-3 w-3 mr-1" />
                               <span>

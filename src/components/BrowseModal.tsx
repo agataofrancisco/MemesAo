@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Search, Grid, List, Heart, Download, Eye } from 'lucide-react'
+import { X, Search, Grid, List, Heart, Download } from 'lucide-react'
 import { useMemes } from '../hooks/useMemes'
 import { useStats } from '../hooks/useStats'
 import { supabase } from '../lib/supabase'
@@ -94,7 +94,7 @@ export default function BrowseModal({
 
       // Aplicar ordenação
       if (sortBy === 'popular') {
-        query = query.order('view_count', { ascending: false })
+        query = query.order('download_count', { ascending: false })
       } else if (sortBy === 'downloads') {
         query = query.order('download_count', { ascending: false })
       } else {
@@ -137,12 +137,16 @@ export default function BrowseModal({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+      <div 
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto"
+        onClick={onClose}
+      >
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
-          className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden"
+          className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] my-4 overflow-hidden"
+          onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
@@ -240,7 +244,7 @@ export default function BrowseModal({
           </div>
 
           {/* Content */}
-          <div className="flex-1 overflow-y-auto p-6 max-h-96">
+          <div className="flex-1 overflow-y-auto p-6 max-h-[calc(90vh-200px)]">
             {loading ? (
               <div className="text-center py-12">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4"></div>
@@ -317,10 +321,6 @@ export default function BrowseModal({
                           viewMode === 'list' ? 'mb-2' : ''
                         }`}
                       >
-                        <span className="flex items-center">
-                          <Eye size={12} className="mr-1" />
-                          {meme.view_count?.toLocaleString() || 0}
-                        </span>
                         <span className="flex items-center">
                           <Download size={12} className="mr-1" />
                           {meme.download_count?.toLocaleString() || 0}

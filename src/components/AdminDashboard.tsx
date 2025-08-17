@@ -4,7 +4,6 @@ import {
   Users,
   Image,
   Download,
-  Eye,
   Clock,
   CheckCircle,
   XCircle,
@@ -150,6 +149,8 @@ export default function AdminDashboard({
           image_url,
           status,
           created_at,
+          category_id,
+          download_count,
           categories!inner(name),
           profiles:uploaded_by(username)
         `,
@@ -477,177 +478,176 @@ export default function AdminDashboard({
     </div>
   )
 
-  const renderMemes = () => (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-          Gerenciar Memes
-        </h3>
-        <span className="text-sm text-gray-500 dark:text-gray-400">
-          Mostrando {filteredMemes.length} de {allMemes.length} memes (limitado
-          a 100 mais recentes)
-        </span>
-      </div>
-      <div className="flex items-center space-x-4">
-        <div className="relative">
-          <Search
-            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-            size={16}
-          />
-          <input
-            type="text"
-            placeholder="Buscar memes..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 pr-4 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm"
-          />
+  const renderMemes = () => {
+    const filteredMemes = filterMemes(allMemes)
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            Gerenciar Memes
+          </h3>
+          <span className="text-sm text-gray-500 dark:text-gray-400">
+            Mostrando {filteredMemes.length} de {allMemes.length} memes
+            (limitado a 100 mais recentes)
+          </span>
         </div>
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm"
-        >
-          <option value="all">Todos os status</option>
-          <option value="pending">Pendentes</option>
-          <option value="approved">Aprovados</option>
-          <option value="rejected">Rejeitados</option>
-        </select>
-      </div>
+        <div className="flex items-center space-x-4">
+          <div className="relative">
+            <Search
+              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+              size={16}
+            />
+            <input
+              type="text"
+              placeholder="Buscar memes..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 pr-4 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm"
+            />
+          </div>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm"
+          >
+            <option value="all">Todos os status</option>
+            <option value="pending">Pendentes</option>
+            <option value="approved">Aprovados</option>
+            <option value="rejected">Rejeitados</option>
+          </select>
+        </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 dark:bg-gray-700">
-              <tr>
-                <th className="px-4 py-3 text-left font-medium text-gray-900 dark:text-white">
-                  Imagem
-                </th>
-                <th className="px-4 py-3 text-left font-medium text-gray-900 dark:text-white">
-                  Título
-                </th>
-                <th className="px-4 py-3 text-left font-medium text-gray-900 dark:text-white">
-                  Categoria
-                </th>
-                <th className="px-4 py-3 text-left font-medium text-gray-900 dark:text-white">
-                  Status
-                </th>
-                <th className="px-4 py-3 text-left font-medium text-gray-900 dark:text-white">
-                  Estatísticas
-                </th>
-                <th className="px-4 py-3 text-left font-medium text-gray-900 dark:text-white">
-                  Data
-                </th>
-                <th className="px-4 py-3 text-left font-medium text-gray-900 dark:text-white">
-                  Ações
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
-              {filterMemes(allMemes).map((meme) => (
-                <tr
-                  key={meme.id}
-                  className="hover:bg-gray-50 dark:hover:bg-gray-700"
-                >
-                  <td className="px-4 py-3">
-                    <img
-                      src={meme.image_url}
-                      alt={meme.title || 'Meme'}
-                      className="w-12 h-12 object-cover rounded-lg"
-                      onError={(e) => {
-                        ;(e.target as HTMLImageElement).src =
-                          'https://via.placeholder.com/48x48?text=?'
-                      }}
-                    />
-                  </td>
-                  <td className="px-4 py-3">
-                    <div>
-                      <p className="font-medium text-gray-900 dark:text-white">
-                        {meme.title || 'Sem título'}
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-xs">
-                        {meme.description || 'Sem descrição'}
-                      </p>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-gray-600 dark:text-gray-300">
-                    {meme.category || 'Sem categoria'}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        meme.status === 'approved'
-                          ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                          : meme.status === 'rejected'
-                          ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                          : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                      }`}
-                    >
-                      {meme.status === 'approved'
-                        ? 'Aprovado'
-                        : meme.status === 'rejected'
-                        ? 'Rejeitado'
-                        : 'Pendente'}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-gray-600 dark:text-gray-300">
-                    <div className="flex items-center space-x-3 text-xs">
-                      <span className="flex items-center">
-                        <Eye size={12} className="mr-1" />
-                        {meme.view_count || 0}
-                      </span>
-                      <span className="flex items-center">
-                        <Download size={12} className="mr-1" />
-                        {meme.download_count || 0}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-gray-600 dark:text-gray-300">
-                    {new Date(meme.created_at).toLocaleDateString('pt-BR')}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center space-x-2">
-                      {meme.status === 'pending' && (
-                        <>
-                          <button
-                            onClick={() => approvePendingMeme(meme.id)}
-                            className="p-1 text-green-600 hover:bg-green-100 dark:hover:bg-green-900 rounded"
-                            title="Aprovar"
-                          >
-                            <CheckCircle size={16} />
-                          </button>
-                          <button
-                            onClick={() => rejectPendingMeme(meme.id)}
-                            className="p-1 text-red-600 hover:bg-red-100 dark:hover:bg-red-900 rounded"
-                            title="Rejeitar"
-                          >
-                            <XCircle size={16} />
-                          </button>
-                        </>
-                      )}
-                      <button
-                        onClick={() => openEditModal(meme)}
-                        className="p-1 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900 rounded"
-                        title="Editar"
-                      >
-                        <Edit size={16} />
-                      </button>
-                      <button
-                        onClick={() => deleteMeme(meme.id)}
-                        className="p-1 text-red-600 hover:bg-red-100 dark:hover:bg-red-900 rounded"
-                        title="Excluir"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </td>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 dark:bg-gray-700">
+                <tr>
+                  <th className="px-4 py-3 text-left font-medium text-gray-900 dark:text-white">
+                    Imagem
+                  </th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-900 dark:text-white">
+                    Título
+                  </th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-900 dark:text-white">
+                    Categoria
+                  </th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-900 dark:text-white">
+                    Status
+                  </th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-900 dark:text-white">
+                    Estatísticas
+                  </th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-900 dark:text-white">
+                    Data
+                  </th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-900 dark:text-white">
+                    Ações
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
+                {filteredMemes.map((meme) => (
+                  <tr
+                    key={meme.id}
+                    className="hover:bg-gray-50 dark:hover:bg-gray-700"
+                  >
+                    <td className="px-4 py-3">
+                      <img
+                        src={meme.image_url}
+                        alt={meme.title || 'Meme'}
+                        className="w-12 h-12 object-cover rounded-lg"
+                        onError={(e) => {
+                          ;(e.target as HTMLImageElement).src =
+                            'https://via.placeholder.com/48x48?text=?'
+                        }}
+                      />
+                    </td>
+                    <td className="px-4 py-3">
+                      <div>
+                        <p className="font-medium text-gray-900 dark:text-white">
+                          {meme.title || 'Sem título'}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-xs">
+                          {meme.description || 'Sem descrição'}
+                        </p>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-gray-600 dark:text-gray-300">
+                      {meme.category || 'Sem categoria'}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          meme.status === 'approved'
+                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                            : meme.status === 'rejected'
+                            ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                            : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                        }`}
+                      >
+                        {meme.status === 'approved'
+                          ? 'Aprovado'
+                          : meme.status === 'rejected'
+                          ? 'Rejeitado'
+                          : 'Pendente'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-gray-600 dark:text-gray-300">
+                      <div className="flex items-center space-x-3 text-xs">
+                        <span className="flex items-center">
+                          <Download size={12} className="mr-1" />
+                          {meme.download_count || 0}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-gray-600 dark:text-gray-300">
+                      {new Date(meme.created_at).toLocaleDateString('pt-BR')}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center space-x-2">
+                        {meme.status === 'pending' && (
+                          <>
+                            <button
+                              onClick={() => approvePendingMeme(meme.id)}
+                              className="p-1 text-green-600 hover:bg-green-100 dark:hover:bg-green-900 rounded"
+                              title="Aprovar"
+                            >
+                              <CheckCircle size={16} />
+                            </button>
+                            <button
+                              onClick={() => rejectPendingMeme(meme.id)}
+                              className="p-1 text-red-600 hover:bg-red-100 dark:hover:bg-red-900 rounded"
+                              title="Rejeitar"
+                            >
+                              <XCircle size={16} />
+                            </button>
+                          </>
+                        )}
+                        <button
+                          onClick={() => openEditModal(meme)}
+                          className="p-1 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900 rounded"
+                          title="Editar"
+                        >
+                          <Edit size={16} />
+                        </button>
+                        <button
+                          onClick={() => deleteMeme(meme.id)}
+                          className="p-1 text-red-600 hover:bg-red-100 dark:hover:bg-red-900 rounded"
+                          title="Excluir"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
-    </div>
-  )
+    )
+  }
 
   // Funções CRUD para memes
   const openEditModal = (meme: Meme) => {

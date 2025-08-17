@@ -7,6 +7,9 @@ import {
   Tag,
   FileText,
   Loader,
+  Plus,
+  Trash2,
+  Check,
 } from 'lucide-react'
 import { useMemes } from '../hooks/useMemes'
 import { useAllCategories } from '../hooks/useAllCategories'
@@ -17,14 +20,24 @@ interface UploadModalProps {
   onClose: () => void
 }
 
+interface MemeFile {
+  id: string
+  file: File
+  preview: string
+  title: string
+  description: string
+  categoryId: string
+  tags: string
+  uploading: boolean
+  completed: boolean
+  error?: string
+}
+
 export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
-  const [title, setTitle] = useState('')
-  const [description, setDescription] = useState('')
-  const [selectedCategoryId, setSelectedCategoryId] = useState('')
-  const [tags, setTags] = useState('')
-  const [file, setFile] = useState<File | null>(null)
-  const [preview, setPreview] = useState<string | null>(null)
+  const [files, setFiles] = useState<MemeFile[]>([])
+  const [globalCategory, setGlobalCategory] = useState('')
   const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
 
   const { uploadMeme } = useMemes()
   const { categories, loading: categoriesLoading } = useAllCategories()
@@ -32,94 +45,169 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
   // Reset form quando modal fecha
   useEffect(() => {
     if (!isOpen) {
-      setTitle('')
-      setDescription('')
-      setSelectedCategoryId('')
-      setTags('')
-      setFile(null)
-      setPreview(null)
+      setFiles([])
+      setGlobalCategory('')
       setUploading(false)
+      setUploadProgress(0)
     }
   }, [isOpen])
 
   // Selecionar primeira categoria automaticamente quando carregadas
   useEffect(() => {
-    if (categories.length > 0 && !selectedCategoryId) {
-      setSelectedCategoryId(categories[0].id)
+    if (categories.length > 0 && !globalCategory) {
+      setGlobalCategory(categories[0].id)
     }
-  }, [categories, selectedCategoryId])
+  }, [categories, globalCategory])
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0]
-    if (selectedFile) {
+  const handleFilesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = Array.from(e.target.files || [])
+
+    if (selectedFiles.length === 0) return
+
+    // Verificar se não excede o limite
+    if (files.length + selectedFiles.length > 10) {
+      toast.error('Máximo 10 memes por vez')
+      return
+    }
+
+    const newFiles: MemeFile[] = []
+
+    selectedFiles.forEach((file) => {
       // Verificar tipo de arquivo
-      if (!selectedFile.type.startsWith('image/')) {
-        toast.error('Por favor, selecione apenas arquivos de imagem')
+      if (!file.type.startsWith('image/')) {
+        toast.error(`${file.name} não é uma imagem válida`)
         return
       }
 
       // Verificar tamanho (máximo 5MB)
-      if (selectedFile.size > 5 * 1024 * 1024) {
-        toast.error('Arquivo muito grande. Máximo 5MB.')
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error(`${file.name} é muito grande. Máximo 5MB.`)
         return
       }
-
-      setFile(selectedFile)
 
       // Criar preview
       const reader = new FileReader()
       reader.onload = (e) => {
-        setPreview(e.target?.result as string)
+        const memeFile: MemeFile = {
+          id: Math.random().toString(36).substring(2),
+          file,
+          preview: e.target?.result as string,
+          title: file.name.replace(/\.[^/.]+$/, ''), // Nome do arquivo sem extensão
+          description: '',
+          categoryId: globalCategory,
+          tags: '',
+          uploading: false,
+          completed: false,
+        }
+        newFiles.push(memeFile)
+
+        if (
+          newFiles.length ===
+          selectedFiles.filter(
+            (f) => f.type.startsWith('image/') && f.size <= 5 * 1024 * 1024,
+          ).length
+        ) {
+          setFiles((prev) => [...prev, ...newFiles])
+        }
       }
-      reader.readAsDataURL(selectedFile)
+      reader.readAsDataURL(file)
+    })
+
+    // Limpar input
+    e.target.value = ''
+  }
+
+  const updateMemeFile = (id: string, updates: Partial<MemeFile>) => {
+    setFiles((prev) =>
+      prev.map((file) => (file.id === id ? { ...file, ...updates } : file)),
+    )
+  }
+
+  const removeMemeFile = (id: string) => {
+    setFiles((prev) => prev.filter((file) => file.id !== id))
+  }
+
+  const applyGlobalCategory = () => {
+    if (!globalCategory) {
+      toast.error('Selecione uma categoria global primeiro')
+      return
     }
+
+    setFiles((prev) =>
+      prev.map((file) => ({ ...file, categoryId: globalCategory })),
+    )
+    toast.success('Categoria aplicada a todos os memes')
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!file) {
-      toast.error('Por favor, selecione uma imagem')
+    if (files.length === 0) {
+      toast.error('Adicione pelo menos um meme')
       return
     }
 
-    if (!title.trim()) {
-      toast.error('Por favor, adicione um título')
-      return
-    }
-
-    if (!selectedCategoryId) {
-      toast.error('Por favor, selecione uma categoria')
+    // Verificar se todos os memes têm título e categoria
+    const incompleteFiles = files.filter(
+      (file) => !file.title.trim() || !file.categoryId,
+    )
+    if (incompleteFiles.length > 0) {
+      toast.error('Todos os memes precisam ter título e categoria')
       return
     }
 
     setUploading(true)
+    setUploadProgress(0)
 
-    try {
-      const tagsArray = tags
-        .split(',')
-        .map((tag) => tag.trim())
-        .filter((tag) => tag.length > 0)
+    let successCount = 0
+    const totalFiles = files.length
 
-      const result = await uploadMeme(
-        file,
-        title.trim(),
-        description.trim(),
-        selectedCategoryId, // Enviar o ID da categoria
-        tagsArray,
-      )
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i]
 
-      if (result.success) {
-        onClose()
-        toast.success('Meme enviado com sucesso!')
-      } else {
-        toast.error(result.message)
+      try {
+        updateMemeFile(file.id, { uploading: true, error: undefined })
+
+        const tagsArray = file.tags
+          .split(',')
+          .map((tag) => tag.trim())
+          .filter((tag) => tag.length > 0)
+
+        const result = await uploadMeme(
+          file.file,
+          file.title.trim(),
+          file.description.trim(),
+          file.categoryId,
+          tagsArray,
+        )
+
+        if (result.success) {
+          updateMemeFile(file.id, { uploading: false, completed: true })
+          successCount++
+        } else {
+          updateMemeFile(file.id, { uploading: false, error: result.message })
+        }
+      } catch (error) {
+        console.error('Erro no upload:', error)
+        updateMemeFile(file.id, { uploading: false, error: 'Erro ao enviar' })
       }
-    } catch (error) {
-      console.error('Erro no upload:', error)
-      toast.error('Erro ao enviar meme')
-    } finally {
-      setUploading(false)
+
+      setUploadProgress(((i + 1) / totalFiles) * 100)
+    }
+
+    setUploading(false)
+
+    if (successCount === totalFiles) {
+      toast.success(
+        `Todos os ${successCount} memes foram enviados com sucesso!`,
+      )
+      setTimeout(() => onClose(), 2000)
+    } else if (successCount > 0) {
+      toast.success(
+        `${successCount} de ${totalFiles} memes enviados com sucesso`,
+      )
+    } else {
+      toast.error('Nenhum meme foi enviado')
     }
   }
 
@@ -127,18 +215,27 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto"
+        onClick={onClose}
+      >
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
-          className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+          className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-6xl max-h-[90vh] my-4 overflow-hidden"
+          onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
           <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-              Enviar Meme
-            </h2>
+            <div>
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+                Upload em Lote
+              </h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                Envie até 10 memes de uma vez
+              </p>
+            </div>
             <button
               onClick={onClose}
               className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
@@ -149,186 +246,240 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
           </div>
 
           {/* Content */}
-          <form
-            onSubmit={handleSubmit}
-            className="p-4 sm:p-6 space-y-4 sm:space-y-6"
-          >
-            {/* File Upload */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Imagem *
-              </label>
-              <div className="relative border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-4 sm:p-6 text-center hover:border-primary-500 transition-colors">
-                {preview ? (
-                  <div className="space-y-4">
-                    <img
-                      src={preview}
-                      alt="Preview"
-                      className="max-h-48 sm:max-h-64 mx-auto rounded-lg object-contain"
-                    />
+          <div className="p-4 sm:p-6 max-h-[calc(90vh-140px)] overflow-y-auto">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* File Upload */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Selecionar Imagens
+                </label>
+                <div className="relative border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-6 text-center hover:border-primary-500 transition-colors">
+                  <ImageIcon className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                  <div className="space-y-2">
+                    <p className="text-gray-600 dark:text-gray-400">
+                      Clique para selecionar ou arraste múltiplas imagens
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      PNG, JPG, GIF até 5MB cada • Máximo 10 arquivos
+                    </p>
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleFilesChange}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    disabled={uploading}
+                  />
+                </div>
+              </div>
+
+              {/* Global Category */}
+              {files.length > 0 && (
+                <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Categoria Global (Aplicar a todos)
+                      </label>
+                      <select
+                        value={globalCategory}
+                        onChange={(e) => setGlobalCategory(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
+                        disabled={uploading}
+                      >
+                        <option value="">Selecione uma categoria</option>
+                        {categories.map((category) => (
+                          <option key={category.id} value={category.id}>
+                            {category.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                     <button
                       type="button"
-                      onClick={() => {
-                        setFile(null)
-                        setPreview(null)
-                      }}
-                      className="text-sm text-red-600 hover:text-red-700 transition-colors"
+                      onClick={applyGlobalCategory}
+                      className="ml-3 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors text-sm"
+                      disabled={!globalCategory || uploading}
                     >
-                      Remover imagem
+                      Aplicar
                     </button>
                   </div>
-                ) : (
-                  <div>
-                    <ImageIcon className="h-12 w-12 sm:h-16 sm:w-16 mx-auto text-gray-400 mb-3 sm:mb-4" />
-                    <div className="space-y-2">
-                      <p className="text-gray-600 dark:text-gray-400 text-sm sm:text-base">
-                        Clique para selecionar ou arraste uma imagem
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        PNG, JPG, GIF até 5MB
-                      </p>
-                    </div>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleFileChange}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                      disabled={uploading}
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Title */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Título *
-              </label>
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Dê um título divertido ao seu meme"
-                className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm sm:text-base"
-                disabled={uploading}
-                maxLength={100}
-              />
-              <div className="text-xs text-gray-500 mt-1">
-                {title.length}/100 caracteres
-              </div>
-            </div>
-
-            {/* Description */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Descrição
-              </label>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Adicione uma descrição (opcional)"
-                rows={3}
-                className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm sm:text-base resize-none"
-                disabled={uploading}
-                maxLength={500}
-              />
-              <div className="text-xs text-gray-500 mt-1">
-                {description.length}/500 caracteres
-              </div>
-            </div>
-
-            {/* Category */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Categoria *
-              </label>
-              {categoriesLoading ? (
-                <div className="flex items-center justify-center py-3">
-                  <Loader className="h-5 w-5 animate-spin text-primary-500" />
-                  <span className="ml-2 text-sm text-gray-500">
-                    Carregando categorias...
-                  </span>
-                </div>
-              ) : categories.length > 0 ? (
-                <select
-                  value={selectedCategoryId}
-                  onChange={(e) => setSelectedCategoryId(e.target.value)}
-                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm sm:text-base"
-                  disabled={uploading}
-                >
-                  <option value="">Selecione uma categoria</option>
-                  {categories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <div className="text-center py-4 text-gray-500 text-sm">
-                  Nenhuma categoria disponível
                 </div>
               )}
-            </div>
 
-            {/* Tags */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Tags
-              </label>
-              <input
-                type="text"
-                value={tags}
-                onChange={(e) => setTags(e.target.value)}
-                placeholder="engraçado, viral, trending (separadas por vírgula)"
-                className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm sm:text-base"
-                disabled={uploading}
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Ajude outros a encontrar seu meme
-              </p>
-            </div>
+              {/* Files List */}
+              {files.length > 0 && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                      Memes ({files.length}/10)
+                    </h3>
+                    {uploading && (
+                      <div className="text-sm text-gray-500">
+                        Progresso: {Math.round(uploadProgress)}%
+                      </div>
+                    )}
+                  </div>
 
-            {/* Submit */}
-            <div className="flex flex-col sm:flex-row gap-3 pt-4">
-              <button
-                type="button"
-                onClick={onClose}
-                className="flex-1 px-4 py-2 sm:py-3 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors font-medium text-sm sm:text-base"
-                disabled={uploading}
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                className="flex-1 px-4 py-2 sm:py-3 bg-gradient-to-r from-primary-500 to-purple-600 text-white rounded-xl hover:from-primary-600 hover:to-purple-700 transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-sm sm:text-base"
-                disabled={
-                  uploading || !file || !title.trim() || !selectedCategoryId
-                }
-              >
-                {uploading ? (
-                  <>
-                    <Loader className="h-4 w-4 sm:h-5 sm:w-5 animate-spin mr-2" />
-                    Enviando...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
-                    Enviar Meme
-                  </>
-                )}
-              </button>
-            </div>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    {files.map((file) => (
+                      <div
+                        key={file.id}
+                        className={`border rounded-xl p-4 ${
+                          file.completed
+                            ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20'
+                            : file.error
+                            ? 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20'
+                            : 'border-gray-200 dark:border-gray-600'
+                        }`}
+                      >
+                        <div className="flex items-start space-x-4">
+                          {/* Preview */}
+                          <div className="flex-shrink-0">
+                            <img
+                              src={file.preview}
+                              alt="Preview"
+                              className="w-20 h-20 object-cover rounded-lg"
+                            />
+                            {file.completed && (
+                              <div className="absolute -mt-2 -ml-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                                <Check className="w-4 h-4 text-white" />
+                              </div>
+                            )}
+                          </div>
 
-            {/* Info */}
-            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-3 sm:p-4">
-              <p className="text-blue-700 dark:text-blue-300 text-xs sm:text-sm">
-                <strong>Nota:</strong> Seu meme será revisado antes de ser
-                publicado. Evite conteúdo ofensivo ou que infrinja direitos
-                autorais.
-              </p>
-            </div>
-          </form>
+                          {/* Fields */}
+                          <div className="flex-1 space-y-3">
+                            <div>
+                              <input
+                                type="text"
+                                value={file.title}
+                                onChange={(e) =>
+                                  updateMemeFile(file.id, {
+                                    title: e.target.value,
+                                  })
+                                }
+                                placeholder="Título do meme *"
+                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                                disabled={uploading || file.completed}
+                                maxLength={100}
+                              />
+                            </div>
+
+                            <div>
+                              <select
+                                value={file.categoryId}
+                                onChange={(e) =>
+                                  updateMemeFile(file.id, {
+                                    categoryId: e.target.value,
+                                  })
+                                }
+                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                                disabled={uploading || file.completed}
+                              >
+                                <option value="">Categoria *</option>
+                                {categories.map((category) => (
+                                  <option key={category.id} value={category.id}>
+                                    {category.name}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+
+                            <div>
+                              <textarea
+                                value={file.description}
+                                onChange={(e) =>
+                                  updateMemeFile(file.id, {
+                                    description: e.target.value,
+                                  })
+                                }
+                                placeholder="Descrição (opcional)"
+                                rows={2}
+                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm resize-none"
+                                disabled={uploading || file.completed}
+                                maxLength={500}
+                              />
+                            </div>
+
+                            {file.error && (
+                              <div className="text-red-600 text-sm">
+                                {file.error}
+                              </div>
+                            )}
+
+                            {file.uploading && (
+                              <div className="flex items-center text-primary-600 text-sm">
+                                <Loader className="w-4 h-4 animate-spin mr-2" />
+                                Enviando...
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Remove Button */}
+                          {!uploading && !file.completed && (
+                            <button
+                              type="button"
+                              onClick={() => removeMemeFile(file.id)}
+                              className="p-2 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Submit */}
+              {files.length > 0 && (
+                <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="flex-1 px-4 py-3 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors font-medium"
+                    disabled={uploading}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 px-4 py-3 bg-gradient-to-r from-primary-500 to-purple-600 text-white rounded-xl hover:from-primary-600 hover:to-purple-700 transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                    disabled={
+                      uploading ||
+                      files.length === 0 ||
+                      files.some((f) => !f.title.trim() || !f.categoryId)
+                    }
+                  >
+                    {uploading ? (
+                      <>
+                        <Loader className="h-5 w-5 animate-spin mr-2" />
+                        Enviando {Math.round(uploadProgress)}%
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="h-5 w-5 mr-2" />
+                        Enviar {files.length} Meme
+                        {files.length !== 1 ? 's' : ''}
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+
+              {/* Info */}
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
+                <p className="text-blue-700 dark:text-blue-300 text-sm">
+                  <strong>Nota:</strong> Todos os memes serão revisados antes de
+                  serem publicados. Evite conteúdo ofensivo ou que infrinja
+                  direitos autorais.
+                </p>
+              </div>
+            </form>
+          </div>
         </motion.div>
       </div>
     </AnimatePresence>
