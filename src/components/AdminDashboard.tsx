@@ -508,6 +508,7 @@ export default function AdminDashboard({
             (limitado a 100 mais recentes)
           </span>
         </div>
+        {/* Search Bar 
         <div className="flex items-center space-x-4">
           <div className="relative">
             <Search
@@ -522,6 +523,7 @@ export default function AdminDashboard({
               className="pl-10 pr-4 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm"
             />
           </div>
+          
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
@@ -533,7 +535,7 @@ export default function AdminDashboard({
             <option value="rejected">Rejeitados</option>
           </select>
         </div>
-
+*/}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
