@@ -233,15 +233,32 @@ export default function AdminDashboard({
     if (!confirm('Tem certeza que deseja deletar este meme?')) return
 
     try {
+      if (!isSupabaseConfigured || !supabase) {
+        toast.error('Supabase não configurado')
+        return
+      }
+
+      // Primeiro, deletar registros relacionados para evitar conflitos de foreign key
+      await supabase.from('user_favorites').delete().eq('meme_id', memeId)
+      await supabase.from('meme_downloads').delete().eq('meme_id', memeId)
+      await supabase.from('meme_views').delete().eq('meme_id', memeId)
+      await supabase.from('meme_tags').delete().eq('meme_id', memeId)
+
+      // Depois deletar o meme
       const { error } = await supabase.from('memes').delete().eq('id', memeId)
 
-      if (error) throw error
+      if (error) {
+        console.error('Erro detalhado ao deletar meme:', error)
+        throw error
+      }
 
       toast.success('Meme deletado com sucesso!')
-      loadDashboardData()
+      await loadDashboardData()
     } catch (error) {
       console.error('Erro ao deletar meme:', error)
-      toast.error('Erro ao deletar meme')
+      toast.error(
+        `Erro ao deletar meme: ${error.message || 'Erro desconhecido'}`,
+      )
     }
   }
 

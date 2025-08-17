@@ -131,7 +131,7 @@ export default function TopMemes({ onMemeClick }: TopMemesProps) {
           </motion.div>
 
           {/* Grid responsivo para mobile - apenas top 3 */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 w-full max-w-full">
             {topMemes.map((meme, index) => (
               <motion.button
                 key={meme.id}
@@ -202,8 +202,12 @@ export default function TopMemes({ onMemeClick }: TopMemesProps) {
                   </p>
 
                   {/* Estatísticas */}
-                  <div className="flex items-center justify-between text-xs sm:text-sm">
-                    <div className="flex items-center space-x-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs sm:text-sm">
+                    <div className="flex items-center space-x-2 sm:space-x-3">
+                      <div className="flex items-center text-gray-600 dark:text-gray-400">
+                        <Heart className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                        <span>{(meme.like_count || 0).toLocaleString()}</span>
+                      </div>
                       <div className="flex items-center text-gray-600 dark:text-gray-400">
                         <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                         <span>
@@ -215,7 +219,11 @@ export default function TopMemes({ onMemeClick }: TopMemesProps) {
                     {/* Score total */}
                     <div className="flex items-center text-primary-600 dark:text-primary-400 font-semibold">
                       <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                      <span>{(meme.download_count || 0).toLocaleString()}</span>
+                      <span>
+                        {(
+                          (meme.like_count || 0) + (meme.download_count || 0)
+                        ).toLocaleString()}
+                      </span>
                     </div>
                   </div>
                 </div>

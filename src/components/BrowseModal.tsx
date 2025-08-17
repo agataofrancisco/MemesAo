@@ -137,7 +137,7 @@ export default function BrowseModal({
 
   return (
     <AnimatePresence>
-      <div 
+      <div
         className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto"
         onClick={onClose}
       >
@@ -317,10 +317,14 @@ export default function BrowseModal({
 
                       {/* Stats */}
                       <div
-                        className={`flex items-center space-x-3 text-xs text-gray-500 dark:text-gray-400 mb-3 ${
+                        className={`flex flex-wrap items-center gap-2 text-xs text-gray-500 dark:text-gray-400 mb-3 ${
                           viewMode === 'list' ? 'mb-2' : ''
                         }`}
                       >
+                        <span className="flex items-center">
+                          <Heart size={12} className="mr-1" />
+                          {meme.like_count?.toLocaleString() || 0}
+                        </span>
                         <span className="flex items-center">
                           <Download size={12} className="mr-1" />
                           {meme.download_count?.toLocaleString() || 0}

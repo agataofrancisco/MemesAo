@@ -98,6 +98,25 @@ export function useMemes() {
         }
       }
 
+      // Buscar contagem de likes para cada meme
+      const memeIds = memesData.map((m) => m.id);
+      let likeCounts: Record<string, number> = {};
+
+      if (memeIds.length > 0) {
+        const { data: likesData, error: likesError } = await supabase
+          .from("user_favorites")
+          .select("meme_id")
+          .in("meme_id", memeIds);
+
+        if (!likesError && likesData) {
+          // Contar likes por meme
+          likeCounts = likesData.reduce((acc, like) => {
+            acc[like.meme_id] = (acc[like.meme_id] || 0) + 1;
+            return acc;
+          }, {} as Record<string, number>);
+        }
+      }
+
       // Mapear dados para incluir informações relacionadas
       const transformedMemes = memesData.map((meme) => {
         const category = categoriesData?.find((c) => c.id === meme.category_id);
@@ -109,6 +128,7 @@ export function useMemes() {
           profile: profile ? { username: profile.username } : undefined,
           view_count: meme.view_count || 0,
           download_count: meme.download_count || 0,
+          like_count: likeCounts[meme.id] || 0,
         };
       });
 
@@ -444,6 +464,25 @@ export function useMemes() {
           .from("categories")
           .select("id, name");
 
+        // Buscar contagem de likes para cada meme
+        const memeIds = data.map(m => m.id);
+        let likeCounts: Record<string, number> = {};
+        
+        if (memeIds.length > 0) {
+          const { data: likesData, error: likesError } = await supabase
+            .from("user_favorites")
+            .select("meme_id")
+            .in("meme_id", memeIds);
+            
+          if (!likesError && likesData) {
+            // Contar likes por meme
+            likeCounts = likesData.reduce((acc, like) => {
+              acc[like.meme_id] = (acc[like.meme_id] || 0) + 1;
+              return acc;
+            }, {} as Record<string, number>);
+          }
+        }
+
         // Transformar dados para incluir category como string
         const transformedMemes = data.map((meme) => {
           const category = categoriesData?.find(
@@ -454,6 +493,7 @@ export function useMemes() {
             category: category?.name || "Sem categoria",
             view_count: meme.view_count || 0,
             download_count: meme.download_count || 0,
+            like_count: likeCounts[meme.id] || 0,
           };
         });
 

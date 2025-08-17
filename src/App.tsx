@@ -35,7 +35,7 @@ function App() {
 
   return (
     <ThemeProvider>
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors overflow-x-hidden">
         <Header
           onAuthClick={() => setIsAuthOpen(true)}
           onUploadClick={() => setIsUploadOpen(true)}
@@ -43,7 +43,7 @@ function App() {
           onAdminClick={() => setIsAdminOpen(true)}
         />
 
-        <main>
+        <main className="w-full max-w-full overflow-x-hidden">
           <Hero onBrowseClick={handleBrowseOpen} />
 
           {/* Nova ordem conforme solicitado */}

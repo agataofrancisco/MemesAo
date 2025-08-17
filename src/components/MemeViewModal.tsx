@@ -250,7 +250,7 @@ export default function MemeViewModal({
                       </span>
                     </div>
                     <span className="font-medium text-gray-900 dark:text-white">
-                      {(meme.download_count || 0).toLocaleString()}
+                      {(meme.like_count || 0).toLocaleString()}
                     </span>
                   </div>
                 </div>

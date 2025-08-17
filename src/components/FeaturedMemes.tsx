@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { motion } from 'framer-motion'
-import { Download, ArrowRight, Sparkles } from 'lucide-react'
+import { Download, ArrowRight, Sparkles, Heart } from 'lucide-react'
 import { useMemes } from '../hooks/useMemes'
 import { useStats } from '../hooks/useStats'
 import MemeViewModal from './MemeViewModal'
@@ -233,7 +233,7 @@ export default function FeaturedMemes({
                 </div>
 
                 {/* Memes Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 w-full max-w-full">
                   {category.topMemes.map((meme, memeIndex) => (
                     <motion.button
                       key={meme.id}
@@ -282,8 +282,14 @@ export default function FeaturedMemes({
                           {meme.title || 'Meme sem título'}
                         </h4>
 
-                        <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
-                          <div className="flex items-center space-x-3">
+                        <div className="flex items-center justify-between text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                          <div className="flex items-center space-x-2 sm:space-x-3">
+                            <div className="flex items-center">
+                              <Heart className="h-3 w-3 mr-1" />
+                              <span>
+                                {(meme.like_count || 0).toLocaleString()}
+                              </span>
+                            </div>
                             <div className="flex items-center">
                               <Download className="h-3 w-3 mr-1" />
                               <span>

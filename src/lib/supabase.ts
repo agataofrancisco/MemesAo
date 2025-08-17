@@ -49,6 +49,7 @@ export interface Meme {
   status: "pending" | "approved" | "rejected";
   view_count: number;
   download_count: number;
+  like_count?: number;
   created_at: string;
   updated_at: string;
   // Relacionamentos
