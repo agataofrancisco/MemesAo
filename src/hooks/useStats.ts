@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { supabase, isSupabaseConfigured } from "../lib/supabase";
-import { useMemes } from "./useMemes";
 
 interface Stats {
   totalMemes: number;
@@ -28,20 +27,6 @@ export function useStats() {
 
   const [categories, setCategories] = useState<CategoryStats[]>([]);
   const [loading, setLoading] = useState(true);
-  const { setMemesChangeCallback } = useMemes();
-
-  useEffect(() => {
-    loadStats();
-    loadCategories();
-
-    // ✅ INSCREVER-SE em mudanças de memes
-    if (setMemesChangeCallback) {
-      setMemesChangeCallback(() => {
-        loadStats();
-        loadCategories();
-      });
-    }
-  }, [setMemesChangeCallback]);
 
   const loadStats = async () => {
     if (!isSupabaseConfigured || !supabase) {
@@ -69,21 +54,19 @@ export function useStats() {
         ]);
 
       setStats({
-        totalMemes: memesResult.count || 6,
-        totalUsers: usersResult.count || 1,
+        totalMemes: memesResult.count || 0,
+        totalUsers: usersResult.count || 0,
         totalDownloads: downloadsResult.count || 0,
         totalFavorites: favoritesResult.count || 0,
       });
     } catch (error) {
       console.error("Erro ao carregar estatísticas:", error);
-    } finally {
-      setLoading(false);
     }
   };
 
   const loadCategories = async () => {
     if (!isSupabaseConfigured || !supabase) {
-      // ✅ CORRIGIDO: Categorias mock que coincidem com o banco
+      // Categorias mock quando Supabase não está configurado
       setCategories([
         {
           id: "1",
@@ -155,41 +138,55 @@ export function useStats() {
     }
 
     try {
-      // ✅ CORRIGIDO: Buscar diretamente da tabela categories com contagem real
+      // Buscar categorias do banco de dados
       const { data: categoriesData, error } = await supabase
         .from("categories")
         .select("*")
         .order("name");
 
-      if (error) throw error;
+      if (error) {
+        console.error("Erro ao buscar categorias:", error);
+        // Se falhar, usar categorias mock
+        setCategories([]);
+        return;
+      }
 
       // Para cada categoria, contar memes aprovados
       const categoriesWithCount = await Promise.all(
         (categoriesData || []).map(async (category) => {
-          const { count } = await supabase
-            .from("memes")
-            .select("*", { count: "exact", head: true })
-            .eq("category_id", category.id)
-            .eq("status", "approved");
+          try {
+            const { count } = await supabase
+              .from("memes")
+              .select("*", { count: "exact", head: true })
+              .eq("category_id", category.id)
+              .eq("status", "approved");
 
-          return {
-            id: category.id,
-            name: category.name,
-            count: count || 0,
-            icon: category.icon || "Tag",
-            color: category.color || "from-gray-500 to-gray-600",
-            description: category.description || `Categoria ${category.name}`,
-          };
+            return {
+              id: category.id,
+              name: category.name,
+              count: count || 0,
+              icon: category.icon || "Tag",
+              color: category.color || "from-gray-500 to-gray-600",
+              description: category.description || `Categoria ${category.name}`,
+            };
+          } catch (error) {
+            console.error(
+              `Erro ao contar memes da categoria ${category.name}:`,
+              error
+            );
+            return {
+              id: category.id,
+              name: category.name,
+              count: 0,
+              icon: category.icon || "Tag",
+              color: category.color || "from-gray-500 to-gray-600",
+              description: category.description || `Categoria ${category.name}`,
+            };
+          }
         })
       );
 
-      // Filtrar apenas categorias que têm memes e ordenar por quantidade (decrescente)
-      const categoriesWithMemes = categoriesWithCount
-        .filter((category) => category.count > 0)
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 5); // Mostrar apenas os top 5
-
-      setCategories(categoriesWithMemes);
+      setCategories(categoriesWithCount);
     } catch (error) {
       console.error("Erro ao carregar categorias:", error);
       setCategories([]);
@@ -198,11 +195,27 @@ export function useStats() {
     }
   };
 
+  // Carregamento inicial
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      await Promise.all([loadStats(), loadCategories()]);
+      setLoading(false);
+    };
+
+    loadData();
+  }, []); // Sem dependências para evitar loops
+
   return {
     stats,
     categories,
     loading,
     refreshStats: loadStats,
     refreshCategories: loadCategories,
+    refresh: async () => {
+      setLoading(true);
+      await Promise.all([loadStats(), loadCategories()]);
+      setLoading(false);
+    },
   };
 }

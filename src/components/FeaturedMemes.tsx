@@ -27,27 +27,70 @@ interface CategoryWithMemes {
   topMemes: Meme[]
 }
 
-export default function FeaturedMemes({ onCategoryClick, onMemeClick }: FeaturedMemesProps) {
+export default function FeaturedMemes({
+  onCategoryClick,
+  onMemeClick,
+}: FeaturedMemesProps) {
   const { categories, loading: categoriesLoading } = useStats()
   const { memes: allMemes, loading: memesLoading } = useMemes()
-  const [categoriesWithMemes, setCategoriesWithMemes] = useState<CategoryWithMemes[]>([])
+  const [categoriesWithMemes, setCategoriesWithMemes] = useState<
+    CategoryWithMemes[]
+  >([])
 
   useEffect(() => {
-    if (!categoriesLoading && !memesLoading && allMemes.length > 0) {
-      const categoriesWithTopMemes = categories.map(category => {
-        const categoryMemes = allMemes
-          .filter(meme => meme.category?.id === category.id)
-          .sort((a, b) => (b.view_count + b.download_count) - (a.view_count + a.download_count))
-          .slice(0, 3) // Top 3 memes por categoria
+    console.log('FeaturedMemes useEffect triggered:', {
+      categoriesLoading,
+      memesLoading,
+      categoriesCount: categories.length,
+      memesCount: allMemes.length,
+    })
 
-        return {
-          ...category,
-          topMemes: categoryMemes
-        }
-      }).filter(cat => cat.topMemes.length > 0) // Só mostrar categorias com memes
-
-      setCategoriesWithMemes(categoriesWithTopMemes)
+    // Só processar quando os dados estiverem carregados
+    if (categoriesLoading || memesLoading) {
+      return
     }
+
+    // Se não há categorias, usar todas as categorias disponíveis
+    const categoriesToProcess = categories.length > 0 ? categories : []
+
+    if (categoriesToProcess.length === 0) {
+      console.log('Nenhuma categoria disponível')
+      setCategoriesWithMemes([])
+      return
+    }
+
+    const categoriesWithTopMemes = categoriesToProcess.map((category) => {
+      // Tentar encontrar memes por nome da categoria
+      const categoryMemes = allMemes.filter((meme) => {
+        // Verificar se o meme pertence a esta categoria
+        return (
+          meme.category === category.name ||
+          (meme.category_id && meme.category_id === category.id)
+        )
+      })
+
+      // Ordenar por popularidade (views + downloads)
+      const sortedMemes = categoryMemes
+        .sort((a, b) => {
+          const aScore = (a.view_count || 0) + (a.download_count || 0)
+          const bScore = (b.view_count || 0) + (b.download_count || 0)
+          return bScore - aScore
+        })
+        .slice(0, 3) // Top 3 memes por categoria
+
+      return {
+        ...category,
+        topMemes: sortedMemes,
+      }
+    })
+
+    // Só mostrar categorias que têm memes
+    const categoriesWithValidMemes = categoriesWithTopMemes.filter(
+      (cat) => cat.topMemes.length > 0,
+    )
+
+    console.log('Categorias com memes:', categoriesWithValidMemes.length)
+    setCategoriesWithMemes(categoriesWithValidMemes)
   }, [allMemes, categories, categoriesLoading, memesLoading])
 
   const handleCategoryClick = (categoryName: string) => {
@@ -89,7 +132,10 @@ export default function FeaturedMemes({ onCategoryClick, onMemeClick }: Featured
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   {[...Array(3)].map((_, j) => (
-                    <div key={j} className="aspect-square bg-gray-300 dark:bg-gray-700 rounded-lg" />
+                    <div
+                      key={j}
+                      className="aspect-square bg-gray-300 dark:bg-gray-700 rounded-lg"
+                    />
                   ))}
                 </div>
               </div>
@@ -123,12 +169,23 @@ export default function FeaturedMemes({ onCategoryClick, onMemeClick }: Featured
 
         {categoriesWithMemes.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-gray-500 dark:text-gray-400 text-lg">
-              Nenhum meme disponível no momento.
-            </p>
-            <p className="text-gray-400 dark:text-gray-500 text-sm mt-2">
-              Seja o primeiro a compartilhar um meme!
-            </p>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg border border-gray-200 dark:border-gray-700 max-w-md mx-auto">
+              <div className="mb-4">
+                <Grid className="h-16 w-16 text-gray-400 mx-auto" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                Nenhum meme disponível
+              </h3>
+              <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">
+                {allMemes.length === 0
+                  ? 'Seja o primeiro a compartilhar um meme!'
+                  : 'Os memes estão sendo organizados por categoria.'}
+              </p>
+              <div className="text-xs text-gray-400 dark:text-gray-500">
+                Memes carregados: {allMemes.length} | Categorias:{' '}
+                {categories.length}
+              </div>
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
@@ -154,7 +211,8 @@ export default function FeaturedMemes({ onCategoryClick, onMemeClick }: Featured
                         {category.name}
                       </h3>
                       <p className="text-sm text-gray-500 dark:text-gray-400">
-                        {category.count} {category.count === 1 ? 'meme' : 'memes'}
+                        {category.topMemes.length}{' '}
+                        {category.topMemes.length === 1 ? 'meme' : 'memes'}
                       </p>
                     </div>
                   </div>
@@ -182,18 +240,23 @@ export default function FeaturedMemes({ onCategoryClick, onMemeClick }: Featured
                         alt={meme.title || 'Meme'}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                         loading="lazy"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement
+                          target.src =
+                            'https://via.placeholder.com/400x400.png?text=Erro'
+                        }}
                       />
-                      
+
                       {/* Overlay com estatísticas */}
                       <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-2">
                         <div className="flex items-center justify-between text-white text-xs">
                           <div className="flex items-center space-x-1">
                             <Eye className="h-3 w-3" />
-                            <span>{meme.view_count}</span>
+                            <span>{meme.view_count || 0}</span>
                           </div>
                           <div className="flex items-center space-x-1">
                             <Download className="h-3 w-3" />
-                            <span>{meme.download_count}</span>
+                            <span>{meme.download_count || 0}</span>
                           </div>
                         </div>
                       </div>
@@ -235,8 +298,8 @@ export default function FeaturedMemes({ onCategoryClick, onMemeClick }: Featured
               Não encontrou o que procurava?
             </h3>
             <p className="text-primary-100 mb-6 max-w-2xl mx-auto">
-              Explore todas as categorias ou faça uma busca específica para encontrar
-              exatamente o meme que você está procurando.
+              Explore todas as categorias ou faça uma busca específica para
+              encontrar exatamente o meme que você está procurando.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button

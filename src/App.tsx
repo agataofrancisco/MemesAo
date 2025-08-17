@@ -13,6 +13,7 @@ import UploadModal from './components/UploadModal'
 import SearchModal from './components/SearchModal'
 import AdminDashboard from './components/AdminDashboard'
 import BrowseModal from './components/BrowseModal'
+import SimpleDebug from './components/SimpleDebug'
 
 function App() {
   const [isAuthOpen, setIsAuthOpen] = useState(false)
@@ -77,6 +78,9 @@ function App() {
           onClose={() => setIsBrowseOpen(false)}
           initialCategory={browseCategory}
         />
+
+        {/* Debug Component - remover em produção */}
+        <SimpleDebug />
 
         <Toaster position="top-right" />
       </div>

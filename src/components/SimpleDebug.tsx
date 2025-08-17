@@ -1,211 +1,187 @@
-import React, { useState, useEffect } from 'react'
-import { supabase, isSupabaseConfigured } from '../lib/supabase'
-import { Database, AlertCircle, X } from 'lucide-react'
+import React, { useState } from 'react'
+import { RefreshCw, Database, Eye, EyeOff } from 'lucide-react'
+import { useMemes } from '../hooks/useMemes'
+import { useStats } from '../hooks/useStats'
+import { isSupabaseConfigured } from '../lib/supabase'
 
 export default function SimpleDebug() {
-  const [counts, setCounts] = useState<any>(null)
-  const [isVisible, setIsVisible] = useState(true)
-  const [loading, setLoading] = useState(false)
-
-  const checkCounts = async () => {
-    if (!isSupabaseConfigured) {
-      setCounts({ error: 'Supabase não configurado' })
-      return
-    }
-
-    setLoading(true)
-    try {
-      // Verificar contagens básicas
-      const results = await Promise.allSettled([
-        supabase.from('categories').select('*', { count: 'exact', head: true }),
-        supabase
-          .from('memes')
-          .select('*', { count: 'exact', head: true })
-          .eq('status', 'approved'),
-        supabase
-          .from('pending_memes')
-          .select('*', { count: 'exact', head: true })
-          .eq('status', 'pending'),
-        supabase.from('memes').select('*', { count: 'exact', head: true }),
-        // Testar query real do AdminDashboard
-        supabase
-          .from('memes')
-          .select(
-            `
-          *,
-          categories (id, name, slug, icon, color),
-          profiles:uploaded_by(username, avatar_url)
-        `,
-          )
-          .order('created_at', { ascending: false })
-          .limit(1),
-        // Testar query de pending_memes
-        supabase
-          .from('pending_memes')
-          .select(
-            `
-          *,
-          profiles:uploaded_by(username, avatar_url)
-        `,
-          )
-          .eq('status', 'pending')
-          .limit(1),
-      ])
-
-      setCounts({
-        categories:
-          results[0].status === 'fulfilled'
-            ? results[0].value.count || 0
-            : 'Erro',
-        memesApproved:
-          results[1].status === 'fulfilled'
-            ? results[1].value.count || 0
-            : 'Erro',
-        pendingMemes:
-          results[2].status === 'fulfilled'
-            ? results[2].value.count || 0
-            : 'Erro',
-        totalMemes:
-          results[3].status === 'fulfilled'
-            ? results[3].value.count || 0
-            : 'Erro',
-        queryTest: results[4]?.status === 'fulfilled' ? 'OK' : 'ERRO',
-        pendingQueryTest: results[5]?.status === 'fulfilled' ? 'OK' : 'ERRO',
-        errors: results
-          .filter((r) => r.status === 'rejected')
-          .map((r: any) => r.reason?.message || r.reason)
-          .filter(Boolean),
-      })
-    } catch (error) {
-      setCounts({ error: error.message })
-    }
-    setLoading(false)
-  }
-
-  useEffect(() => {
-    checkCounts()
-  }, [])
+  const [isVisible, setIsVisible] = useState(false)
+  const {
+    memes,
+    loading: memesLoading,
+    isBackendConfigured,
+    refresh: refreshMemes,
+  } = useMemes()
+  const {
+    categories,
+    stats,
+    loading: statsLoading,
+    refresh: refreshStats,
+  } = useStats()
 
   if (!isVisible) {
     return (
-      <button
-        onClick={() => setIsVisible(true)}
-        className="fixed top-4 left-4 bg-red-600 hover:bg-red-700 text-white p-2 rounded-full shadow-lg z-[9999] animate-pulse"
-        title="Debug Info"
-      >
-        <AlertCircle className="h-4 w-4" />
-      </button>
+      <div className="fixed bottom-4 right-4 z-50">
+        <button
+          onClick={() => setIsVisible(true)}
+          className="bg-gray-800 text-white p-2 rounded-full shadow-lg hover:bg-gray-700 transition-colors"
+          title="Mostrar Debug"
+        >
+          <Eye className="h-4 w-4" />
+        </button>
+      </div>
     )
   }
 
+  const handleRefresh = async () => {
+    await Promise.all([refreshMemes(), refreshStats()])
+  }
+
   return (
-    <div className="fixed top-4 left-4 bg-red-50 dark:bg-red-900/20 border-2 border-red-500 rounded-lg p-4 shadow-xl z-[9999] max-w-xs">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="font-bold text-red-800 dark:text-red-200 flex items-center text-sm">
-          <Database className="h-4 w-4 mr-1" />
-          DB Status
+    <div className="fixed bottom-4 right-4 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl p-4 max-w-md">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+          <Database className="h-5 w-5 mr-2" />
+          Debug Info
         </h3>
-        <div className="flex gap-1">
+        <div className="flex space-x-2">
           <button
-            onClick={checkCounts}
-            disabled={loading}
-            className="text-xs px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+            onClick={handleRefresh}
+            className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            title="Atualizar dados"
           >
-            {loading ? '...' : '↻'}
+            <RefreshCw className="h-4 w-4" />
           </button>
           <button
             onClick={() => setIsVisible(false)}
-            className="text-red-600 hover:text-red-800 dark:text-red-300"
+            className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            title="Ocultar Debug"
           >
-            <X className="h-3 w-3" />
+            <EyeOff className="h-4 w-4" />
           </button>
         </div>
       </div>
 
-      {counts ? (
-        <div className="space-y-2 text-xs">
-          {counts.error ? (
-            <div className="text-red-600 dark:text-red-400 font-medium">
-              ❌ {counts.error}
+      <div className="space-y-3 text-sm">
+        {/* Configuração */}
+        <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded">
+          <h4 className="font-medium text-gray-900 dark:text-white mb-2">
+            Configuração
+          </h4>
+          <div className="space-y-1 text-xs">
+            <div className="flex justify-between">
+              <span>Supabase:</span>
+              <span
+                className={
+                  isSupabaseConfigured ? 'text-green-600' : 'text-red-600'
+                }
+              >
+                {isSupabaseConfigured ? 'Configurado' : 'Não configurado'}
+              </span>
             </div>
-          ) : (
-            <>
-              <div className="grid grid-cols-2 gap-1">
-                <div>Categorias:</div>
-                <div
-                  className={
-                    counts.categories === 0
-                      ? 'text-red-600 font-bold'
-                      : 'text-green-600'
-                  }
-                >
-                  {counts.categories}
-                </div>
-
-                <div>Memes OK:</div>
-                <div
-                  className={
-                    counts.memesApproved === 0
-                      ? 'text-red-600 font-bold'
-                      : 'text-green-600'
-                  }
-                >
-                  {counts.memesApproved}
-                </div>
-
-                <div>Pendentes:</div>
-                <div className="text-blue-600">{counts.pendingMemes}</div>
-
-                <div>Total:</div>
-                <div>{counts.totalMemes}</div>
-
-                <div>Query Admin:</div>
-                <div
-                  className={
-                    counts.queryTest === 'OK'
-                      ? 'text-green-600'
-                      : 'text-red-600 font-bold'
-                  }
-                >
-                  {counts.queryTest}
-                </div>
-
-                <div>Query Pending:</div>
-                <div
-                  className={
-                    counts.pendingQueryTest === 'OK'
-                      ? 'text-green-600'
-                      : 'text-red-600 font-bold'
-                  }
-                >
-                  {counts.pendingQueryTest}
-                </div>
-              </div>
-
-              {/* Alertas */}
-              {counts.categories === 0 && (
-                <div className="bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 p-2 rounded text-xs">
-                  ⚠️ Sem categorias! Execute fix_missing_data.sql
-                </div>
-              )}
-
-              {counts.memesApproved === 0 && (
-                <div className="bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-200 p-2 rounded text-xs">
-                  ❌ Sem memes! Execute fix_missing_data.sql
-                </div>
-              )}
-
-              {counts.errors && counts.errors.length > 0 && (
-                <div className="bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-200 p-2 rounded text-xs">
-                  🚨 Erros: {counts.errors.join(', ')}
-                </div>
-              )}
-            </>
-          )}
+            <div className="flex justify-between">
+              <span>Backend:</span>
+              <span
+                className={
+                  isBackendConfigured ? 'text-green-600' : 'text-red-600'
+                }
+              >
+                {isBackendConfigured ? 'Ativo' : 'Inativo'}
+              </span>
+            </div>
+          </div>
         </div>
-      ) : (
-        <div className="text-gray-500 text-xs">Carregando...</div>
-      )}
+
+        {/* Estados de carregamento */}
+        <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded">
+          <h4 className="font-medium text-gray-900 dark:text-white mb-2">
+            Estados
+          </h4>
+          <div className="space-y-1 text-xs">
+            <div className="flex justify-between">
+              <span>Memes Loading:</span>
+              <span
+                className={memesLoading ? 'text-yellow-600' : 'text-green-600'}
+              >
+                {memesLoading ? 'Carregando...' : 'Carregado'}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span>Stats Loading:</span>
+              <span
+                className={statsLoading ? 'text-yellow-600' : 'text-green-600'}
+              >
+                {statsLoading ? 'Carregando...' : 'Carregado'}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Dados */}
+        <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded">
+          <h4 className="font-medium text-gray-900 dark:text-white mb-2">
+            Dados Carregados
+          </h4>
+          <div className="space-y-1 text-xs">
+            <div className="flex justify-between">
+              <span>Memes:</span>
+              <span className="font-mono">{memes.length}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Categorias:</span>
+              <span className="font-mono">{categories.length}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Total Memes (Stats):</span>
+              <span className="font-mono">{stats.totalMemes}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Total Usuários:</span>
+              <span className="font-mono">{stats.totalUsers}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Categorias detalhadas */}
+        {categories.length > 0 && (
+          <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded">
+            <h4 className="font-medium text-gray-900 dark:text-white mb-2">
+              Categorias
+            </h4>
+            <div className="space-y-1 text-xs max-h-32 overflow-y-auto">
+              {categories.map((cat) => (
+                <div key={cat.id} className="flex justify-between">
+                  <span className="truncate">{cat.name}</span>
+                  <span className="font-mono ml-2">{cat.count}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Últimos memes */}
+        {memes.length > 0 && (
+          <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded">
+            <h4 className="font-medium text-gray-900 dark:text-white mb-2">
+              Últimos Memes
+            </h4>
+            <div className="space-y-1 text-xs max-h-32 overflow-y-auto">
+              {memes.slice(0, 5).map((meme) => (
+                <div key={meme.id} className="flex justify-between">
+                  <span className="truncate">{meme.title || 'Sem título'}</span>
+                  <span className="ml-2 text-gray-500">{meme.category}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Logs de erro (se houver) */}
+        <div className="text-xs text-gray-500 dark:text-gray-400">
+          <div>Última atualização: {new Date().toLocaleTimeString()}</div>
+          <div>URL: {window.location.hostname}</div>
+        </div>
+      </div>
     </div>
   )
 }

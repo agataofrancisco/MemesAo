@@ -24,13 +24,19 @@ export function useMemes() {
   >(null);
 
   const loadMemes = useCallback(async () => {
-    if (!isSupabaseConfigured) {
+    if (!isSupabaseConfigured || !supabase) {
+      console.log("Supabase não configurado, usando dados mock");
+      // Dados mock para desenvolvimento
+      setMemes([]);
       setLoading(false);
       return;
     }
 
     try {
-      const { data, error } = await supabase
+      console.log("Carregando memes do Supabase...");
+
+      // Query simplificada primeiro - buscar apenas memes aprovados
+      const { data: memesData, error: memesError } = await supabase
         .from("memes")
         .select(
           `
@@ -45,26 +51,77 @@ export function useMemes() {
           format,
           created_at,
           uploaded_by,
-          categories!inner(name),
-          profiles:uploaded_by(username)
+          category_id,
+          view_count,
+          download_count,
+          status
         `
         )
         .eq("status", "approved")
         .order("created_at", { ascending: false })
         .limit(100);
 
-      if (error) throw error;
+      if (memesError) {
+        console.error("Erro ao buscar memes:", memesError);
+        throw memesError;
+      }
 
-      // Transformar dados para incluir category como string
-      const transformedMemes = (data || []).map((meme) => ({
-        ...meme,
-        category: meme.categories?.name || "Sem categoria",
-      }));
+      console.log(`Encontrados ${memesData?.length || 0} memes`);
 
+      if (!memesData || memesData.length === 0) {
+        setMemes([]);
+        setLoading(false);
+        return;
+      }
+
+      // Buscar categorias separadamente para evitar problemas de join
+      const { data: categoriesData, error: categoriesError } = await supabase
+        .from("categories")
+        .select("id, name");
+
+      if (categoriesError) {
+        console.error("Erro ao buscar categorias:", categoriesError);
+      }
+
+      // Buscar perfis dos usuários separadamente
+      const uploaderIds = [
+        ...new Set(memesData.map((m) => m.uploaded_by).filter(Boolean)),
+      ];
+      let profilesData: any[] = [];
+
+      if (uploaderIds.length > 0) {
+        const { data: profiles, error: profilesError } = await supabase
+          .from("profiles")
+          .select("id, username")
+          .in("id", uploaderIds);
+
+        if (profilesError) {
+          console.error("Erro ao buscar perfis:", profilesError);
+        } else {
+          profilesData = profiles || [];
+        }
+      }
+
+      // Mapear dados para incluir informações relacionadas
+      const transformedMemes = memesData.map((meme) => {
+        const category = categoriesData?.find((c) => c.id === meme.category_id);
+        const profile = profilesData?.find((p) => p.id === meme.uploaded_by);
+
+        return {
+          ...meme,
+          category: category?.name || "Sem categoria",
+          profile: profile ? { username: profile.username } : undefined,
+          view_count: meme.view_count || 0,
+          download_count: meme.download_count || 0,
+        };
+      });
+
+      console.log(`Memes transformados: ${transformedMemes.length}`);
       setMemes(transformedMemes);
     } catch (error) {
       console.error("Erro ao carregar memes:", error);
       toast.error("Erro ao carregar memes");
+      setMemes([]);
     } finally {
       setLoading(false);
     }
@@ -112,9 +169,9 @@ export function useMemes() {
       // Verificar duplicados nos memes aprovados
       const { data: approvedMemes, error: approvedError } = await supabase
         .from("memes")
-        .select("id, extracted_text")
+        .select("id, ocr_text")
         .eq("status", "approved")
-        .not("extracted_text", "is", null);
+        .not("ocr_text", "is", null);
 
       if (approvedError) throw approvedError;
 
@@ -153,11 +210,9 @@ export function useMemes() {
         .filter((word) => word.length > 2);
 
       for (const meme of allMemes) {
-        if (meme.extracted_text) {
-          const similarity = calculateSimilarity(
-            extractedText,
-            meme.extracted_text
-          );
+        const memeText = meme.ocr_text || meme.extracted_text;
+        if (memeText) {
+          const similarity = calculateSimilarity(extractedText, memeText);
 
           // Se similaridade maior que 80%, considerar duplicado
           if (similarity > 0.8) {
@@ -240,11 +295,6 @@ export function useMemes() {
         .single();
 
       if (error) throw error;
-
-      // Notificar callback de mudança
-      if (memesChangeCallback) {
-        memesChangeCallback();
-      }
 
       toast.success("Meme enviado para aprovação!", { id: "upload" });
       return {
@@ -356,8 +406,9 @@ export function useMemes() {
           format,
           created_at,
           uploaded_by,
-          categories!inner(name),
-          profiles:uploaded_by(username)
+          category_id,
+          view_count,
+          download_count
         `
         )
         .eq("status", "approved");
@@ -389,13 +440,29 @@ export function useMemes() {
 
       if (error) throw error;
 
-      // Transformar dados para incluir category como string
-      const transformedMemes = (data || []).map((meme) => ({
-        ...meme,
-        category: meme.categories?.name || "Sem categoria",
-      }));
+      // Buscar informações das categorias separadamente
+      if (data && data.length > 0) {
+        const { data: categoriesData } = await supabase
+          .from("categories")
+          .select("id, name");
 
-      return transformedMemes;
+        // Transformar dados para incluir category como string
+        const transformedMemes = data.map((meme) => {
+          const category = categoriesData?.find(
+            (c) => c.id === meme.category_id
+          );
+          return {
+            ...meme,
+            category: category?.name || "Sem categoria",
+            view_count: meme.view_count || 0,
+            download_count: meme.download_count || 0,
+          };
+        });
+
+        return transformedMemes;
+      }
+
+      return [];
     } catch (error) {
       console.error("Erro na busca:", error);
       return [];
@@ -415,8 +482,7 @@ export function useMemes() {
     downloadMeme,
     uploadMeme,
     searchMemes,
-    setMemesChangeCallback: (callback: () => void) =>
-      setMemesChangeCallback(callback),
     isBackendConfigured: isSupabaseConfigured,
+    refresh: loadMemes,
   };
 }

@@ -25,18 +25,90 @@ const iconMap = {
   Tag: Tag,
 }
 
+// Categorias mock para quando não há dados no banco
+const mockCategories = [
+  {
+    id: '1',
+    name: 'Reação',
+    count: 2,
+    icon: 'Smile',
+    color: 'from-primary-500 to-blue-500',
+    description: 'Expressões e reações do dia a dia',
+  },
+  {
+    id: '2',
+    name: 'Games',
+    count: 1,
+    icon: 'Gamepad',
+    color: 'from-purple-500 to-pink-500',
+    description: 'Mundo dos jogos e gaming',
+  },
+  {
+    id: '3',
+    name: 'Filmes/TV',
+    count: 0,
+    icon: 'Film',
+    color: 'from-teal-500 to-green-500',
+    description: 'Cinema e televisão',
+  },
+  {
+    id: '4',
+    name: 'Esportes',
+    count: 1,
+    icon: 'Trophy',
+    color: 'from-accent-500 to-red-500',
+    description: 'Futebol e outros esportes',
+  },
+  {
+    id: '5',
+    name: 'Trabalho',
+    count: 0,
+    icon: 'Briefcase',
+    color: 'from-indigo-500 to-purple-500',
+    description: 'Vida profissional',
+  },
+  {
+    id: '6',
+    name: 'Amor',
+    count: 0,
+    icon: 'Heart',
+    color: 'from-pink-500 to-red-500',
+    description: 'Relacionamentos e amor',
+  },
+  {
+    id: '7',
+    name: 'Música',
+    count: 0,
+    icon: 'Music',
+    color: 'from-green-500 to-teal-500',
+    description: 'Artistas e música',
+  },
+  {
+    id: '8',
+    name: 'Cotidiano',
+    count: 2,
+    icon: 'Coffee',
+    color: 'from-yellow-500 to-orange-500',
+    description: 'Dia a dia angolano',
+  },
+]
+
 interface CategoriesProps {
   onCategoryClick?: (categoryName: string) => void
 }
 
 export default function Categories({ onCategoryClick }: CategoriesProps) {
-  const { categories, loading } = useStats()
+  const { categories: dbCategories, loading } = useStats()
 
   const handleCategoryClick = (categoryName: string) => {
     if (onCategoryClick) {
       onCategoryClick(categoryName)
     }
   }
+
+  // Usar categorias do banco se disponíveis, senão usar mock
+  const categoriesToShow =
+    dbCategories.length > 0 ? dbCategories : mockCategories
 
   if (loading) {
     return (
@@ -94,7 +166,7 @@ export default function Categories({ onCategoryClick }: CategoriesProps) {
           </p>
         </motion.div>
 
-        {categories.length === 0 ? (
+        {categoriesToShow.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-gray-500 dark:text-gray-400 text-lg">
               Nenhuma categoria disponível no momento.
@@ -105,7 +177,7 @@ export default function Categories({ onCategoryClick }: CategoriesProps) {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {categories.map((category, index) => {
+            {categoriesToShow.map((category, index) => {
               const IconComponent =
                 iconMap[category.icon as keyof typeof iconMap] || Tag
 
@@ -119,10 +191,7 @@ export default function Categories({ onCategoryClick }: CategoriesProps) {
                   whileHover={{ scale: 1.05, y: -5 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => handleCategoryClick(category.name)}
-                  className={`bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-all duration-300 cursor-pointer group text-left w-full ${
-                    category.count === 0 ? 'opacity-50' : ''
-                  }`}
-                  disabled={category.count === 0}
+                  className={`bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-all duration-300 cursor-pointer group text-left w-full`}
                 >
                   <div
                     className={`inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r ${category.color} rounded-full mb-4 group-hover:scale-110 transition-transform duration-300`}
@@ -147,14 +216,24 @@ export default function Categories({ onCategoryClick }: CategoriesProps) {
                     </span>
                   </div>
 
-                  {category.count > 0 && (
-                    <div className="mt-3 text-xs text-primary-600 dark:text-primary-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                      Clique para explorar →
-                    </div>
-                  )}
+                  <div className="mt-3 text-xs text-primary-600 dark:text-primary-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                    Clique para explorar →
+                  </div>
                 </motion.button>
               )
             })}
+          </div>
+        )}
+
+        {/* Aviso quando usando dados mock */}
+        {dbCategories.length === 0 && (
+          <div className="mt-8 text-center">
+            <div className="inline-flex items-center px-4 py-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+              <div className="text-sm text-blue-700 dark:text-blue-300">
+                <strong>Modo Demo:</strong> Mostrando categorias de exemplo.{' '}
+                Configure o banco de dados para ver dados reais.
+              </div>
+            </div>
           </div>
         )}
       </div>
