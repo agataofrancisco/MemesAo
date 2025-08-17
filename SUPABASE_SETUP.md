@@ -133,18 +133,45 @@ CREATE INDEX idx_pending_memes_extracted_text ON pending_memes USING gin(to_tsve
 Se não tiver memes para testar, execute este script para criar alguns exemplos:
 
 ```sql
+-- Primeiro, vamos garantir que as categorias existem e obter seus IDs
+INSERT INTO categories (name, slug, description, icon, color) VALUES
+('Cotidiano', 'cotidiano', 'Memes do dia a dia', '☕', 'from-blue-500 to-blue-600'),
+('Tecnologia', 'tecnologia', 'Memes sobre tech', '💻', 'from-green-500 to-green-600'),
+('Família', 'familia', 'Memes sobre família', '👨‍👩‍👧‍👦', 'from-purple-500 to-purple-600'),
+('Educação', 'educacao', 'Memes sobre escola', '📚', 'from-orange-500 to-orange-600')
+ON CONFLICT (name) DO NOTHING;
+
 -- Inserir memes de exemplo na tabela principal (aprovados)
-INSERT INTO memes (title, description, image_url, category, status, view_count, download_count) VALUES
-('Quando é segunda-feira', 'Aquela cara de segunda', 'https://picsum.photos/400/400?random=1', 'Cotidiano', 'approved', 150, 25),
-('Programador vs Bug', 'A luta diária', 'https://picsum.photos/400/400?random=2', 'Tecnologia', 'approved', 89, 12),
-('Mãe angolana vs filho', 'Conversa típica', 'https://picsum.photos/400/400?random=3', 'Família', 'approved', 234, 45),
-('Fim do mês', 'Quando a conta não fecha', 'https://picsum.photos/400/400?random=4', 'Cotidiano', 'approved', 178, 32),
-('Professor de matemática', 'Explicando algo simples', 'https://picsum.photos/400/400?random=5', 'Educação', 'approved', 95, 18);
+-- Usando category_id em vez de category
+WITH category_ids AS (
+  SELECT
+    (SELECT id FROM categories WHERE name = 'Cotidiano') as cotidiano_id,
+    (SELECT id FROM categories WHERE name = 'Tecnologia') as tecnologia_id,
+    (SELECT id FROM categories WHERE name = 'Família') as familia_id,
+    (SELECT id FROM categories WHERE name = 'Educação') as educacao_id
+)
+INSERT INTO memes (title, description, image_url, image_path, category_id, status, view_count, download_count, ocr_text)
+SELECT * FROM (
+  VALUES
+    ('Quando é segunda-feira', 'Aquela cara de segunda', 'https://picsum.photos/400/400?random=1', 'exemplo1.jpg', (SELECT cotidiano_id FROM category_ids), 'approved', 150, 25, 'segunda feira trabalho cansado'),
+    ('Programador vs Bug', 'A luta diária', 'https://picsum.photos/400/400?random=2', 'exemplo2.jpg', (SELECT tecnologia_id FROM category_ids), 'approved', 89, 12, 'programador bug codigo erro'),
+    ('Mãe angolana vs filho', 'Conversa típica', 'https://picsum.photos/400/400?random=3', 'exemplo3.jpg', (SELECT familia_id FROM category_ids), 'approved', 234, 45, 'mae filho conversa familia'),
+    ('Fim do mês', 'Quando a conta não fecha', 'https://picsum.photos/400/400?random=4', 'exemplo4.jpg', (SELECT cotidiano_id FROM category_ids), 'approved', 178, 32, 'dinheiro conta fim mes'),
+    ('Professor de matemática', 'Explicando algo simples', 'https://picsum.photos/400/400?random=5', 'exemplo5.jpg', (SELECT educacao_id FROM category_ids), 'approved', 95, 18, 'professor matematica explicacao')
+) AS v(title, description, image_url, image_path, category_id, status, view_count, download_count, ocr_text);
 
 -- Inserir memes pendentes de exemplo
-INSERT INTO pending_memes (title, description, image_url, category, status) VALUES
-('Novo meme pendente', 'Aguardando aprovação', 'https://picsum.photos/400/400?random=6', 'Cotidiano', 'pending'),
-('Outro meme', 'Também pendente', 'https://picsum.photos/400/400?random=7', 'Tecnologia', 'pending');
+-- Estes usam category (string) porque pending_memes tem estrutura diferente
+INSERT INTO pending_memes (title, description, image_url, category, status, extracted_text) VALUES
+('Novo meme pendente', 'Aguardando aprovação', 'https://picsum.photos/400/400?random=6', 'Cotidiano', 'pending', 'novo meme aguardando aprovacao'),
+('Outro meme', 'Também pendente', 'https://picsum.photos/400/400?random=7', 'Tecnologia', 'pending', 'outro meme pendente tecnologia');
+
+-- Atualizar contadores das categorias
+UPDATE categories SET meme_count = (
+  SELECT COUNT(*) FROM memes
+  WHERE memes.category_id = categories.id
+  AND memes.status = 'approved'
+);
 ```
 
 ## 📋 Passo a Passo

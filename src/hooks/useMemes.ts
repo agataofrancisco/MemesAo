@@ -35,6 +35,13 @@ export function useMemes() {
         .select(
           `
           *,
+          categories (
+            id,
+            name,
+            slug,
+            icon,
+            color
+          ),
           profiles:uploaded_by(username, avatar_url)
         `
         )
@@ -43,7 +50,13 @@ export function useMemes() {
 
       if (error) throw error;
 
-      setMemes(data || []);
+      // Transformar dados para incluir category como string
+      const transformedMemes = (data || []).map((meme) => ({
+        ...meme,
+        category: meme.categories?.name || "Sem categoria",
+      }));
+
+      setMemes(transformedMemes);
     } catch (error) {
       console.error("Erro ao carregar memes:", error);
       toast.error("Erro ao carregar memes");
@@ -328,6 +341,13 @@ export function useMemes() {
         .select(
           `
           *,
+          categories (
+            id,
+            name,
+            slug,
+            icon,
+            color
+          ),
           profiles:uploaded_by(username, avatar_url)
         `
         )
@@ -335,13 +355,22 @@ export function useMemes() {
 
       // Filtrar por categoria se especificada
       if (category && category !== "Todas") {
-        queryBuilder = queryBuilder.eq("category", category);
+        // Buscar o ID da categoria pelo nome
+        const { data: categoryData } = await supabase
+          .from("categories")
+          .select("id")
+          .eq("name", category)
+          .single();
+
+        if (categoryData) {
+          queryBuilder = queryBuilder.eq("category_id", categoryData.id);
+        }
       }
 
       // Buscar por texto se fornecido
       if (query.trim()) {
         queryBuilder = queryBuilder.or(
-          `title.ilike.%${query}%,description.ilike.%${query}%,extracted_text.ilike.%${query}%`
+          `title.ilike.%${query}%,description.ilike.%${query}%,ocr_text.ilike.%${query}%`
         );
       }
 
@@ -351,7 +380,13 @@ export function useMemes() {
 
       if (error) throw error;
 
-      return data || [];
+      // Transformar dados para incluir category como string
+      const transformedMemes = (data || []).map((meme) => ({
+        ...meme,
+        category: meme.categories?.name || "Sem categoria",
+      }));
+
+      return transformedMemes;
     } catch (error) {
       console.error("Erro na busca:", error);
       return [];

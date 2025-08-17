@@ -116,13 +116,27 @@ export default function AdminDashboard({
         .select(
           `
           *,
+          categories (
+            id,
+            name,
+            slug,
+            icon,
+            color
+          ),
           profiles:uploaded_by(username, avatar_url)
         `,
         )
         .order('created_at', { ascending: false })
 
       if (allMemesError) throw allMemesError
-      setAllMemes(allMemesData || [])
+
+      // Transformar dados para incluir category como string
+      const transformedMemes = (allMemesData || []).map((meme) => ({
+        ...meme,
+        category: meme.categories?.name || 'Sem categoria',
+      }))
+
+      setAllMemes(transformedMemes)
     } catch (error) {
       console.error('Erro ao carregar dados do dashboard:', error)
       toast.error('Erro ao carregar dados do dashboard')

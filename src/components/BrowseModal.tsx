@@ -59,6 +59,13 @@ export default function BrowseModal({
         .select(
           `
           *,
+          categories (
+            id,
+            name,
+            slug,
+            icon,
+            color
+          ),
           profiles:uploaded_by(username, avatar_url)
         `,
         )
@@ -66,13 +73,22 @@ export default function BrowseModal({
 
       // Filtrar por categoria se não for "Todas"
       if (selectedCategory !== 'Todas') {
-        query = query.eq('category', selectedCategory)
+        // Buscar o ID da categoria pelo nome
+        const { data: categoryData } = await supabase
+          .from('categories')
+          .select('id')
+          .eq('name', selectedCategory)
+          .single()
+
+        if (categoryData) {
+          query = query.eq('category_id', categoryData.id)
+        }
       }
 
       // Aplicar busca por texto se houver termo
       if (searchTerm.trim()) {
         query = query.or(
-          `title.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,extracted_text.ilike.%${searchTerm}%`,
+          `title.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,ocr_text.ilike.%${searchTerm}%`,
         )
       }
 
@@ -94,7 +110,13 @@ export default function BrowseModal({
         throw error
       }
 
-      setBrowseMemes(data || [])
+      // Transformar dados para incluir category como string
+      const transformedMemes = (data || []).map((meme) => ({
+        ...meme,
+        category: meme.categories?.name || 'Sem categoria',
+      }))
+
+      setBrowseMemes(transformedMemes)
     } catch (error) {
       console.error('Erro ao carregar memes:', error)
       toast.error('Erro ao carregar memes')
