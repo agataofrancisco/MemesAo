@@ -34,19 +34,25 @@ export function useMemes() {
         .from("memes")
         .select(
           `
-          *,
-          categories (
-            id,
-            name,
-            slug,
-            icon,
-            color
-          ),
-          profiles:uploaded_by(username, avatar_url)
+          id,
+          title,
+          description,
+          image_url,
+          image_path,
+          file_size,
+          width,
+          height,
+          format,
+          tags,
+          created_at,
+          uploaded_by,
+          categories!inner(name),
+          profiles:uploaded_by(username)
         `
         )
         .eq("status", "approved")
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(100);
 
       if (error) throw error;
 
@@ -340,15 +346,20 @@ export function useMemes() {
         .from("memes")
         .select(
           `
-          *,
-          categories (
-            id,
-            name,
-            slug,
-            icon,
-            color
-          ),
-          profiles:uploaded_by(username, avatar_url)
+          id,
+          title,
+          description,
+          image_url,
+          image_path,
+          file_size,
+          width,
+          height,
+          format,
+          tags,
+          created_at,
+          uploaded_by,
+          categories!inner(name),
+          profiles:uploaded_by(username)
         `
         )
         .eq("status", "approved");

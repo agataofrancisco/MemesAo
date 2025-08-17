@@ -66,6 +66,7 @@ export default function AdminDashboard({
     if (!isSupabaseConfigured) return
 
     setLoading(true)
+    console.log('🔄 Iniciando carregamento do dashboard admin...')
     try {
       // Carregar estatísticas
       const [
@@ -95,62 +96,65 @@ export default function AdminDashboard({
         pendingMemes: pendingCount.count || 0,
       })
 
-      // Carregar memes pendentes (da tabela memes, não pending_memes)
+      // Carregar memes pendentes (da tabela memes, não pending_memes) - OTIMIZADO
       const { data: pendingData, error: pendingError } = await supabase
         .from('memes')
         .select(
           `
-          *,
-          categories (
-            id,
-            name,
-            slug,
-            icon,
-            color
-          ),
-          profiles:uploaded_by(username, avatar_url)
+          id,
+          title,
+          description,
+          image_url,
+          status,
+          created_at,
+          categories!inner(name),
+          profiles:uploaded_by(username)
         `,
         )
         .eq('status', 'pending')
         .order('created_at', { ascending: false })
+        .limit(50)
 
       if (pendingError) throw pendingError
-      // Transformar para o formato esperado
+      // Transformar para o formato esperado - OTIMIZADO
       const transformedPendingMemes = (pendingData || []).map((meme) => ({
         ...meme,
         category: meme.categories?.name || 'Sem categoria',
+        uploaded_by_username: meme.profiles?.username || 'Usuário desconhecido',
       }))
       setPendingMemes(transformedPendingMemes)
 
-      // Carregar todos os memes para gerenciamento
+      // Carregar todos os memes para gerenciamento - OTIMIZADO COM PAGINAÇÃO
       const { data: allMemesData, error: allMemesError } = await supabase
         .from('memes')
         .select(
           `
-          *,
-          categories (
-            id,
-            name,
-            slug,
-            icon,
-            color
-          ),
-          profiles:uploaded_by(username, avatar_url)
+          id,
+          title,
+          description,
+          image_url,
+          status,
+          created_at,
+          categories!inner(name),
+          profiles:uploaded_by(username)
         `,
         )
         .order('created_at', { ascending: false })
+        .limit(100)
 
       if (allMemesError) throw allMemesError
 
-      // Transformar dados para incluir category como string
+      // Transformar dados para incluir category como string - OTIMIZADO
       const transformedMemes = (allMemesData || []).map((meme) => ({
         ...meme,
         category: meme.categories?.name || 'Sem categoria',
+        uploaded_by_username: meme.profiles?.username || 'Usuário desconhecido',
       }))
 
       setAllMemes(transformedMemes)
+      console.log('✅ Dashboard carregado com sucesso!')
     } catch (error) {
-      console.error('Erro ao carregar dados do dashboard:', error)
+      console.error('❌ Erro ao carregar dados do dashboard:', error)
       toast.error(
         `Erro ao carregar dados: ${error.message || 'Erro desconhecido'}`,
       )
@@ -462,11 +466,15 @@ export default function AdminDashboard({
   )
 
   const renderMemes = () => (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-          Gerenciar Memes
-        </h3>
+          <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            Gerenciar Memes
+          </h3>
+          <span className="text-sm text-gray-500 dark:text-gray-400">
+            Mostrando {filteredMemes.length} de {allMemes.length} memes (limitado a 100 mais recentes)
+          </span>
+        </div>
         <div className="flex items-center space-x-4">
           <div className="relative">
             <Search
