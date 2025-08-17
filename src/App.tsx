@@ -45,7 +45,13 @@ function App() {
 
         <main>
           <Hero onBrowseClick={handleBrowseOpen} />
-          <FeaturedMemes />
+          <FeaturedMemes
+            onCategoryClick={handleCategoryClick}
+            onMemeClick={(meme) => {
+              // Implementar modal de visualização de meme se necessário
+              console.log('Meme clicado:', meme)
+            }}
+          />
           <Categories onCategoryClick={handleCategoryClick} />
           <Statistics />
           <Features />

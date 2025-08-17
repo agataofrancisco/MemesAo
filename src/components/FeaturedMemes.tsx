@@ -1,62 +1,110 @@
-import React from 'react';
-import { motion } from 'framer-motion';
-import { Heart, Download, Share2, Eye } from 'lucide-react';
-import { useMemes } from '../hooks/useMemes';
-import toast from 'react-hot-toast';
+import React, { useState, useEffect } from 'react'
+import { motion } from 'framer-motion'
+import {
+  Heart,
+  Download,
+  Eye,
+  Star,
+  Grid,
+  TrendingUp,
+  Clock,
+} from 'lucide-react'
+import { useStats } from '../hooks/useStats'
+import { useMemes } from '../hooks/useMemes'
+import type { Meme } from '../lib/supabase'
 
-export default function FeaturedMemes() {
-  const { featuredMemes, favorites, toggleFavorite, downloadMeme, loading } = useMemes();
+interface FeaturedMemesProps {
+  onCategoryClick?: (categoryName: string) => void
+  onMemeClick?: (meme: Meme) => void
+}
 
-  const handleShare = async (meme: any) => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: meme.title,
-          text: `Confira este meme: ${meme.title}`,
-          url: window.location.href,
-        });
-      } catch (error) {
-        // Fallback para clipboard
-        navigator.clipboard.writeText(window.location.href);
-        toast.success('Link copiado para a área de transferência!');
-      }
-    } else {
-      navigator.clipboard.writeText(window.location.href);
-      toast.success('Link copiado para a área de transferência!');
+interface CategoryWithMemes {
+  id: string
+  name: string
+  icon: string
+  color: string
+  count: number
+  topMemes: Meme[]
+}
+
+export default function FeaturedMemes({ onCategoryClick, onMemeClick }: FeaturedMemesProps) {
+  const { categories, loading: categoriesLoading } = useStats()
+  const { memes: allMemes, loading: memesLoading } = useMemes()
+  const [categoriesWithMemes, setCategoriesWithMemes] = useState<CategoryWithMemes[]>([])
+
+  useEffect(() => {
+    if (!categoriesLoading && !memesLoading && allMemes.length > 0) {
+      const categoriesWithTopMemes = categories.map(category => {
+        const categoryMemes = allMemes
+          .filter(meme => meme.category?.id === category.id)
+          .sort((a, b) => (b.view_count + b.download_count) - (a.view_count + a.download_count))
+          .slice(0, 3) // Top 3 memes por categoria
+
+        return {
+          ...category,
+          topMemes: categoryMemes
+        }
+      }).filter(cat => cat.topMemes.length > 0) // Só mostrar categorias com memes
+
+      setCategoriesWithMemes(categoriesWithTopMemes)
     }
-  };
+  }, [allMemes, categories, categoriesLoading, memesLoading])
 
-  if (loading) {
+  const handleCategoryClick = (categoryName: string) => {
+    if (onCategoryClick) {
+      onCategoryClick(categoryName)
+    }
+  }
+
+  const handleMemeClick = (meme: Meme) => {
+    if (onMemeClick) {
+      onMemeClick(meme)
+    }
+  }
+
+  if (categoriesLoading || memesLoading) {
     return (
-      <section id="memes" className="py-20">
+      <section
+        id="explorar"
+        className="py-20 bg-white/30 dark:bg-gray-800/30 backdrop-blur-sm"
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-              Memes em Destaque
+              Explore os Memes
             </h2>
             <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-              Os memes mais curtidos da semana, escolhidos pela comunidade
+              Descubra os memes mais populares organizados por categoria
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700 animate-pulse">
-                <div className="aspect-square bg-gray-300 dark:bg-gray-700" />
-                <div className="p-6">
-                  <div className="h-6 bg-gray-300 dark:bg-gray-700 rounded mb-4" />
-                  <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded mb-2" />
-                  <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-2/3" />
+              <div
+                key={i}
+                className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700 animate-pulse"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div className="h-6 bg-gray-300 dark:bg-gray-700 rounded w-32" />
+                  <div className="h-8 w-8 bg-gray-300 dark:bg-gray-700 rounded" />
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {[...Array(3)].map((_, j) => (
+                    <div key={j} className="aspect-square bg-gray-300 dark:bg-gray-700 rounded-lg" />
+                  ))}
                 </div>
               </div>
             ))}
           </div>
         </div>
       </section>
-    );
+    )
   }
 
   return (
-    <section id="memes" className="py-20">
+    <section
+      id="explorar"
+      className="py-20 bg-white/30 dark:bg-gray-800/30 backdrop-blur-sm"
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -66,117 +114,146 @@ export default function FeaturedMemes() {
           className="text-center mb-16"
         >
           <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-            Memes em Destaque
+            Explore os Memes
           </h2>
           <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-            Os memes mais curtidos da semana, baseados nos favoritos da comunidade
+            Descubra os memes mais populares organizados por categoria
           </p>
         </motion.div>
 
-        {featuredMemes.length === 0 ? (
+        {categoriesWithMemes.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-gray-500 dark:text-gray-400 text-lg">
-              Nenhum meme em destaque no momento.
+              Nenhum meme disponível no momento.
             </p>
             <p className="text-gray-400 dark:text-gray-500 text-sm mt-2">
-              Configure o Supabase para ver os memes mais populares da comunidade.
+              Seja o primeiro a compartilhar um meme!
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {featuredMemes.map((meme, index) => (
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
+            {categoriesWithMemes.map((category, index) => (
               <motion.div
-                key={meme.id}
+                key={category.id}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: index * 0.1 }}
                 viewport={{ once: true }}
-                whileHover={{ y: -8 }}
-                className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-all duration-300"
+                className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-all duration-300"
               >
-                <div className="relative aspect-square overflow-hidden">
-                  <img
-                    src={meme.image_url}
-                    alt={meme.title}
-                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute top-4 right-4">
-                    <span className="bg-gradient-to-r from-primary-500 to-purple-500 text-white px-3 py-1 rounded-full text-sm font-medium">
-                      {meme.category}
-                    </span>
+                {/* Header da Categoria */}
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center space-x-3">
+                    <div
+                      className={`p-3 bg-gradient-to-r ${category.color} rounded-xl`}
+                    >
+                      <Grid className="h-5 w-5 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                        {category.name}
+                      </h3>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {category.count} {category.count === 1 ? 'meme' : 'memes'}
+                      </p>
+                    </div>
                   </div>
-                  <div className="absolute top-4 left-4">
-                    <span className="bg-red-500 text-white px-2 py-1 rounded-full text-xs font-medium flex items-center">
-                      <Heart size={12} className="mr-1 fill-current" />
-                      {meme.favorite_count}
-                    </span>
-                  </div>
+                  <button
+                    onClick={() => handleCategoryClick(category.name)}
+                    className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-medium text-sm flex items-center space-x-1"
+                  >
+                    <span>Ver todos</span>
+                    <TrendingUp className="h-4 w-4" />
+                  </button>
                 </div>
 
-                <div className="p-6">
-                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-                    {meme.title}
-                  </h3>
-
-                  <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400 mb-4">
-                    <div className="flex items-center space-x-4">
-                      <span className="flex items-center">
-                        <Eye size={16} className="mr-1" />
-                        {meme.view_count?.toLocaleString() || 0}
-                      </span>
-                      <span className="flex items-center">
-                        <Download size={16} className="mr-1" />
-                        {meme.download_count || 0}
-                      </span>
-                    </div>
-                  </div>
-
-                  {meme.ocr_text && (
-                    <p className="text-xs text-gray-400 mb-4 line-clamp-2">
-                      "{meme.ocr_text}"
-                    </p>
-                  )}
-
-                  <div className="flex items-center justify-between">
+                {/* Grid de Memes */}
+                <div className="grid grid-cols-3 gap-3">
+                  {category.topMemes.map((meme, memeIndex) => (
                     <motion.button
+                      key={meme.id}
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      onClick={() => toggleFavorite(meme.id)}
-                      className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-300 ${
-                        favorites.includes(meme.id)
-                          ? 'bg-red-500 text-white'
-                          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/20'
-                      }`}
+                      onClick={() => handleMemeClick(meme)}
+                      className="group relative aspect-square bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden"
                     >
-                      <Heart size={16} className={favorites.includes(meme.id) ? 'fill-current' : ''} />
-                      <span>{meme.favorite_count}</span>
-                    </motion.button>
+                      <img
+                        src={meme.image_url}
+                        alt={meme.title || 'Meme'}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                        loading="lazy"
+                      />
+                      
+                      {/* Overlay com estatísticas */}
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-2">
+                        <div className="flex items-center justify-between text-white text-xs">
+                          <div className="flex items-center space-x-1">
+                            <Eye className="h-3 w-3" />
+                            <span>{meme.view_count}</span>
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <Download className="h-3 w-3" />
+                            <span>{meme.download_count}</span>
+                          </div>
+                        </div>
+                      </div>
 
-                    <div className="flex space-x-2">
-                      <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => handleShare(meme)}
-                        className="p-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors"
-                      >
-                        <Share2 size={16} />
-                      </motion.button>
-                      <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => downloadMeme(meme)}
-                        className="p-2 bg-gradient-to-r from-primary-500 to-purple-500 text-white rounded-lg hover:shadow-lg transition-all duration-300"
-                      >
-                        <Download size={16} />
-                      </motion.button>
-                    </div>
-                  </div>
+                      {/* Badge de posição para o primeiro meme */}
+                      {memeIndex === 0 && (
+                        <div className="absolute top-1 left-1 bg-yellow-500 text-white rounded-full p-1">
+                          <Star className="h-3 w-3" />
+                        </div>
+                      )}
+                    </motion.button>
+                  ))}
+                </div>
+
+                {/* Footer com ação */}
+                <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <button
+                    onClick={() => handleCategoryClick(category.name)}
+                    className="w-full text-center py-2 text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-medium text-sm transition-colors duration-200"
+                  >
+                    Explorar {category.name} →
+                  </button>
                 </div>
               </motion.div>
             ))}
           </div>
         )}
+
+        {/* Call to Action */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+          viewport={{ once: true }}
+          className="text-center mt-16"
+        >
+          <div className="bg-gradient-to-r from-primary-500 to-purple-600 rounded-2xl p-8 text-white">
+            <h3 className="text-2xl font-bold mb-4">
+              Não encontrou o que procurava?
+            </h3>
+            <p className="text-primary-100 mb-6 max-w-2xl mx-auto">
+              Explore todas as categorias ou faça uma busca específica para encontrar
+              exatamente o meme que você está procurando.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <button
+                onClick={() => handleCategoryClick('Todas')}
+                className="bg-white text-primary-600 px-6 py-3 rounded-xl font-medium hover:bg-gray-100 transition-colors duration-200 flex items-center justify-center space-x-2"
+              >
+                <Grid className="h-5 w-5" />
+                <span>Ver Todos os Memes</span>
+              </button>
+              <button className="bg-primary-700 text-white px-6 py-3 rounded-xl font-medium hover:bg-primary-800 transition-colors duration-200 flex items-center justify-center space-x-2">
+                <Clock className="h-5 w-5" />
+                <span>Mais Recentes</span>
+              </button>
+            </div>
+          </div>
+        </motion.div>
       </div>
     </section>
-  );
+  )
 }
