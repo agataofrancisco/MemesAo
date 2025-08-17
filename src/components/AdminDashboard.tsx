@@ -49,6 +49,7 @@ export default function AdminDashboard({
   const [allMemes, setAllMemes] = useState<Meme[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [deletingMemeId, setDeletingMemeId] = useState<string | null>(null)
 
   // Estados para CRUD de memes
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
@@ -232,33 +233,95 @@ export default function AdminDashboard({
   const deleteMeme = async (memeId: string) => {
     if (!confirm('Tem certeza que deseja deletar este meme?')) return
 
+    setDeletingMemeId(memeId)
     try {
       if (!isSupabaseConfigured || !supabase) {
         toast.error('Supabase não configurado')
         return
       }
 
-      // Primeiro, deletar registros relacionados para evitar conflitos de foreign key
-      await supabase.from('user_favorites').delete().eq('meme_id', memeId)
-      await supabase.from('meme_downloads').delete().eq('meme_id', memeId)
-      await supabase.from('meme_views').delete().eq('meme_id', memeId)
-      await supabase.from('meme_tags').delete().eq('meme_id', memeId)
+      console.log('Iniciando deleção do meme:', memeId)
 
-      // Depois deletar o meme
-      const { error } = await supabase.from('memes').delete().eq('id', memeId)
+      // Verificar se o meme existe
+      const { data: memeExists, error: checkError } = await supabase
+        .from('memes')
+        .select('id, title')
+        .eq('id', memeId)
+        .single()
 
-      if (error) {
-        console.error('Erro detalhado ao deletar meme:', error)
-        throw error
+      if (checkError) {
+        console.error('Erro ao verificar meme:', checkError)
+        toast.error('Meme não encontrado')
+        return
       }
 
+      console.log('Meme encontrado:', memeExists)
+
+      // Primeiro, deletar registros relacionados para evitar conflitos de foreign key
+      console.log('Deletando registros relacionados...')
+
+      const { error: favError } = await supabase
+        .from('user_favorites')
+        .delete()
+        .eq('meme_id', memeId)
+
+      if (favError && favError.code !== 'PGRST116') {
+        // PGRST116 = no rows found (ok se não há favoritos)
+        console.error('Erro ao deletar favoritos:', favError)
+      }
+
+      const { error: downloadError } = await supabase
+        .from('meme_downloads')
+        .delete()
+        .eq('meme_id', memeId)
+
+      if (downloadError && downloadError.code !== 'PGRST116') {
+        console.error('Erro ao deletar downloads:', downloadError)
+      }
+
+      const { error: viewError } = await supabase
+        .from('meme_views')
+        .delete()
+        .eq('meme_id', memeId)
+
+      if (viewError && viewError.code !== 'PGRST116') {
+        console.error('Erro ao deletar views:', viewError)
+      }
+
+      const { error: tagError } = await supabase
+        .from('meme_tags')
+        .delete()
+        .eq('meme_id', memeId)
+
+      if (tagError && tagError.code !== 'PGRST116') {
+        console.error('Erro ao deletar tags:', tagError)
+      }
+
+      console.log(
+        'Registros relacionados deletados. Deletando meme principal...',
+      )
+
+      // Depois deletar o meme
+      const { error: deleteError } = await supabase
+        .from('memes')
+        .delete()
+        .eq('id', memeId)
+
+      if (deleteError) {
+        console.error('Erro detalhado ao deletar meme:', deleteError)
+        throw deleteError
+      }
+
+      console.log('Meme deletado com sucesso!')
       toast.success('Meme deletado com sucesso!')
       await loadDashboardData()
     } catch (error) {
       console.error('Erro ao deletar meme:', error)
       toast.error(
-        `Erro ao deletar meme: ${error.message || 'Erro desconhecido'}`,
+        `Erro ao deletar meme: ${error?.message || 'Erro desconhecido'}`,
       )
+    } finally {
+      setDeletingMemeId(null)
     }
   }
 
@@ -624,10 +687,23 @@ export default function AdminDashboard({
                         </button>
                         <button
                           onClick={() => deleteMeme(meme.id)}
-                          className="p-1 text-red-600 hover:bg-red-100 dark:hover:bg-red-900 rounded"
-                          title="Excluir"
+                          disabled={deletingMemeId === meme.id}
+                          className={`p-1 rounded ${
+                            deletingMemeId === meme.id
+                              ? 'text-gray-400 cursor-not-allowed'
+                              : 'text-red-600 hover:bg-red-100 dark:hover:bg-red-900'
+                          }`}
+                          title={
+                            deletingMemeId === meme.id
+                              ? 'Deletando...'
+                              : 'Excluir'
+                          }
                         >
-                          <Trash2 size={16} />
+                          {deletingMemeId === meme.id ? (
+                            <div className="animate-spin w-4 h-4 border-2 border-gray-300 border-t-red-600 rounded-full" />
+                          ) : (
+                            <Trash2 size={16} />
+                          )}
                         </button>
                       </div>
                     </td>
