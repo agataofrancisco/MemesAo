@@ -1,6 +1,15 @@
 import React from 'react'
 import { motion } from 'framer-motion'
-import { Search, Sparkles, Zap, Brain, Grid } from 'lucide-react'
+import {
+  Search,
+  Sparkles,
+  Zap,
+  Brain,
+  Grid,
+  Download,
+  Heart,
+  Upload,
+} from 'lucide-react'
 
 interface HeroProps {
   onBrowseClick?: () => void
@@ -96,53 +105,83 @@ export default function Hero({ onBrowseClick }: HeroProps) {
             )}
           </motion.div>
 
-          {/* Features Grid */}
+          {/* Como Usar */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6 }}
-            className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 max-w-4xl mx-auto px-2"
+            className="max-w-4xl mx-auto px-4"
           >
-            <div className="flex items-center justify-center space-x-3 p-4 sm:p-6 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-200 dark:border-gray-700">
-              <div className="p-2 sm:p-3 bg-gradient-to-r from-primary-500 to-purple-500 rounded-lg">
-                <Brain className="h-4 w-4 sm:h-6 sm:w-6 text-white" />
-              </div>
-              <div className="text-left">
-                <h3 className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white">
-                  OCR Inteligente
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-8 text-center">
+              Como Usar? É Simples!
+            </h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
+              {/* Passo 1 */}
+              <div className="text-center p-6 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl border border-gray-200 dark:border-gray-700 shadow-lg">
+                <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-2xl font-bold text-white">1</span>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                  Explorar Memes
                 </h3>
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                  Busca por texto nas imagens
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  Clique em "Explorar por Categoria" para ver todos os memes
+                  organizados por temas
                 </p>
+                <div className="w-full h-20 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center">
+                  <Grid className="w-8 h-8 text-gray-400" />
+                </div>
+              </div>
+
+              {/* Passo 2 */}
+              <div className="text-center p-6 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl border border-gray-200 dark:border-gray-700 shadow-lg">
+                <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-teal-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-2xl font-bold text-white">2</span>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                  Baixar & Curtir
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  Clique no meme para abrir, depois use os botões para baixar ou
+                  curtir
+                </p>
+                <div className="w-full h-20 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center space-x-4">
+                  <Download className="w-6 h-6 text-gray-400" />
+                  <Heart className="w-6 h-6 text-gray-400" />
+                </div>
+              </div>
+
+              {/* Passo 3 */}
+              <div className="text-center p-6 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl border border-gray-200 dark:border-gray-700 shadow-lg">
+                <div className="w-16 h-16 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-2xl font-bold text-white">3</span>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                  Contribuir
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  Tem memes? Clique no botão "+" no topo para enviar e ajudar a
+                  comunidade
+                </p>
+                <div className="w-full h-20 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center">
+                  <Upload className="w-8 h-8 text-gray-400" />
+                </div>
               </div>
             </div>
 
-            <div className="flex items-center justify-center space-x-3 p-4 sm:p-6 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-200 dark:border-gray-700">
-              <div className="p-2 sm:p-3 bg-gradient-to-r from-teal-500 to-green-500 rounded-lg">
-                <Zap className="h-4 w-4 sm:h-6 sm:w-6 text-white" />
+            {/* Dica Extra */}
+            <div className="mt-8 p-4 bg-gradient-to-r from-yellow-100 to-orange-100 dark:from-yellow-900/30 dark:to-orange-900/30 rounded-xl border border-yellow-200 dark:border-yellow-700">
+              <div className="flex items-center justify-center space-x-2 mb-2">
+                <span className="text-2xl">💡</span>
+                <h4 className="font-semibold text-gray-900 dark:text-white">
+                  Dica:
+                </h4>
               </div>
-              <div className="text-left">
-                <h3 className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white">
-                  Categorização Automática
-                </h3>
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                  IA organiza os memes
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-center space-x-3 p-4 sm:p-6 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-200 dark:border-gray-700 sm:col-span-1 col-span-1">
-              <div className="p-2 sm:p-3 bg-gradient-to-r from-accent-500 to-yellow-500 rounded-lg">
-                <Sparkles className="h-4 w-4 sm:h-6 sm:w-6 text-white" />
-              </div>
-              <div className="text-left">
-                <h3 className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white">
-                  Upload Fácil
-                </h3>
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                  Contribua com a comunidade
-                </p>
-              </div>
+              <p className="text-center text-sm text-gray-700 dark:text-gray-300">
+                Use o botão de busca 🔍 no topo da página para encontrar memes
+                específicos ou o modo escuro 🌙 para melhor experiência noturna!
+              </p>
             </div>
           </motion.div>
         </div>
