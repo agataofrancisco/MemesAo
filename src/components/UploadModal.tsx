@@ -158,7 +158,7 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Imagem *
               </label>
-              <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-4 sm:p-6 text-center hover:border-primary-500 transition-colors">
+              <div className="relative border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-4 sm:p-6 text-center hover:border-primary-500 transition-colors">
                 {preview ? (
                   <div className="space-y-4">
                     <img
@@ -188,15 +188,15 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
                         PNG, JPG, GIF até 5MB
                       </p>
                     </div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileChange}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      disabled={uploading}
+                    />
                   </div>
                 )}
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileChange}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  disabled={uploading}
-                />
               </div>
             </div>
 
