@@ -95,7 +95,7 @@ export function useStats() {
       console.log("Carregando categorias do Supabase...");
 
       // Buscar categorias do banco de dados
-      const { data: categoriesData, error } = await supabase
+      const { data: categoriesData, error } = await supabase!
         .from("categories")
         .select("*")
         .order("name");
@@ -118,7 +118,7 @@ export function useStats() {
       const categoriesWithCount = await Promise.all(
         categoriesData.map(async (category) => {
           try {
-            const { count, error: countError } = await supabase
+            const { count, error: countError } = await supabase!
               .from("memes")
               .select("*", { count: "exact", head: true })
               .eq("category_id", category.id)
@@ -169,7 +169,11 @@ export function useStats() {
       setCategories(categoriesWithCount);
     } catch (error) {
       console.error("Erro ao carregar categorias:", error);
-      setError(`Erro ao carregar categorias: ${error.message}`);
+      setError(
+        `Erro ao carregar categorias: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
       setCategories([]);
     }
   };
