@@ -8,6 +8,7 @@ import {
   Grid,
   TrendingUp,
   Clock,
+  AlertCircle,
 } from 'lucide-react'
 import { useStats } from '../hooks/useStats'
 import { useMemes } from '../hooks/useMemes'
@@ -31,8 +32,16 @@ export default function FeaturedMemes({
   onCategoryClick,
   onMemeClick,
 }: FeaturedMemesProps) {
-  const { categories, loading: categoriesLoading } = useStats()
-  const { memes: allMemes, loading: memesLoading } = useMemes()
+  const {
+    categories,
+    loading: categoriesLoading,
+    error: categoriesError,
+  } = useStats()
+  const {
+    memes: allMemes,
+    loading: memesLoading,
+    error: memesError,
+  } = useMemes()
   const [categoriesWithMemes, setCategoriesWithMemes] = useState<
     CategoryWithMemes[]
   >([])
@@ -43,23 +52,23 @@ export default function FeaturedMemes({
       memesLoading,
       categoriesCount: categories.length,
       memesCount: allMemes.length,
+      categoriesError,
+      memesError,
     })
 
-    // Só processar quando os dados estiverem carregados
-    if (categoriesLoading || memesLoading) {
+    // Só processar quando os dados estiverem carregados e sem erros
+    if (categoriesLoading || memesLoading || categoriesError || memesError) {
       return
     }
 
-    // Se não há categorias, usar todas as categorias disponíveis
-    const categoriesToProcess = categories.length > 0 ? categories : []
-
-    if (categoriesToProcess.length === 0) {
-      console.log('Nenhuma categoria disponível')
+    // Se não há categorias ou memes, não há nada para mostrar
+    if (categories.length === 0 || allMemes.length === 0) {
+      console.log('Sem categorias ou memes para processar')
       setCategoriesWithMemes([])
       return
     }
 
-    const categoriesWithTopMemes = categoriesToProcess.map((category) => {
+    const categoriesWithTopMemes = categories.map((category) => {
       // Tentar encontrar memes por nome da categoria
       const categoryMemes = allMemes.filter((meme) => {
         // Verificar se o meme pertence a esta categoria
@@ -91,7 +100,14 @@ export default function FeaturedMemes({
 
     console.log('Categorias com memes:', categoriesWithValidMemes.length)
     setCategoriesWithMemes(categoriesWithValidMemes)
-  }, [allMemes, categories, categoriesLoading, memesLoading])
+  }, [
+    allMemes,
+    categories,
+    categoriesLoading,
+    memesLoading,
+    categoriesError,
+    memesError,
+  ])
 
   const handleCategoryClick = (categoryName: string) => {
     if (onCategoryClick) {
@@ -105,6 +121,7 @@ export default function FeaturedMemes({
     }
   }
 
+  // Estados de loading
   if (categoriesLoading || memesLoading) {
     return (
       <section
@@ -146,6 +163,39 @@ export default function FeaturedMemes({
     )
   }
 
+  // Estados de erro
+  if (categoriesError || memesError) {
+    return (
+      <section
+        id="explorar"
+        className="py-20 bg-white/30 dark:bg-gray-800/30 backdrop-blur-sm"
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+              Explore os Memes
+            </h2>
+            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+              Descubra os memes mais populares organizados por categoria
+            </p>
+          </div>
+
+          <div className="text-center py-12">
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-8 max-w-md mx-auto">
+              <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-red-800 dark:text-red-200 mb-2">
+                Erro ao carregar dados
+              </h3>
+              <p className="text-red-600 dark:text-red-300 text-sm">
+                {categoriesError || memesError}
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
   return (
     <section
       id="explorar"
@@ -169,20 +219,20 @@ export default function FeaturedMemes({
 
         {categoriesWithMemes.length === 0 ? (
           <div className="text-center py-12">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg border border-gray-200 dark:border-gray-700 max-w-md mx-auto">
-              <div className="mb-4">
-                <Grid className="h-16 w-16 text-gray-400 mx-auto" />
-              </div>
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-8 shadow-lg border border-gray-200 dark:border-gray-700 max-w-md mx-auto">
+              <Grid className="h-16 w-16 text-gray-400 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                Nenhum meme disponível
+                {allMemes.length === 0
+                  ? 'Nenhum meme encontrado'
+                  : 'Nenhuma categoria com memes'}
               </h3>
               <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">
                 {allMemes.length === 0
-                  ? 'Seja o primeiro a compartilhar um meme!'
-                  : 'Os memes estão sendo organizados por categoria.'}
+                  ? 'Não há memes aprovados no banco de dados.'
+                  : 'As categorias existem mas não têm memes associados.'}
               </p>
               <div className="text-xs text-gray-400 dark:text-gray-500">
-                Memes carregados: {allMemes.length} | Categorias:{' '}
+                Memes no banco: {allMemes.length} | Categorias:{' '}
                 {categories.length}
               </div>
             </div>
@@ -211,8 +261,8 @@ export default function FeaturedMemes({
                         {category.name}
                       </h3>
                       <p className="text-sm text-gray-500 dark:text-gray-400">
-                        {category.topMemes.length}{' '}
-                        {category.topMemes.length === 1 ? 'meme' : 'memes'}
+                        {category.topMemes.length} de {category.count}{' '}
+                        {category.count === 1 ? 'meme' : 'memes'}
                       </p>
                     </div>
                   </div>
@@ -243,7 +293,7 @@ export default function FeaturedMemes({
                         onError={(e) => {
                           const target = e.target as HTMLImageElement
                           target.src =
-                            'https://via.placeholder.com/400x400.png?text=Erro'
+                            'https://via.placeholder.com/400x400.png?text=Erro+ao+Carregar'
                         }}
                       />
 
