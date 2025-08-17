@@ -183,7 +183,7 @@ export default function MemeViewModal({
                           }`}
                         />
                         <span className="hidden sm:inline">
-                          {isFavorited ? 'Favoritado' : 'curtir'}
+                          {isFavorited ? 'Curtido' : 'curtir'}
                         </span>
                       </>
                     )}

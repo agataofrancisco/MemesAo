@@ -427,7 +427,7 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
                                   }`}
                                 />
                                 {favorites.includes(result.id)
-                                  ? 'Favoritado'
+                                  ? 'Curtido'
                                   : 'curtir'}
                               </motion.button>
                               <motion.button
