@@ -3,11 +3,10 @@ import { motion } from 'framer-motion'
 import { Search, Sparkles, Zap, Brain, Grid } from 'lucide-react'
 
 interface HeroProps {
-  onSearchClick: () => void;
-  onBrowseClick?: () => void;
+  onBrowseClick?: () => void
 }
 
-export default function Hero({ onSearchClick, onBrowseClick }: HeroProps) {
+export default function Hero({ onBrowseClick }: HeroProps) {
   return (
     <section
       id="home"
@@ -72,43 +71,24 @@ export default function Hero({ onSearchClick, onBrowseClick }: HeroProps) {
             transition={{ delay: 0.4 }}
             className="text-base sm:text-lg md:text-xl lg:text-2xl text-gray-600 dark:text-gray-300 mb-8 sm:mb-12 max-w-4xl mx-auto leading-relaxed px-2"
           >
-            Descubra, compartilhe e contribua para a maior coleção digital de memes angolanos. 
-            Sistema de OCR integrado para busca inteligente e categorização automática.
+            Descubra, compartilhe e contribua para a maior coleção digital de
+            memes angolanos. Sistema de OCR integrado para busca inteligente e
+            categorização automática.
           </motion.p>
 
-          {/* Search Bar and Browse Button */}
+          {/* Browse Button */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
-            className="max-w-2xl mx-auto mb-8 sm:mb-12 px-2 space-y-4"
+            className="max-w-md mx-auto mb-8 sm:mb-12 px-2"
           >
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Buscar memes... (ex: 'sexta-feira', 'política')"
-                className="w-full px-4 sm:px-6 py-3 sm:py-4 pl-10 sm:pl-14 pr-20 sm:pr-32 text-sm sm:text-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl sm:rounded-2xl shadow-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-300"
-                onClick={onSearchClick}
-                readOnly
-              />
-              <Search className="absolute left-3 sm:left-5 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={onSearchClick}
-                className="absolute right-1 sm:right-2 top-1/2 transform -translate-y-1/2 bg-gradient-to-r from-primary-500 to-purple-500 text-white px-3 sm:px-6 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-sm sm:text-base font-medium hover:shadow-lg transition-all duration-300"
-              >
-                Buscar
-              </motion.button>
-            </div>
-
-            {/* Browse Button */}
             {onBrowseClick && (
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={onBrowseClick}
-                className="w-full sm:w-auto bg-gradient-to-r from-teal-500 to-green-500 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-medium hover:shadow-lg transition-all duration-300 inline-flex items-center justify-center space-x-2"
+                className="w-full bg-gradient-to-r from-teal-500 to-green-500 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-medium hover:shadow-lg transition-all duration-300 flex items-center justify-center space-x-2"
               >
                 <Grid size={18} />
                 <span>Explorar por Categoria</span>
@@ -128,8 +108,12 @@ export default function Hero({ onSearchClick, onBrowseClick }: HeroProps) {
                 <Brain className="h-4 w-4 sm:h-6 sm:w-6 text-white" />
               </div>
               <div className="text-left">
-                <h3 className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white">OCR Inteligente</h3>
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Busca por texto nas imagens</p>
+                <h3 className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white">
+                  OCR Inteligente
+                </h3>
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                  Busca por texto nas imagens
+                </p>
               </div>
             </div>
 
@@ -138,8 +122,12 @@ export default function Hero({ onSearchClick, onBrowseClick }: HeroProps) {
                 <Zap className="h-4 w-4 sm:h-6 sm:w-6 text-white" />
               </div>
               <div className="text-left">
-                <h3 className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white">Categorização Automática</h3>
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">IA organiza os memes</p>
+                <h3 className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white">
+                  Categorização Automática
+                </h3>
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                  IA organiza os memes
+                </p>
               </div>
             </div>
 
@@ -148,13 +136,17 @@ export default function Hero({ onSearchClick, onBrowseClick }: HeroProps) {
                 <Sparkles className="h-4 w-4 sm:h-6 sm:w-6 text-white" />
               </div>
               <div className="text-left">
-                <h3 className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white">Upload Fácil</h3>
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Contribua com a comunidade</p>
+                <h3 className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white">
+                  Upload Fácil
+                </h3>
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                  Contribua com a comunidade
+                </p>
               </div>
             </div>
           </motion.div>
         </div>
       </div>
     </section>
-  );
+  )
 }

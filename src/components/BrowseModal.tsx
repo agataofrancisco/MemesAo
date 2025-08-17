@@ -168,57 +168,40 @@ export default function BrowseModal({
 
           {/* Filters */}
           <div className="p-6 border-b border-gray-200 dark:border-gray-700 space-y-4">
-            {/* Search and Controls */}
-            <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-              <div className="relative flex-1 max-w-md">
-                <Search
-                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                  size={18}
-                />
-                <input
-                  type="text"
-                  placeholder="Buscar memes..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
-              </div>
+            <div className="flex items-center space-x-2">
+              {/* Sort */}
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                className="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm"
+              >
+                <option value="recent">Mais Recentes</option>
+                <option value="popular">Mais Populares</option>
+                <option value="downloads">Mais Baixados</option>
+              </select>
 
-              <div className="flex items-center space-x-2">
-                {/* Sort */}
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as any)}
-                  className="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm"
+              {/* View Mode */}
+              <div className="flex border border-gray-200 dark:border-gray-600 rounded-lg">
+                <button
+                  onClick={() => setViewMode('grid')}
+                  className={`p-2 ${
+                    viewMode === 'grid'
+                      ? 'bg-primary-500 text-white'
+                      : 'text-gray-500'
+                  }`}
                 >
-                  <option value="recent">Mais Recentes</option>
-                  <option value="popular">Mais Populares</option>
-                  <option value="downloads">Mais Baixados</option>
-                </select>
-
-                {/* View Mode */}
-                <div className="flex border border-gray-200 dark:border-gray-600 rounded-lg">
-                  <button
-                    onClick={() => setViewMode('grid')}
-                    className={`p-2 ${
-                      viewMode === 'grid'
-                        ? 'bg-primary-500 text-white'
-                        : 'text-gray-500'
-                    }`}
-                  >
-                    <Grid size={18} />
-                  </button>
-                  <button
-                    onClick={() => setViewMode('list')}
-                    className={`p-2 ${
-                      viewMode === 'list'
-                        ? 'bg-primary-500 text-white'
-                        : 'text-gray-500'
-                    }`}
-                  >
-                    <List size={18} />
-                  </button>
-                </div>
+                  <Grid size={18} />
+                </button>
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`p-2 ${
+                    viewMode === 'list'
+                      ? 'bg-primary-500 text-white'
+                      : 'text-gray-500'
+                  }`}
+                >
+                  <List size={18} />
+                </button>
               </div>
             </div>
 
