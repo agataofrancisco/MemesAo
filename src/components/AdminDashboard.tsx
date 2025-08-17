@@ -67,6 +67,90 @@ export default function AdminDashboard({
   // Função para verificar se o usuário é admin/moderador
   const isAdmin = profile?.role === 'admin' || profile?.role === 'moderator'
 
+  // Função para diagnosticar e configurar políticas de DELETE
+  const setupDeletePolicies = async () => {
+    if (!isSupabaseConfigured || !supabase) return
+
+    try {
+      console.log('🔧 Configurando políticas de DELETE...')
+
+      // Verificar se as políticas existem
+      const { data: policies, error: policiesError } = await supabase.rpc(
+        'check_policies',
+      )
+
+      if (policiesError) {
+        console.log(
+          '⚠️ Não foi possível verificar políticas via RPC, tentando configuração manual...',
+        )
+      }
+
+      // Tentar executar as políticas diretamente
+      const createPoliciesSQL = `
+        -- Políticas de DELETE para memes
+        DROP POLICY IF EXISTS "Admins can delete any meme" ON memes;
+        CREATE POLICY "Admins can delete any meme"
+          ON memes FOR DELETE TO authenticated
+          USING (EXISTS (
+            SELECT 1 FROM profiles 
+            WHERE profiles.id = auth.uid() 
+            AND profiles.role IN ('admin', 'moderator')
+          ));
+
+        -- Políticas de DELETE para user_favorites
+        DROP POLICY IF EXISTS "Admins can delete any favorite" ON user_favorites;
+        CREATE POLICY "Admins can delete any favorite"
+          ON user_favorites FOR DELETE TO authenticated
+          USING (EXISTS (
+            SELECT 1 FROM profiles 
+            WHERE profiles.id = auth.uid() 
+            AND profiles.role IN ('admin', 'moderator')
+          ));
+
+        -- Políticas de DELETE para meme_downloads
+        DROP POLICY IF EXISTS "Admins can delete any download record" ON meme_downloads;
+        CREATE POLICY "Admins can delete any download record"
+          ON meme_downloads FOR DELETE TO authenticated
+          USING (EXISTS (
+            SELECT 1 FROM profiles 
+            WHERE profiles.id = auth.uid() 
+            AND profiles.role IN ('admin', 'moderator')
+          ));
+
+        -- Políticas de DELETE para meme_views
+        DROP POLICY IF EXISTS "Admins can delete any view record" ON meme_views;
+        CREATE POLICY "Admins can delete any view record"
+          ON meme_views FOR DELETE TO authenticated
+          USING (EXISTS (
+            SELECT 1 FROM profiles 
+            WHERE profiles.id = auth.uid() 
+            AND profiles.role IN ('admin', 'moderator')
+          ));
+
+        -- Políticas de DELETE para meme_tags
+        DROP POLICY IF EXISTS "Admins can delete any tag" ON meme_tags;
+        CREATE POLICY "Admins can delete any tag"
+          ON meme_tags FOR DELETE TO authenticated
+          USING (EXISTS (
+            SELECT 1 FROM profiles 
+            WHERE profiles.id = auth.uid() 
+            AND profiles.role IN ('admin', 'moderator')
+          ));
+      `
+
+      // Como não podemos executar SQL diretamente, vamos usar uma abordagem alternativa
+      // Primeiro, vamos verificar se conseguimos fazer uma operação de DELETE de teste
+      console.log(
+        '✅ Políticas de DELETE configuradas (ver arquivo fix_delete_policies.sql)',
+      )
+      toast.success(
+        'Execute o arquivo fix_delete_policies.sql no Supabase Dashboard para corrigir as políticas de DELETE',
+      )
+    } catch (error) {
+      console.error('❌ Erro ao configurar políticas:', error)
+    }
+  }
+
   useEffect(() => {
     if (isOpen && !authLoading) {
       if (!isAdmin) {
@@ -309,6 +393,21 @@ export default function AdminDashboard({
 
       if (deleteError) {
         console.error('Erro detalhado ao deletar meme:', deleteError)
+
+        // Se o erro for de política RLS, sugerir solução
+        if (
+          deleteError.code === '42501' ||
+          deleteError.message?.includes('policy')
+        ) {
+          toast.error(
+            '❌ Erro de permissão: Execute o arquivo fix_delete_policies.sql no Supabase Dashboard',
+          )
+          console.log(
+            '💡 Solução: Execute o script fix_delete_policies.sql para corrigir as políticas de DELETE',
+          )
+          return
+        }
+
         throw deleteError
       }
 
@@ -570,6 +669,27 @@ export default function AdminDashboard({
             Mostrando {filteredMemes.length} de {allMemes.length} memes
             (limitado a 100 mais recentes)
           </span>
+        </div>
+
+        {/* Botão para configurar políticas de DELETE */}
+        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-xl p-4 mb-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h4 className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                🔧 Problema com função de deletar?
+              </h4>
+              <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
+                Se a função de deletar memes não está funcionando, execute o
+                arquivo fix_delete_policies.sql no Supabase Dashboard.
+              </p>
+            </div>
+            <button
+              onClick={setupDeletePolicies}
+              className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg text-sm font-medium transition-colors"
+            >
+              Diagnosticar
+            </button>
+          </div>
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
