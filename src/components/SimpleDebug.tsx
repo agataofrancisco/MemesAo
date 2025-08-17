@@ -27,6 +27,29 @@ export default function SimpleDebug() {
           .select('*', { count: 'exact', head: true })
           .eq('status', 'pending'),
         supabase.from('memes').select('*', { count: 'exact', head: true }),
+        // Testar query real do AdminDashboard
+        supabase
+          .from('memes')
+          .select(
+            `
+          *,
+          categories (id, name, slug, icon, color),
+          profiles:uploaded_by(username, avatar_url)
+        `,
+          )
+          .order('created_at', { ascending: false })
+          .limit(1),
+        // Testar query de pending_memes
+        supabase
+          .from('pending_memes')
+          .select(
+            `
+          *,
+          profiles:uploaded_by(username, avatar_url)
+        `,
+          )
+          .eq('status', 'pending')
+          .limit(1),
       ])
 
       setCounts({
@@ -46,9 +69,11 @@ export default function SimpleDebug() {
           results[3].status === 'fulfilled'
             ? results[3].value.count || 0
             : 'Erro',
+        queryTest: results[4]?.status === 'fulfilled' ? 'OK' : 'ERRO',
+        pendingQueryTest: results[5]?.status === 'fulfilled' ? 'OK' : 'ERRO',
         errors: results
           .filter((r) => r.status === 'rejected')
-          .map((r: any) => r.reason?.message)
+          .map((r: any) => r.reason?.message || r.reason)
           .filter(Boolean),
       })
     } catch (error) {
@@ -133,6 +158,28 @@ export default function SimpleDebug() {
 
                 <div>Total:</div>
                 <div>{counts.totalMemes}</div>
+
+                <div>Query Admin:</div>
+                <div
+                  className={
+                    counts.queryTest === 'OK'
+                      ? 'text-green-600'
+                      : 'text-red-600 font-bold'
+                  }
+                >
+                  {counts.queryTest}
+                </div>
+
+                <div>Query Pending:</div>
+                <div
+                  className={
+                    counts.pendingQueryTest === 'OK'
+                      ? 'text-green-600'
+                      : 'text-red-600 font-bold'
+                  }
+                >
+                  {counts.pendingQueryTest}
+                </div>
               </div>
 
               {/* Alertas */}
