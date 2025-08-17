@@ -18,6 +18,7 @@ interface DebugInfo {
 export default function DebugPanel() {
   const [debugInfo, setDebugInfo] = useState<DebugInfo | null>(null)
   const [loading, setLoading] = useState(false)
+  const [isVisible, setIsVisible] = useState(true)
 
   const runDiagnostics = async () => {
     if (!isSupabaseConfigured) {
@@ -156,7 +157,7 @@ export default function DebugPanel() {
   if (!debugInfo) return null
 
   return (
-    <div className="fixed bottom-4 right-4 max-w-md bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-4 z-50">
+    <div className="fixed bottom-4 right-4 max-w-md bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl p-4 z-[9999]">
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-semibold text-gray-900 dark:text-white flex items-center">
           <Database className="h-4 w-4 mr-2" />

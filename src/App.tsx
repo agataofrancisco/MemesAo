@@ -14,7 +14,7 @@ import SearchModal from './components/SearchModal'
 import AdminDashboard from './components/AdminDashboard'
 import BrowseModal from './components/BrowseModal'
 import TestMemes from './components/TestMemes'
-import DebugPanel from './components/DebugPanel'
+import SimpleDebug from './components/SimpleDebug'
 
 function App() {
   const [isAuthOpen, setIsAuthOpen] = useState(false)
@@ -84,7 +84,7 @@ function App() {
         <TestMemes />
 
         {/* Debug Panel para diagnosticar problemas */}
-        <DebugPanel />
+        <SimpleDebug />
 
         <Toaster position="top-right" />
       </div>
