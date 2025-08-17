@@ -3,9 +3,10 @@ import { Toaster } from 'react-hot-toast'
 import { ThemeProvider } from './contexts/ThemeContext'
 import Header from './components/Header'
 import Hero from './components/Hero'
+import TopMemes from './components/TopMemes'
+import Statistics from './components/Statistics'
 import FeaturedMemes from './components/FeaturedMemes'
 import Categories from './components/Categories'
-import Statistics from './components/Statistics'
 import Features from './components/Features'
 import Footer from './components/Footer'
 import AuthModal from './components/AuthModal'
@@ -13,7 +14,6 @@ import UploadModal from './components/UploadModal'
 import SearchModal from './components/SearchModal'
 import AdminDashboard from './components/AdminDashboard'
 import BrowseModal from './components/BrowseModal'
-import SimpleDebug from './components/SimpleDebug'
 
 function App() {
   const [isAuthOpen, setIsAuthOpen] = useState(false)
@@ -45,15 +45,29 @@ function App() {
 
         <main>
           <Hero onBrowseClick={handleBrowseOpen} />
+
+          {/* Nova ordem conforme solicitado */}
+          {/* 1. Memes em Destaque (Top memes) */}
+          <TopMemes
+            onMemeClick={(meme) => {
+              console.log('Top meme clicado:', meme)
+            }}
+          />
+
+          {/* 2. Estatísticas (X memes, X favoritos, etc) */}
+          <Statistics />
+
+          {/* 3. Explore os Memes */}
           <FeaturedMemes
             onCategoryClick={handleCategoryClick}
             onMemeClick={(meme) => {
-              // Implementar modal de visualização de meme se necessário
               console.log('Meme clicado:', meme)
             }}
           />
+
+          {/* 4. Categorias Populares (top 3) */}
           <Categories onCategoryClick={handleCategoryClick} />
-          <Statistics />
+
           <Features />
         </main>
 
@@ -78,9 +92,6 @@ function App() {
           onClose={() => setIsBrowseOpen(false)}
           initialCategory={browseCategory}
         />
-
-        {/* Debug Component - remover em produção */}
-        <SimpleDebug />
 
         <Toaster position="top-right" />
       </div>

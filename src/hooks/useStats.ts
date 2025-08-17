@@ -163,8 +163,14 @@ export function useStats() {
         })
       );
 
-      console.log("Categorias processadas:", categoriesWithCount);
-      setCategories(categoriesWithCount);
+      // Filtrar apenas categorias com memes e pegar apenas as top 3 com mais memes
+      const topCategories = categoriesWithCount
+        .filter((category) => category.count > 0) // Só categorias com memes
+        .sort((a, b) => b.count - a.count) // Ordenar por quantidade decrescente
+        .slice(0, 3); // Pegar apenas as 3 primeiras
+
+      console.log("Top 3 categorias processadas:", topCategories);
+      setCategories(topCategories);
     } catch (error) {
       console.error("Erro ao carregar categorias:", error);
       setError(
