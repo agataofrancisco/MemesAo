@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase, isSupabaseConfigured } from "../lib/supabase";
-import { setMemesChangeCallback } from "./useMemes";
+import { useMemes } from "./useMemes";
 
 interface Stats {
   totalMemes: number;
@@ -28,17 +28,20 @@ export function useStats() {
 
   const [categories, setCategories] = useState<CategoryStats[]>([]);
   const [loading, setLoading] = useState(true);
+  const { setMemesChangeCallback } = useMemes();
 
   useEffect(() => {
     loadStats();
     loadCategories();
 
     // ✅ INSCREVER-SE em mudanças de memes
-    setMemesChangeCallback(() => {
-      loadStats();
-      loadCategories();
-    });
-  }, []);
+    if (setMemesChangeCallback) {
+      setMemesChangeCallback(() => {
+        loadStats();
+        loadCategories();
+      });
+    }
+  }, [setMemesChangeCallback]);
 
   const loadStats = async () => {
     if (!isSupabaseConfigured || !supabase) {
