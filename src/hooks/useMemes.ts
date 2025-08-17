@@ -30,7 +30,7 @@ export function useMemes() {
       setError(null);
       console.log("Carregando memes do Supabase...");
 
-      // Query simplificada primeiro - buscar apenas memes aprovados
+      // Query simplificada - buscar apenas memes aprovados
       const { data: memesData, error: memesError } = await supabase
         .from("memes")
         .select(
@@ -49,7 +49,8 @@ export function useMemes() {
           category_id,
           view_count,
           download_count,
-          status
+          status,
+          ocr_text
         `
         )
         .eq("status", "approved")
@@ -66,11 +67,10 @@ export function useMemes() {
       if (!memesData || memesData.length === 0) {
         console.log("Nenhum meme encontrado no banco");
         setMemes([]);
-        setLoading(false);
         return;
       }
 
-      // Buscar categorias separadamente para evitar problemas de join
+      // Buscar categorias separadamente
       const { data: categoriesData, error: categoriesError } = await supabase
         .from("categories")
         .select("id, name");
@@ -124,7 +124,7 @@ export function useMemes() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, []); // Sem dependências para evitar loops
 
   const loadFavorites = useCallback(async () => {
     // Sempre carregar favoritos do localStorage
@@ -157,7 +157,7 @@ export function useMemes() {
         console.error("Erro ao carregar favoritos do Supabase:", error);
       }
     }
-  }, [user]);
+  }, [user?.id]); // Apenas dependência do user.id
 
   const checkDuplicateByOCR = async (
     extractedText: string
@@ -166,7 +166,7 @@ export function useMemes() {
       return false;
 
     try {
-      // Verificar duplicados nos memes aprovados
+      // Verificar duplicados nos memes aprovados usando ocr_text (não extracted_text)
       const { data: approvedMemes, error: approvedError } = await supabase
         .from("memes")
         .select("id, ocr_text")
@@ -178,9 +178,9 @@ export function useMemes() {
       // Verificar duplicados nos memes pendentes
       const { data: pendingMemes, error: pendingError } = await supabase
         .from("memes")
-        .select("id, extracted_text")
+        .select("id, ocr_text")
         .eq("status", "pending")
-        .not("extracted_text", "is", null);
+        .not("ocr_text", "is", null);
 
       if (pendingError) throw pendingError;
 
@@ -205,7 +205,7 @@ export function useMemes() {
 
       // Verificar similaridade com texto extraído
       for (const meme of allMemes) {
-        const memeText = meme.ocr_text || meme.extracted_text;
+        const memeText = meme.ocr_text;
         if (memeText) {
           const similarity = calculateSimilarity(extractedText, memeText);
 
@@ -227,7 +227,7 @@ export function useMemes() {
     file: File,
     title: string,
     description: string,
-    category: string,
+    categoryId: string, // Mudança: receber category_id em vez de category name
     tags: string[] = []
   ): Promise<UploadResult> => {
     if (!isSupabaseConfigured || !supabase) {
@@ -273,7 +273,7 @@ export function useMemes() {
         data: { publicUrl },
       } = supabase.storage.from("memes").getPublicUrl(filePath);
 
-      // 5. Inserir na tabela memes
+      // 5. Inserir na tabela memes com status pending
       toast.loading("Salvando meme para aprovação...", { id: "upload" });
       const { data, error } = await supabase
         .from("memes")
@@ -281,10 +281,13 @@ export function useMemes() {
           title,
           description,
           image_url: publicUrl,
-          category: category || "Cotidiano",
-          tags,
+          image_path: filePath,
+          category_id: categoryId, // Usar category_id correto
           uploaded_by: user?.id || null,
-          extracted_text: extractedText,
+          ocr_text: extractedText, // Usar ocr_text correto
+          status: "pending", // Status pendente para aprovação
+          view_count: 0,
+          download_count: 0,
         })
         .select()
         .single();
@@ -333,7 +336,6 @@ export function useMemes() {
         }
       } catch (error) {
         console.error("Erro ao salvar favorito no Supabase:", error);
-        // Continuar mesmo com erro, já que salvamos localmente
       }
     }
 
@@ -353,7 +355,7 @@ export function useMemes() {
         await supabase.from("meme_downloads").insert({
           meme_id: meme.id,
           user_id: user?.id || null,
-          ip_address: "127.0.0.1", // Would be actual IP in production
+          ip_address: "127.0.0.1",
         });
       }
 
@@ -403,7 +405,8 @@ export function useMemes() {
           uploaded_by,
           category_id,
           view_count,
-          download_count
+          download_count,
+          ocr_text
         `
         )
         .eq("status", "approved");
@@ -464,10 +467,11 @@ export function useMemes() {
     }
   };
 
+  // UseEffect otimizado - executar apenas uma vez
   useEffect(() => {
     loadMemes();
     loadFavorites();
-  }, [loadMemes, loadFavorites]);
+  }, []); // Array vazio - só executa uma vez
 
   return {
     memes,

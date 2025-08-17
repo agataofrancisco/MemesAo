@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase, isSupabaseConfigured } from "../lib/supabase";
 
 interface Stats {
@@ -29,10 +29,9 @@ export function useStats() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadStats = async () => {
+  const loadStats = useCallback(async () => {
     if (!isSupabaseConfigured || !supabase) {
       setError("Supabase não configurado");
-      setLoading(false);
       return;
     }
 
@@ -81,12 +80,11 @@ export function useStats() {
         }`
       );
     }
-  };
+  }, []); // Sem dependências para evitar loops
 
-  const loadCategories = async () => {
+  const loadCategories = useCallback(async () => {
     if (!isSupabaseConfigured || !supabase) {
       setError("Supabase não configurado");
-      setLoading(false);
       return;
     }
 
@@ -176,10 +174,12 @@ export function useStats() {
       );
       setCategories([]);
     }
-  };
+  }, []); // Sem dependências para evitar loops
 
-  // Carregamento inicial
+  // Carregamento inicial - executar apenas uma vez
   useEffect(() => {
+    let isMounted = true;
+
     const loadData = async () => {
       setLoading(true);
       setError(null);
@@ -187,12 +187,26 @@ export function useStats() {
       console.log("Iniciando carregamento de dados...");
       await Promise.all([loadStats(), loadCategories()]);
 
-      setLoading(false);
-      console.log("Carregamento de dados concluído");
+      if (isMounted) {
+        setLoading(false);
+        console.log("Carregamento de dados concluído");
+      }
     };
 
     loadData();
-  }, []); // Sem dependências para evitar loops
+
+    // Cleanup para evitar updates após unmount
+    return () => {
+      isMounted = false;
+    };
+  }, []); // Array vazio - só executa uma vez
+
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    await Promise.all([loadStats(), loadCategories()]);
+    setLoading(false);
+  }, [loadStats, loadCategories]);
 
   return {
     stats,
@@ -201,11 +215,6 @@ export function useStats() {
     error,
     refreshStats: loadStats,
     refreshCategories: loadCategories,
-    refresh: async () => {
-      setLoading(true);
-      setError(null);
-      await Promise.all([loadStats(), loadCategories()]);
-      setLoading(false);
-    },
+    refresh,
   };
 }

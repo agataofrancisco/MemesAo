@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import {
   Heart,
@@ -42,30 +42,18 @@ export default function FeaturedMemes({
     loading: memesLoading,
     error: memesError,
   } = useMemes()
-  const [categoriesWithMemes, setCategoriesWithMemes] = useState<
-    CategoryWithMemes[]
-  >([])
 
-  useEffect(() => {
-    console.log('FeaturedMemes useEffect triggered:', {
-      categoriesLoading,
-      memesLoading,
-      categoriesCount: categories.length,
-      memesCount: allMemes.length,
-      categoriesError,
-      memesError,
-    })
-
+  // Usar useMemo para evitar recálculos desnecessários
+  const categoriesWithMemes = useMemo(() => {
     // Só processar quando os dados estiverem carregados e sem erros
     if (categoriesLoading || memesLoading || categoriesError || memesError) {
-      return
+      return []
     }
 
     // Se não há categorias ou memes, não há nada para mostrar
     if (categories.length === 0 || allMemes.length === 0) {
       console.log('Sem categorias ou memes para processar')
-      setCategoriesWithMemes([])
-      return
+      return []
     }
 
     const categoriesWithTopMemes = categories.map((category) => {
@@ -99,7 +87,7 @@ export default function FeaturedMemes({
     )
 
     console.log('Categorias com memes:', categoriesWithValidMemes.length)
-    setCategoriesWithMemes(categoriesWithValidMemes)
+    return categoriesWithValidMemes
   }, [
     allMemes,
     categories,
@@ -109,17 +97,23 @@ export default function FeaturedMemes({
     memesError,
   ])
 
-  const handleCategoryClick = (categoryName: string) => {
-    if (onCategoryClick) {
-      onCategoryClick(categoryName)
-    }
-  }
+  const handleCategoryClick = useCallback(
+    (categoryName: string) => {
+      if (onCategoryClick) {
+        onCategoryClick(categoryName)
+      }
+    },
+    [onCategoryClick],
+  )
 
-  const handleMemeClick = (meme: Meme) => {
-    if (onMemeClick) {
-      onMemeClick(meme)
-    }
-  }
+  const handleMemeClick = useCallback(
+    (meme: Meme) => {
+      if (onMemeClick) {
+        onMemeClick(meme)
+      }
+    },
+    [onMemeClick],
+  )
 
   // Estados de loading
   if (categoriesLoading || memesLoading) {
