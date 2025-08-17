@@ -42,7 +42,7 @@ export default function AdminDashboard({
     totalDownloads: 0,
     pendingMemes: 0,
   })
-  const [pendingMemes, setPendingMemes] = useState<PendingMemeWithProfile[]>([])
+  const [pendingMemes, setPendingMemes] = useState<Meme[]>([])
   const [allMemes, setAllMemes] = useState<Meme[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
@@ -83,7 +83,7 @@ export default function AdminDashboard({
           .from('meme_downloads')
           .select('*', { count: 'exact', head: true }),
         supabase
-          .from('pending_memes')
+          .from('memes')
           .select('*', { count: 'exact', head: true })
           .eq('status', 'pending'),
       ])
@@ -95,12 +95,19 @@ export default function AdminDashboard({
         pendingMemes: pendingCount.count || 0,
       })
 
-      // Carregar memes pendentes
+      // Carregar memes pendentes (da tabela memes, não pending_memes)
       const { data: pendingData, error: pendingError } = await supabase
-        .from('pending_memes')
+        .from('memes')
         .select(
           `
           *,
+          categories (
+            id,
+            name,
+            slug,
+            icon,
+            color
+          ),
           profiles:uploaded_by(username, avatar_url)
         `,
         )
@@ -108,7 +115,12 @@ export default function AdminDashboard({
         .order('created_at', { ascending: false })
 
       if (pendingError) throw pendingError
-      setPendingMemes(pendingData || [])
+      // Transformar para o formato esperado
+      const transformedPendingMemes = (pendingData || []).map((meme) => ({
+        ...meme,
+        category: meme.categories?.name || 'Sem categoria',
+      }))
+      setPendingMemes(transformedPendingMemes)
 
       // Carregar todos os memes para gerenciamento
       const { data: allMemesData, error: allMemesError } = await supabase
@@ -160,12 +172,15 @@ export default function AdminDashboard({
     }
   }
 
-  const approvePendingMeme = async (pendingId: string) => {
+  const approvePendingMeme = async (memeId: string) => {
     try {
-      const { data, error } = await supabase.rpc('approve_pending_meme', {
-        pending_id: pendingId,
-        reviewer_id: user?.id,
-      })
+      const { error } = await supabase
+        .from('memes')
+        .update({
+          status: 'approved',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', memeId)
 
       if (error) throw error
 
@@ -173,17 +188,19 @@ export default function AdminDashboard({
       loadDashboardData() // Recarregar dados
     } catch (error) {
       console.error('Erro ao aprovar meme:', error)
-      toast.error('Erro ao aprovar meme')
+      toast.error(`Erro ao aprovar meme: ${error.message}`)
     }
   }
 
-  const rejectPendingMeme = async (pendingId: string, reason?: string) => {
+  const rejectPendingMeme = async (memeId: string, reason?: string) => {
     try {
-      const { data, error } = await supabase.rpc('reject_pending_meme', {
-        pending_id: pendingId,
-        reviewer_id: user?.id,
-        reason: reason || 'Meme rejeitado pelo moderador',
-      })
+      const { error } = await supabase
+        .from('memes')
+        .update({
+          status: 'rejected',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', memeId)
 
       if (error) throw error
 
@@ -191,7 +208,7 @@ export default function AdminDashboard({
       loadDashboardData() // Recarregar dados
     } catch (error) {
       console.error('Erro ao rejeitar meme:', error)
-      toast.error('Erro ao rejeitar meme')
+      toast.error(`Erro ao rejeitar meme: ${error.message}`)
     }
   }
 
