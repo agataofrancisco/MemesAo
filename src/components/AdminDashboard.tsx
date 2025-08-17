@@ -139,7 +139,22 @@ export default function AdminDashboard({
       setAllMemes(transformedMemes)
     } catch (error) {
       console.error('Erro ao carregar dados do dashboard:', error)
-      toast.error('Erro ao carregar dados do dashboard')
+      toast.error(
+        `Erro ao carregar dados: ${error.message || 'Erro desconhecido'}`,
+      )
+
+      // Se a tabela pending_memes não existir, mostrar mensagem específica
+      if (
+        error.message?.includes('pending_memes') ||
+        error.code === 'PGRST116'
+      ) {
+        toast.error(
+          'Tabela pending_memes não encontrada. Execute o script SQL primeiro!',
+          {
+            duration: 8000,
+          },
+        )
+      }
     } finally {
       setLoading(false)
     }
