@@ -13,7 +13,6 @@ import UploadModal from './components/UploadModal'
 import SearchModal from './components/SearchModal'
 import AdminDashboard from './components/AdminDashboard'
 import BrowseModal from './components/BrowseModal'
-import TestMemes from './components/TestMemes'
 
 function App() {
   const [isAuthOpen, setIsAuthOpen] = useState(false)
@@ -78,9 +77,6 @@ function App() {
           onClose={() => setIsBrowseOpen(false)}
           initialCategory={browseCategory}
         />
-
-        {/* Componente de teste temporário */}
-        <TestMemes />
 
         <Toaster position="top-right" />
       </div>
