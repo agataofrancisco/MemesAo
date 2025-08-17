@@ -21,7 +21,7 @@ interface SearchModalProps {
 }
 
 const searchSuggestions = [
-  'quando é sexta-feira',
+  'Não entendo',
   'política angolana',
   'futebol',
   'segunda-feira',
