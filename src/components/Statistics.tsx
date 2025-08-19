@@ -2,9 +2,12 @@ import React from 'react'
 import { motion } from 'framer-motion'
 import { Users, Image, Download, Heart } from 'lucide-react'
 import { useStats } from '../hooks/useStats'
+import { useAuth } from '../hooks/useAuth'
 
 export default function Statistics() {
   const { stats, loading } = useStats()
+  const { user } = useAuth()
+  const isLogged = !!user
 
   const statsData = [
     {
@@ -17,8 +20,8 @@ export default function Statistics() {
     {
       id: 2,
       icon: Download,
-      value: loading ? '...' : stats.totalDownloads.toString(),
-      label: 'Downloads Realizados',
+      value: loading ? '...' : (isLogged ? stats.totalDownloads.toString() : stats.totalDownloads.toString()),
+      label: isLogged ? 'Seus Downloads' : 'Downloads Realizados',
       color: 'from-purple-500 to-pink-500',
     },
     {
@@ -31,8 +34,8 @@ export default function Statistics() {
     {
       id: 4,
       icon: Heart,
-      value: loading ? '...' : stats.totalFavorites.toString(),
-      label: 'Memes Curtidos',
+      value: loading ? '...' : (isLogged ? stats.totalFavorites.toString() : stats.totalFavorites.toString()),
+      label: isLogged ? 'Seus Likes' : 'Memes Curtidos',
       color: 'from-accent-500 to-red-500',
     },
   ]

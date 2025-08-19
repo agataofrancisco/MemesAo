@@ -31,7 +31,7 @@ export default function MemeViewModal({
   const [isFavoriting, setIsFavoriting] = useState(false)
   const [imageLoaded, setImageLoaded] = useState(false)
 
-  const { downloadMeme, toggleFavorite, favorites } = useMemes()
+  const { downloadMeme, toggleFavorite, favorites, shareMeme } = useMemes()
   const { user } = useAuth()
 
   if (!isOpen || !meme) return null
@@ -75,6 +75,7 @@ export default function MemeViewModal({
           text: meme.description || 'Confira este meme!',
           url: window.location.href,
         })
+        await shareMeme(meme)
       } catch (error) {
         // User cancelled sharing
       }
@@ -83,6 +84,7 @@ export default function MemeViewModal({
       try {
         await navigator.clipboard.writeText(window.location.href)
         toast.success('Link copiado para área de transferência!')
+        await shareMeme(meme)
       } catch (error) {
         toast.error('Erro ao copiar link')
       }

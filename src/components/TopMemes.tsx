@@ -14,15 +14,18 @@ export default function TopMemes({ onMemeClick }: TopMemesProps) {
   const [selectedMeme, setSelectedMeme] = useState<Meme | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
 
-  // Calcular top 3 memes baseado em views + downloads
+  // Calcular top 3 memes baseado em compartilhamentos (share_count), depois downloads
   const topMemes = React.useMemo(() => {
     if (!memes || memes.length === 0) return []
 
     return [...memes]
       .sort((a, b) => {
-        const aScore = a.download_count || 0
-        const bScore = b.download_count || 0
-        return bScore - aScore
+        const aScore = (a as any).share_count || 0
+        const bScore = (b as any).share_count || 0
+        if (bScore !== aScore) return bScore - aScore
+        const aTie = a.download_count || 0
+        const bTie = b.download_count || 0
+        return bTie - aTie
       })
       .slice(0, 3) // Apenas top 3 memes
   }, [memes])
@@ -49,7 +52,7 @@ export default function TopMemes({ onMemeClick }: TopMemesProps) {
               Top 3 Memes
             </h2>
             <p className="text-lg sm:text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-              Os 3 memes mais populares com mais visualizações e downloads
+              Os 3 memes mais compartilhados (em alta)
             </p>
           </div>
 
@@ -209,10 +212,8 @@ export default function TopMemes({ onMemeClick }: TopMemesProps) {
                         <span>{(meme.like_count || 0).toLocaleString()}</span>
                       </div>
                       <div className="flex items-center text-gray-600 dark:text-gray-400">
-                        <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                        <span>
-                          {(meme.download_count || 0).toLocaleString()}
-                        </span>
+                        <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                        <span>{((meme as any).share_count || 0).toLocaleString()}</span>
                       </div>
                     </div>
 

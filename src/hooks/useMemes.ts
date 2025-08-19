@@ -101,6 +101,7 @@ export function useMemes() {
       // Buscar contagem de likes para cada meme
       const memeIds = memesData.map((m) => m.id);
       let likeCounts: Record<string, number> = {};
+      let shareCounts: Record<string, number> = {};
 
       if (memeIds.length > 0) {
         const { data: likesData, error: likesError } = await supabase
@@ -112,6 +113,18 @@ export function useMemes() {
           // Contar likes por meme
           likeCounts = likesData.reduce((acc, like) => {
             acc[like.meme_id] = (acc[like.meme_id] || 0) + 1;
+            return acc;
+          }, {} as Record<string, number>);
+        }
+        // Contar compartilhamentos por meme
+        const { data: sharesData, error: sharesError } = await supabase
+          .from("meme_shares")
+          .select("meme_id")
+          .in("meme_id", memeIds);
+
+        if (!sharesError && sharesData) {
+          shareCounts = sharesData.reduce((acc, share) => {
+            acc[share.meme_id] = (acc[share.meme_id] || 0) + 1;
             return acc;
           }, {} as Record<string, number>);
         }
@@ -129,6 +142,7 @@ export function useMemes() {
           view_count: meme.view_count || 0,
           download_count: meme.download_count || 0,
           like_count: likeCounts[meme.id] || 0,
+          share_count: shareCounts[meme.id] || 0,
         };
       });
 
@@ -401,6 +415,19 @@ export function useMemes() {
     }
   };
 
+  const shareMeme = async (meme: Meme) => {
+    try {
+      if (isSupabaseConfigured && supabase) {
+        await supabase.from("meme_shares").insert({
+          meme_id: meme.id,
+          user_id: user?.id || null,
+        });
+      }
+    } catch (error) {
+      console.error("Erro ao registrar compartilhamento:", error);
+    }
+  };
+
   const searchMemes = async (
     query: string,
     category?: string
@@ -520,6 +547,7 @@ export function useMemes() {
     favorites,
     toggleFavorite,
     downloadMeme,
+    shareMeme,
     uploadMeme,
     searchMemes,
     isBackendConfigured: isSupabaseConfigured,
