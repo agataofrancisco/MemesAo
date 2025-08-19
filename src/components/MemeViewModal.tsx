@@ -115,12 +115,10 @@ export default function MemeViewModal({
                   <Calendar className="h-4 w-4 mr-1" />
                   <span>{formattedDate}</span>
                 </div>
-                {meme.profile?.username && (
-                  <div className="flex items-center">
-                    <User className="h-4 w-4 mr-1" />
-                    <span>{meme.profile.username}</span>
-                  </div>
-                )}
+                <div className="flex items-center">
+                  <User className="h-4 w-4 mr-1" />
+                  <span>{meme.profile?.username || 'Anónimo'}</span>
+                </div>
                 <div className="flex items-center">
                   <Tag className="h-4 w-4 mr-1" />
                   <span>{meme.category || 'Sem categoria'}</span>

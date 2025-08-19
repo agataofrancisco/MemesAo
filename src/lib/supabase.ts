@@ -50,6 +50,7 @@ export interface Meme {
   view_count: number;
   download_count: number;
   like_count?: number;
+  share_count?: number;
   created_at: string;
   updated_at: string;
   // Relacionamentos

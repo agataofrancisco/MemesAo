@@ -219,7 +219,7 @@ export default function AdminDashboard({
       const transformedPendingMemes = (pendingData || []).map((meme) => ({
         ...meme,
         category: meme.categories?.name || 'Sem categoria',
-        uploaded_by_username: meme.profiles?.username || 'Usuário desconhecido',
+        uploaded_by_username: meme.profiles?.username || 'Anónimo',
       }))
       setPendingMemes(transformedPendingMemes)
 
@@ -249,7 +249,7 @@ export default function AdminDashboard({
       const transformedMemes = (allMemesData || []).map((meme) => ({
         ...meme,
         category: meme.categories?.name || 'Sem categoria',
-        uploaded_by_username: meme.profiles?.username || 'Usuário desconhecido',
+        uploaded_by_username: meme.profiles?.username || 'Anónimo',
       }))
 
       setAllMemes(transformedMemes)
@@ -622,7 +622,7 @@ export default function AdminDashboard({
                   </p>
                   <p>
                     <strong>Enviado por:</strong>{' '}
-                    {meme.profiles?.username || 'Usuário desconhecido'}
+                    {meme.profiles?.username || 'Anónimo'}
                   </p>
                   <p>
                     <strong>Data:</strong>{' '}
