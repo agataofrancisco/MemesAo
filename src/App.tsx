@@ -107,8 +107,11 @@ function AppContent({
 }) {
   const location = useLocation()
 
+  console.log('AppContent renderizado, pathname:', location.pathname)
+
   // Se estiver na rota do meme, não mostrar o header
   if (location.pathname.startsWith('/meme/')) {
+    console.log('Renderizando MemePage para:', location.pathname)
     return (
       <Routes>
         <Route path="/meme/:memeId" element={<MemePage />} />

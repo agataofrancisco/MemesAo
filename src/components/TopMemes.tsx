@@ -22,7 +22,6 @@ export default function TopMemes({ onMemeClick }: TopMemesProps) {
   const { memes, loading, error, shareMemeWithUrl } = useMemes()
   const [selectedMeme, setSelectedMeme] = useState<Meme | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const navigate = useNavigate()
 
   // Calcular top 3 memes baseado em pontuação ponderada
   const topMemes = React.useMemo(() => {
@@ -217,7 +216,9 @@ export default function TopMemes({ onMemeClick }: TopMemesProps) {
                   </h3>
 
                   <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-3 line-clamp-1">
-                    {meme.category || 'Sem categoria'}
+                    {typeof meme.category === 'string'
+                      ? meme.category
+                      : 'Sem categoria'}
                   </p>
 
                   {/* Estatísticas */}

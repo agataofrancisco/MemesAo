@@ -12,8 +12,11 @@ export default function MemePage() {
   const { memeId } = useParams<{ memeId: string }>()
   const navigate = useNavigate()
 
+  console.log('MemePage renderizado com memeId:', memeId)
+
   // Verificar se memeId existe
   if (!memeId) {
+    console.log('memeId não fornecido')
     return (
       <div className="min-h-screen bg-gradient-to-br from-primary-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
         <div className="text-center">
@@ -33,12 +36,28 @@ export default function MemePage() {
     )
   }
 
+  // Usar try-catch para evitar erros no hook
+  let memeHooks
+  try {
+    memeHooks = useMemes()
+    console.log('useMemes carregado com sucesso:', memeHooks)
+  } catch (err) {
+    console.error('Erro ao carregar useMemes:', err)
+    memeHooks = {
+      toggleFavorite: () => Promise.resolve(),
+      favorites: [],
+      downloadMeme: () => Promise.resolve(),
+      shareMemeWithUrl: () => Promise.resolve(),
+    }
+  }
+
   const {
     toggleFavorite,
     favorites,
     downloadMeme,
     shareMemeWithUrl,
-  } = useMemes()
+  } = memeHooks
+
   const [meme, setMeme] = useState<Meme | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -53,6 +72,8 @@ export default function MemePage() {
         setLoading(true)
         console.log('Loading meme with ID:', memeId)
 
+        console.log('Tentando buscar meme no Supabase...')
+
         // Buscar meme com todas as informações
         const { data, error } = await supabase
           .from('memes')
@@ -66,6 +87,8 @@ export default function MemePage() {
           .eq('id', memeId)
           .eq('status', 'approved')
           .single()
+
+        console.log('Resposta do Supabase:', { data, error })
 
         if (error) throw error
 
@@ -117,6 +140,7 @@ export default function MemePage() {
   }
 
   if (loading) {
+    console.log('Renderizando loading...')
     return (
       <div className="min-h-screen bg-gradient-to-br from-primary-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
         <div className="text-center">
