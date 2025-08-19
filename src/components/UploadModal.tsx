@@ -235,6 +235,9 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                 Envie até 10 memes de uma vez
               </p>
+              <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                💡 Não precisa de conta! Seus memes aparecerão como "Anônimo"
+              </p>
             </div>
             <button
               onClick={onClose}
@@ -261,6 +264,9 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
                     </p>
                     <p className="text-xs text-gray-500">
                       PNG, JPG, GIF até 5MB cada • Máximo 10 arquivos
+                    </p>
+                    <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                      ✨ Upload gratuito e sem necessidade de conta!
                     </p>
                   </div>
                   <input

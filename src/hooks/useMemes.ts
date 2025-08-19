@@ -309,6 +309,13 @@ export function useMemes() {
 
       // 5. Inserir na tabela memes com status pending
       toast.loading("Salvando meme para aprovação...", { id: "upload" });
+
+      // Determinar se é upload anônimo ou autenticado
+      const isAnonymous = !user?.id;
+      const uploaderName = isAnonymous
+        ? "Anônimo"
+        : profile?.username || "Usuário";
+
       const { data, error } = await supabase
         .from("memes")
         .insert({
@@ -317,7 +324,7 @@ export function useMemes() {
           image_url: publicUrl,
           image_path: filePath,
           category_id: categoryId, // Usar category_id correto
-          uploaded_by: user?.id || null,
+          uploaded_by: user?.id || null, // null para uploads anônimos
           ocr_text: extractedText, // Usar ocr_text correto
           status: "pending", // Status pendente para aprovação
           view_count: 0,
@@ -328,11 +335,14 @@ export function useMemes() {
 
       if (error) throw error;
 
+      const successMessage = isAnonymous
+        ? "Meme enviado para aprovação como anônimo! Aguarde a aprovação de um moderador."
+        : `Meme enviado para aprovação por ${uploaderName}! Aguarde a aprovação de um moderador.`;
+
       toast.success("Meme enviado para aprovação!", { id: "upload" });
       return {
         success: true,
-        message:
-          "Meme enviado com sucesso! Aguarde a aprovação de um moderador.",
+        message: successMessage,
         id: data.id,
       };
     } catch (error) {
@@ -492,15 +502,15 @@ export function useMemes() {
           .select("id, name");
 
         // Buscar contagem de likes para cada meme
-        const memeIds = data.map(m => m.id);
+        const memeIds = data.map((m) => m.id);
         let likeCounts: Record<string, number> = {};
-        
+
         if (memeIds.length > 0) {
           const { data: likesData, error: likesError } = await supabase
             .from("user_favorites")
             .select("meme_id")
             .in("meme_id", memeIds);
-            
+
           if (!likesError && likesData) {
             // Contar likes por meme
             likeCounts = likesData.reduce((acc, like) => {
