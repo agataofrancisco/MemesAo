@@ -9,6 +9,7 @@ interface Stats {
   totalFavorites: number;
   userDownloads: number;
   userFavorites: number;
+  userShares: number;
 }
 
 interface CategoryStats {
@@ -28,6 +29,7 @@ export function useStats() {
     totalFavorites: 0,
     userDownloads: 0,
     userFavorites: 0,
+    userShares: 0,
   });
 
   const [categories, setCategories] = useState<CategoryStats[]>([]);
@@ -59,8 +61,9 @@ export function useStats() {
       // Buscar estatísticas do usuário (se logado)
       let userDownloadsCount = 0;
       let userFavoritesCount = 0;
+      let userSharesCount = 0;
       if (user) {
-        const [userDownloadsResult, userFavoritesResult] = await Promise.all([
+        const [userDownloadsResult, userFavoritesResult, userSharesResult] = await Promise.all([
           supabase
             .from("meme_downloads")
             .select("id", { count: "exact", head: true })
@@ -69,9 +72,14 @@ export function useStats() {
             .from("user_favorites")
             .select("id", { count: "exact", head: true })
             .eq("user_id", user.id),
+          supabase
+            .from("meme_shares")
+            .select("id", { count: "exact", head: true })
+            .eq("user_id", user.id),
         ]);
         if (!userDownloadsResult.error) userDownloadsCount = userDownloadsResult.count || 0;
         if (!userFavoritesResult.error) userFavoritesCount = userFavoritesResult.count || 0;
+        if (!userSharesResult.error) userSharesCount = userSharesResult.count || 0;
       }
 
       // Verificar se houve erros
@@ -87,6 +95,7 @@ export function useStats() {
         totalFavorites: favoritesResult.count || 0,
         userDownloads: userDownloadsCount,
         userFavorites: userFavoritesCount,
+        userShares: userSharesCount,
       };
 
       console.log("Estatísticas carregadas:", newStats);

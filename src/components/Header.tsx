@@ -20,12 +20,14 @@ interface HeaderProps {
   onSearchClick: () => void
   onUploadClick: () => void
   onAdminClick: () => void
+  onProfileClick?: () => void
 }
 
 export default function Header({
   onSearchClick,
   onUploadClick,
   onAdminClick,
+  onProfileClick,
 }: HeaderProps) {
   const { isDark, toggleTheme } = useTheme()
   const { user, profile, signOut, isConfigured } = useAuth()
@@ -138,40 +140,18 @@ export default function Header({
 
               {/* User Menu */}
               {isConfigured && user ? (
-                <div className="relative">
-                  <motion.button
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setShowUserMenu(!showUserMenu)}
-                    className="p-2 text-gray-600 dark:text-gray-400 hover:text-primary-500 dark:hover:text-primary-400 transition-colors"
-                  >
-                    <User size={18} />
-                  </motion.button>
-
-                  {showUserMenu && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2"
-                    >
-                      <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
-                        <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                          {profile?.username || user?.email}
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                          {user.email}
-                        </p>
-                      </div>
-                      <button
-                        onClick={handleSignOut}
-                        className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
-                      >
-                        <LogOut size={16} className="mr-2" />
-                        Sair
-                      </button>
-                    </motion.div>
-                  )}
-                </div>
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => {
+                    setShowUserMenu(false)
+                    onProfileClick && onProfileClick()
+                  }}
+                  className="p-2 text-gray-600 dark:text-gray-400 hover:text-primary-500 dark:hover:text-primary-400 transition-colors"
+                  title="Perfil"
+                >
+                  <User size={18} />
+                </motion.button>
               ) : isConfigured ? (
                 <motion.button
                   whileHover={{ scale: 1.05 }}

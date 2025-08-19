@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Toaster } from 'react-hot-toast'
 import { ThemeProvider } from './contexts/ThemeContext'
 import Header from './components/Header'
+import ProfilePage from './components/ProfilePage'
 import Hero from './components/Hero'
 import TopMemes from './components/TopMemes'
 import Statistics from './components/Statistics'
@@ -22,6 +23,7 @@ function App() {
   const [isAdminOpen, setIsAdminOpen] = useState(false)
   const [isBrowseOpen, setIsBrowseOpen] = useState(false)
   const [browseCategory, setBrowseCategory] = useState<string | undefined>()
+  const [currentPage, setCurrentPage] = useState<'home' | 'profile'>('home')
 
   const handleCategoryClick = (categoryName: string) => {
     setBrowseCategory(categoryName)
@@ -41,35 +43,41 @@ function App() {
           onUploadClick={() => setIsUploadOpen(true)}
           onSearchClick={() => setIsSearchOpen(true)}
           onAdminClick={() => setIsAdminOpen(true)}
+          onProfileClick={() => setCurrentPage('profile')}
         />
 
-        <main className="w-full max-w-full overflow-x-hidden">
-          <Hero onBrowseClick={handleBrowseOpen} />
+        {currentPage === 'home' ? (
+          <main className="w-full max-w-full overflow-x-hidden">
+            <Hero onBrowseClick={handleBrowseOpen} />
 
-          {/* Nova ordem conforme solicitado */}
-          {/* 1. Memes em Destaque (Top memes) */}
-          <TopMemes
-            onMemeClick={(meme) => {
-              console.log('Top meme clicado:', meme)
-            }}
-          />
+            {/* 1. Memes em Destaque (Top memes) */}
+            <TopMemes
+              onMemeClick={(meme) => {
+                console.log('Top meme clicado:', meme)
+              }}
+            />
 
-          {/* 2. Estatísticas (X memes, X favoritos, etc) */}
-          <Statistics />
+            {/* 2. Estatísticas globais */}
+            <Statistics />
 
-          {/* 3. Explore os Memes */}
-          <FeaturedMemes
-            onCategoryClick={handleCategoryClick}
-            onMemeClick={(meme) => {
-              console.log('Meme clicado:', meme)
-            }}
-          />
+            {/* 3. Explore os Memes */}
+            <FeaturedMemes
+              onCategoryClick={handleCategoryClick}
+              onMemeClick={(meme) => {
+                console.log('Meme clicado:', meme)
+              }}
+            />
 
-          {/* 4. Categorias Populares (top 3) */}
-          <Categories onCategoryClick={handleCategoryClick} />
+            {/* 4. Categorias Populares (top 3) */}
+            <Categories onCategoryClick={handleCategoryClick} />
 
-          <Features />
-        </main>
+            <Features />
+          </main>
+        ) : (
+          <main className="w-full max-w-full overflow-x-hidden">
+            <ProfilePage onBack={() => setCurrentPage('home')} />
+          </main>
+        )}
 
         <Footer />
 
