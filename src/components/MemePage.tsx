@@ -11,6 +11,28 @@ import toast from 'react-hot-toast'
 export default function MemePage() {
   const { memeId } = useParams<{ memeId: string }>()
   const navigate = useNavigate()
+
+  // Verificar se memeId existe
+  if (!memeId) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-primary-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
+        <div className="text-center">
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-8 max-w-md mx-auto">
+            <p className="text-red-600 dark:text-red-300">
+              ID do meme não fornecido
+            </p>
+            <button
+              onClick={() => navigate('/')}
+              className="mt-4 bg-primary-500 text-white px-4 py-2 rounded-lg hover:bg-primary-600 transition-colors"
+            >
+              Voltar ao início
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   const {
     toggleFavorite,
     favorites,
@@ -22,11 +44,14 @@ export default function MemePage() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    console.log('MemePage useEffect triggered, memeId:', memeId)
+
     const loadMeme = async () => {
       if (!memeId) return
 
       try {
         setLoading(true)
+        console.log('Loading meme with ID:', memeId)
 
         // Buscar meme com todas as informações
         const { data, error } = await supabase
@@ -130,14 +155,14 @@ export default function MemePage() {
     (meme.download_count || 0) * 2 +
     ((meme as any).share_count || 0) * 3
 
-  // Meta tags para SEO e partilhas
-  useMetaTags({
-    title: meme.title || 'Meme Engraçado - MemesAo',
-    description: meme.description || 'Confira este meme engraçado no MemesAo!',
-    image: meme.image_url,
-    url: window.location.href,
-    type: 'article'
-  })
+  // Meta tags para SEO e partilhas (comentado temporariamente para debug)
+  // useMetaTags({
+  //   title: meme.title || 'Meme Engraçado - MemesAo',
+  //   description: meme.description || 'Confira este meme engraçado no MemesAo!',
+  //   image: meme.image_url,
+  //   url: window.location.href,
+  //   type: 'article'
+  // })
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 to-purple-50 dark:from-gray-900 dark:to-gray-800">
