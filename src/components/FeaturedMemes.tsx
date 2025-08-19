@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Download, ArrowRight, Sparkles, Heart, Share2 } from 'lucide-react'
 import { useMemes } from '../hooks/useMemes'
@@ -24,9 +25,11 @@ export default function FeaturedMemes({
     memes: allMemes,
     loading: memesLoading,
     error: memesError,
+    shareMemeWithUrl,
   } = useMemes()
   const [selectedMeme, setSelectedMeme] = useState<Meme | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const navigate = useNavigate()
 
   // Usar useMemo para evitar recálculos desnecessários
   const categoriesWithMemes = useMemo(() => {
@@ -44,20 +47,23 @@ export default function FeaturedMemes({
     const categoriesWithTopMemes = categories.map((category) => {
       const categoryMemes = allMemes.filter((meme) => {
         return (
-          meme.category === category.name ||
+          (meme.category && meme.category.name === category.name) ||
           (meme.category_id && meme.category_id === category.id)
         )
       })
 
       const sortedMemes = categoryMemes
-        .sort((a, b) => {
-          const aShares = (a as any).share_count || 0
-          const bShares = (b as any).share_count || 0
-          if (bShares !== aShares) return bShares - aShares
-          const aScore = a.download_count || 0
-          const bScore = b.download_count || 0
-          return bScore - aScore
+        .map((meme) => {
+          // Fórmula de pontuação: likes*1 + downloads*2 + shares*3
+          const likes = meme.like_count || 0
+          const downloads = meme.download_count || 0
+          const shares = (meme as any).share_count || 0
+
+          const score = likes * 1 + downloads * 2 + shares * 3
+
+          return { ...meme, score }
         })
+        .sort((a, b) => b.score - a.score)
         .slice(0, 3)
 
       return {
@@ -92,13 +98,14 @@ export default function FeaturedMemes({
 
   const handleMemeClick = useCallback(
     (meme: Meme) => {
-      setSelectedMeme(meme)
-      setIsModalOpen(true)
+      // Navegar para a página do meme
+      navigate(`/meme/${meme.id}`)
+
       if (onMemeClick) {
         onMemeClick(meme)
       }
     },
-    [onMemeClick],
+    [onMemeClick, navigate],
   )
 
   const handleCloseModal = () => {
@@ -269,7 +276,11 @@ export default function FeaturedMemes({
                             <div className="flex items-center justify-center space-x-4 text-sm">
                               <div className="flex items-center">
                                 <Share2 className="h-4 w-4 mr-1" />
-                                <span>{((meme as any).share_count || 0).toLocaleString()}</span>
+                                <span>
+                                  {(
+                                    (meme as any).share_count || 0
+                                  ).toLocaleString()}
+                                </span>
                               </div>
                             </div>
                             <p className="text-xs mt-2 opacity-75">
@@ -295,7 +306,11 @@ export default function FeaturedMemes({
                             </div>
                             <div className="flex items-center">
                               <Share2 className="h-3 w-3 mr-1" />
-                              <span>{((meme as any).share_count || 0).toLocaleString()}</span>
+                              <span>
+                                {(
+                                  (meme as any).share_count || 0
+                                ).toLocaleString()}
+                              </span>
                             </div>
                           </div>
                         </div>

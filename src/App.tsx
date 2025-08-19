@@ -1,4 +1,10 @@
 import { useState } from 'react'
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  useLocation,
+} from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { ThemeProvider } from './contexts/ThemeContext'
 import Header from './components/Header'
@@ -15,6 +21,7 @@ import UploadModal from './components/UploadModal'
 import SearchModal from './components/SearchModal'
 import AdminDashboard from './components/AdminDashboard'
 import BrowseModal from './components/BrowseModal'
+import MemePage from './components/MemePage'
 
 function App() {
   const [isAuthOpen, setIsAuthOpen] = useState(false)
@@ -37,73 +44,151 @@ function App() {
 
   return (
     <ThemeProvider>
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors overflow-x-hidden">
-        <Header
-          onAuthClick={() => setIsAuthOpen(true)}
-          onUploadClick={() => setIsUploadOpen(true)}
-          onSearchClick={() => setIsSearchOpen(true)}
-          onAdminClick={() => setIsAdminOpen(true)}
-          onProfileClick={() => setCurrentPage('profile')}
+      <Router>
+        <AppContent
+          isAuthOpen={isAuthOpen}
+          setIsAuthOpen={setIsAuthOpen}
+          isUploadOpen={isUploadOpen}
+          setIsUploadOpen={setIsUploadOpen}
+          isSearchOpen={isSearchOpen}
+          setIsSearchOpen={setIsSearchOpen}
+          isAdminOpen={isAdminOpen}
+          setIsAdminOpen={setIsAdminOpen}
+          isBrowseOpen={isBrowseOpen}
+          setIsBrowseOpen={setIsBrowseOpen}
+          browseCategory={browseCategory}
+          setBrowseCategory={setBrowseCategory}
+          currentPage={currentPage}
+          setCurrentPage={setCurrentPage}
+          handleCategoryClick={handleCategoryClick}
+          handleBrowseOpen={handleBrowseOpen}
         />
-
-        {currentPage === 'home' ? (
-          <main className="w-full max-w-full overflow-x-hidden">
-            <Hero onBrowseClick={handleBrowseOpen} />
-
-            {/* 1. Memes em Destaque (Top memes) */}
-            <TopMemes
-              onMemeClick={(meme) => {
-                console.log('Top meme clicado:', meme)
-              }}
-            />
-
-            {/* 2. Estatísticas globais */}
-            <Statistics />
-
-            {/* 3. Explore os Memes */}
-            <FeaturedMemes
-              onCategoryClick={handleCategoryClick}
-              onMemeClick={(meme) => {
-                console.log('Meme clicado:', meme)
-              }}
-            />
-
-            {/* 4. Categorias Populares (top 3) */}
-            <Categories onCategoryClick={handleCategoryClick} />
-
-            <Features />
-          </main>
-        ) : (
-          <main className="w-full max-w-full overflow-x-hidden">
-            <ProfilePage onBack={() => setCurrentPage('home')} />
-          </main>
-        )}
-
-        <Footer />
-
-        {/* Modals */}
-        <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
-        <UploadModal
-          isOpen={isUploadOpen}
-          onClose={() => setIsUploadOpen(false)}
-        />
-        <SearchModal
-          isOpen={isSearchOpen}
-          onClose={() => setIsSearchOpen(false)}
-        />
-        <AdminDashboard
-          isOpen={isAdminOpen}
-          onClose={() => setIsAdminOpen(false)}
-        />
-        <BrowseModal
-          isOpen={isBrowseOpen}
-          onClose={() => setIsBrowseOpen(false)}
-          initialCategory={browseCategory}
-        />
-
-        <Toaster position="top-right" />
-      </div>
+      </Router>
     </ThemeProvider>
+  )
+}
+
+// Componente separado para usar useLocation
+function AppContent({
+  isAuthOpen,
+  setIsAuthOpen,
+  isUploadOpen,
+  setIsUploadOpen,
+  isSearchOpen,
+  setIsSearchOpen,
+  isAdminOpen,
+  setIsAdminOpen,
+  isBrowseOpen,
+  setIsBrowseOpen,
+  browseCategory,
+  setBrowseCategory,
+  currentPage,
+  setCurrentPage,
+  handleCategoryClick,
+  handleBrowseOpen,
+}: {
+  isAuthOpen: boolean
+  setIsAuthOpen: (open: boolean) => void
+  isUploadOpen: boolean
+  setIsUploadOpen: (open: boolean) => void
+  isSearchOpen: boolean
+  setIsSearchOpen: (open: boolean) => void
+  isAdminOpen: boolean
+  setIsAdminOpen: (open: boolean) => void
+  isBrowseOpen: boolean
+  setIsBrowseOpen: (open: boolean) => void
+  browseCategory: string | undefined
+  setBrowseCategory: (category: string | undefined) => void
+  currentPage: 'home' | 'profile'
+  setCurrentPage: (page: 'home' | 'profile') => void
+  handleCategoryClick: (categoryName: string) => void
+  handleBrowseOpen: () => void
+}) {
+  const location = useLocation()
+
+  // Se estiver na rota do meme, não mostrar o header
+  if (location.pathname.startsWith('/meme/')) {
+    return (
+      <Routes>
+        <Route path="/meme/:memeId" element={<MemePage />} />
+      </Routes>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors overflow-x-hidden">
+      <Header
+        onAuthClick={() => setIsAuthOpen(true)}
+        onUploadClick={() => setIsUploadOpen(true)}
+        onSearchClick={() => setIsSearchOpen(true)}
+        onAdminClick={() => setIsAdminOpen(true)}
+        onProfileClick={() => setCurrentPage('profile')}
+      />
+
+      <Routes>
+        <Route
+          path="/"
+          element={
+            currentPage === 'home' ? (
+              <main className="w-full max-w-full overflow-x-hidden">
+                <Hero onBrowseClick={handleBrowseOpen} />
+
+                {/* 1. Memes em Destaque (Top memes) */}
+                <TopMemes
+                  onMemeClick={(meme) => {
+                    console.log('Top meme clicado:', meme)
+                  }}
+                />
+
+                {/* 2. Estatísticas globais */}
+                <Statistics />
+
+                {/* 3. Explore os Memes */}
+                <FeaturedMemes
+                  onCategoryClick={handleCategoryClick}
+                  onMemeClick={(meme) => {
+                    console.log('Meme clicado:', meme)
+                  }}
+                />
+
+                {/* 4. Categorias Populares (top 3) */}
+                <Categories onCategoryClick={handleCategoryClick} />
+
+                <Features />
+              </main>
+            ) : (
+              <main className="w-full max-w-full overflow-x-hidden">
+                <ProfilePage onBack={() => setCurrentPage('home')} />
+              </main>
+            )
+          }
+        />
+      </Routes>
+
+      <Footer />
+
+      {/* Modals */}
+      <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
+      <UploadModal
+        isOpen={isUploadOpen}
+        onClose={() => setIsUploadOpen(false)}
+      />
+      <SearchModal
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+      />
+      <AdminDashboard
+        isOpen={isAdminOpen}
+        onClose={() => setIsAdminOpen(false)}
+      />
+      <BrowseModal
+        isOpen={isBrowseOpen}
+        onClose={() => setIsBrowseOpen(false)}
+        initialCategory={browseCategory}
+      />
+
+      <Toaster position="top-right" />
+    </div>
   )
 }
 

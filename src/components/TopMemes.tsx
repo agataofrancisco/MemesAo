@@ -1,6 +1,15 @@
 import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Heart, Download, Star, Trophy, Flame, TrendingUp, Share2 } from 'lucide-react'
+import {
+  Heart,
+  Download,
+  Star,
+  Trophy,
+  Flame,
+  TrendingUp,
+  Share2,
+} from 'lucide-react'
 import { useMemes } from '../hooks/useMemes'
 import MemeViewModal from './MemeViewModal'
 import type { Meme } from '../lib/supabase'
@@ -10,29 +19,34 @@ interface TopMemesProps {
 }
 
 export default function TopMemes({ onMemeClick }: TopMemesProps) {
-  const { memes, loading, error } = useMemes()
+  const { memes, loading, error, shareMemeWithUrl } = useMemes()
   const [selectedMeme, setSelectedMeme] = useState<Meme | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const navigate = useNavigate()
 
-  // Calcular top 3 memes baseado em compartilhamentos (share_count), depois downloads
+  // Calcular top 3 memes baseado em pontuação ponderada
   const topMemes = React.useMemo(() => {
     if (!memes || memes.length === 0) return []
 
     return [...memes]
-      .sort((a, b) => {
-        const aScore = (a as any).share_count || 0
-        const bScore = (b as any).share_count || 0
-        if (bScore !== aScore) return bScore - aScore
-        const aTie = a.download_count || 0
-        const bTie = b.download_count || 0
-        return bTie - aTie
+      .map((meme) => {
+        // Fórmula de pontuação: likes*1 + downloads*2 + shares*3
+        const likes = meme.like_count || 0
+        const downloads = meme.download_count || 0
+        const shares = (meme as any).share_count || 0
+
+        const score = likes * 1 + downloads * 2 + shares * 3
+
+        return { ...meme, score }
       })
+      .sort((a, b) => b.score - a.score)
       .slice(0, 3) // Apenas top 3 memes
   }, [memes])
 
   const handleMemeClick = (meme: Meme) => {
-    setSelectedMeme(meme)
-    setIsModalOpen(true)
+    // Navegar para a página do meme
+    navigate(`/meme/${meme.id}`)
+
     if (onMemeClick) {
       onMemeClick(meme)
     }
@@ -52,7 +66,7 @@ export default function TopMemes({ onMemeClick }: TopMemesProps) {
               Top 3 Memes
             </h2>
             <p className="text-lg sm:text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-              Os 3 memes mais compartilhados (em alta)
+              Top 3 memes por pontuação: likes + downloads ×2 + partilhas ×3
             </p>
           </div>
 
@@ -186,7 +200,9 @@ export default function TopMemes({ onMemeClick }: TopMemesProps) {
                       <div className="flex items-center justify-center space-x-4 text-sm">
                         <div className="flex items-center">
                           <Share2 className="h-4 w-4 mr-1" />
-                          <span>{((meme as any).share_count || 0).toLocaleString()}</span>
+                          <span>
+                            {((meme as any).share_count || 0).toLocaleString()}
+                          </span>
                         </div>
                       </div>
                       <p className="text-xs mt-2 opacity-75">Clique para ver</p>
@@ -213,18 +229,16 @@ export default function TopMemes({ onMemeClick }: TopMemesProps) {
                       </div>
                       <div className="flex items-center text-gray-600 dark:text-gray-400">
                         <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                        <span>{((meme as any).share_count || 0).toLocaleString()}</span>
+                        <span>
+                          {((meme as any).share_count || 0).toLocaleString()}
+                        </span>
                       </div>
                     </div>
 
                     {/* Score total */}
                     <div className="flex items-center text-primary-600 dark:text-primary-400 font-semibold">
-                      <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                      <span>
-                        {(
-                          (meme.like_count || 0) + (meme.download_count || 0)
-                        ).toLocaleString()}
-                      </span>
+                      <Trophy className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                      <span>{meme.score?.toLocaleString() || '0'}</span>
                     </div>
                   </div>
                 </div>

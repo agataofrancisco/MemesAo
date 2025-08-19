@@ -454,6 +454,39 @@ export function useMemes() {
     }
   };
 
+  // Função para gerar URL específica do meme
+  const getMemeShareUrl = (meme: Meme) => {
+    const baseUrl = window.location.origin;
+    return `${baseUrl}/meme/${meme.id}`;
+  };
+
+  // Função para partilhar com URL específica
+  const shareMemeWithUrl = async (meme: Meme) => {
+    const shareUrl = getMemeShareUrl(meme);
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: meme.title || "Meme Engraçado",
+          text: meme.description || "Confira este meme!",
+          url: shareUrl,
+        });
+        await shareMeme(meme);
+      } catch (error) {
+        // User cancelled sharing
+      }
+    } else {
+      // Fallback para copiar URL
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        toast.success("Link do meme copiado para área de transferência!");
+        await shareMeme(meme);
+      } catch (error) {
+        toast.error("Erro ao copiar link");
+      }
+    }
+  };
+
   const searchMemes = async (
     query: string,
     category?: string
@@ -574,6 +607,8 @@ export function useMemes() {
     toggleFavorite,
     downloadMeme,
     shareMeme,
+    shareMemeWithUrl,
+    getMemeShareUrl,
     uploadMeme,
     searchMemes,
     isBackendConfigured: isSupabaseConfigured,

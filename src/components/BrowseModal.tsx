@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   X,
@@ -41,6 +42,7 @@ export default function BrowseModal({
   const [currentPage, setCurrentPage] = useState(1)
   const [selectedMeme, setSelectedMeme] = useState<Meme | null>(null)
   const [isMemeModalOpen, setIsMemeModalOpen] = useState(false)
+  const navigate = useNavigate()
 
   const { memes, loading: memesLoading, error: memesError } = useMemes()
   const { categories, loading: categoriesLoading } = useStats()
@@ -69,9 +71,16 @@ export default function BrowseModal({
         )
         break
       case 'popular':
-        filtered = filtered.sort(
-          (a, b) => (b.download_count || 0) - (a.download_count || 0),
-        )
+        // Fórmula de pontuação: likes*1 + downloads*2 + shares*3
+        filtered = filtered
+          .map((meme) => {
+            const likes = meme.like_count || 0
+            const downloads = meme.download_count || 0
+            const shares = (meme as any).share_count || 0
+            const score = likes * 1 + downloads * 2 + shares * 3
+            return { ...meme, score }
+          })
+          .sort((a, b) => (b.score || 0) - (a.score || 0))
         break
       case 'trending':
         filtered = filtered.sort(
@@ -114,8 +123,9 @@ export default function BrowseModal({
   }
 
   const handleMemeClick = (meme: Meme) => {
-    setSelectedMeme(meme)
-    setIsMemeModalOpen(true)
+    // Navegar para a página do meme
+    navigate(`/meme/${meme.id}`)
+    onClose() // Fechar o modal
   }
 
   const handleCloseMemeModal = () => {
@@ -203,8 +213,8 @@ export default function BrowseModal({
                     className="px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
                   >
                     <option value="newest">Mais Recentes</option>
-                    <option value="popular">Mais Populares</option>
-                    <option value="trending">Em Alta</option>
+                    <option value="popular">Melhor Pontuação</option>
+                    <option value="trending">Mais Partilhados</option>
                   </select>
 
                   {/* Modo de Visualização */}
