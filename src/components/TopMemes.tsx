@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+
 import { motion } from 'framer-motion'
 import {
   Heart,
@@ -11,7 +11,7 @@ import {
   Share2,
 } from 'lucide-react'
 import { useMemes } from '../hooks/useMemes'
-import MemeViewModal from './MemeViewModal'
+import MemeModal from './MemeModal'
 import type { Meme } from '../lib/supabase'
 
 interface TopMemesProps {
@@ -44,8 +44,8 @@ export default function TopMemes({ onMemeClick }: TopMemesProps) {
   }, [memes])
 
   const handleMemeClick = (meme: Meme) => {
-    // Navegar para a página do meme
-    navigate(`/meme/${meme.id}`)
+    setSelectedMeme(meme)
+    setIsModalOpen(true)
 
     if (onMemeClick) {
       onMemeClick(meme)
@@ -221,24 +221,24 @@ export default function TopMemes({ onMemeClick }: TopMemesProps) {
                   </p>
 
                   {/* Estatísticas */}
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs sm:text-sm">
-                    <div className="flex items-center space-x-2 sm:space-x-3">
+                  <div className="flex items-center justify-between text-xs sm:text-sm">
+                    <div className="flex items-center space-x-3">
                       <div className="flex items-center text-gray-600 dark:text-gray-400">
                         <Heart className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                         <span>{(meme.like_count || 0).toLocaleString()}</span>
                       </div>
                       <div className="flex items-center text-gray-600 dark:text-gray-400">
-                        <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                        <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                        <span>
+                          {(meme.download_count || 0).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="flex items-center text-gray-600 dark:text-gray-400">
+                        <Share2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                         <span>
                           {((meme as any).share_count || 0).toLocaleString()}
                         </span>
                       </div>
-                    </div>
-
-                    {/* Score total */}
-                    <div className="flex items-center text-primary-600 dark:text-primary-400 font-semibold">
-                      <Trophy className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                      <span>{meme.score?.toLocaleString() || '0'}</span>
                     </div>
                   </div>
                 </div>
@@ -265,7 +265,7 @@ export default function TopMemes({ onMemeClick }: TopMemesProps) {
       </section>
 
       {/* Modal de visualização */}
-      <MemeViewModal
+      <MemeModal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         meme={selectedMeme}

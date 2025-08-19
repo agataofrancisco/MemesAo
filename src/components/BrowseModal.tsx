@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   X,
@@ -18,7 +18,7 @@ import {
 } from 'lucide-react'
 import { useMemes } from '../hooks/useMemes'
 import { useStats } from '../hooks/useStats'
-import MemeViewModal from './MemeViewModal'
+import MemeModal from './MemeModal'
 import type { Meme } from '../lib/supabase'
 
 interface BrowseModalProps {
@@ -42,7 +42,6 @@ export default function BrowseModal({
   const [currentPage, setCurrentPage] = useState(1)
   const [selectedMeme, setSelectedMeme] = useState<Meme | null>(null)
   const [isMemeModalOpen, setIsMemeModalOpen] = useState(false)
-  const navigate = useNavigate()
 
   const { memes, loading: memesLoading, error: memesError } = useMemes()
   const { categories, loading: categoriesLoading } = useStats()
@@ -55,11 +54,27 @@ export default function BrowseModal({
 
     // Filtrar por categoria se selecionada
     if (selectedCategory) {
-      filtered = filtered.filter(
-        (meme) =>
-          (meme.category && meme.category.name === selectedCategory) ||
-          (meme.category_id && meme.category_id === selectedCategory),
-      )
+      filtered = filtered.filter((meme) => {
+        // Verificar se o meme tem a categoria selecionada
+        if (
+          meme.category &&
+          typeof meme.category === 'object' &&
+          meme.category.name === selectedCategory
+        ) {
+          return true
+        }
+        if (meme.category_id && meme.category_id === selectedCategory) {
+          return true
+        }
+        // Verificar se o meme tem a categoria como string
+        if (
+          typeof meme.category === 'string' &&
+          meme.category === selectedCategory
+        ) {
+          return true
+        }
+        return false
+      })
     }
 
     // Ordenar por critério selecionado
@@ -123,9 +138,8 @@ export default function BrowseModal({
   }
 
   const handleMemeClick = (meme: Meme) => {
-    // Navegar para a página do meme
-    navigate(`/meme/${meme.id}`)
-    onClose() // Fechar o modal
+    setSelectedMeme(meme)
+    setIsMemeModalOpen(true)
   }
 
   const handleCloseMemeModal = () => {
@@ -375,7 +389,7 @@ export default function BrowseModal({
       </AnimatePresence>
 
       {/* Modal de Visualização do Meme */}
-      <MemeViewModal
+      <MemeModal
         isOpen={isMemeModalOpen}
         meme={selectedMeme}
         onClose={handleCloseMemeModal}

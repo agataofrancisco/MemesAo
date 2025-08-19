@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+
 import { motion } from 'framer-motion'
 import { Download, ArrowRight, Sparkles, Heart, Share2 } from 'lucide-react'
 import { useMemes } from '../hooks/useMemes'
 import { useStats } from '../hooks/useStats'
-import MemeViewModal from './MemeViewModal'
+import MemeModal from './MemeModal'
 import type { Meme } from '../lib/supabase'
 
 interface FeaturedMemesProps {
@@ -29,7 +29,6 @@ export default function FeaturedMemes({
   } = useMemes()
   const [selectedMeme, setSelectedMeme] = useState<Meme | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const navigate = useNavigate()
 
   // Usar useMemo para evitar recálculos desnecessários
   const categoriesWithMemes = useMemo(() => {
@@ -98,14 +97,14 @@ export default function FeaturedMemes({
 
   const handleMemeClick = useCallback(
     (meme: Meme) => {
-      // Navegar para a página do meme
-      navigate(`/meme/${meme.id}`)
+      setSelectedMeme(meme)
+      setIsModalOpen(true)
 
       if (onMemeClick) {
         onMemeClick(meme)
       }
     },
-    [onMemeClick, navigate],
+    [onMemeClick],
   )
 
   const handleCloseModal = () => {
@@ -297,14 +296,20 @@ export default function FeaturedMemes({
                         </h4>
 
                         <div className="flex items-center justify-between text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                          <div className="flex items-center space-x-2 sm:space-x-3">
-                            <div className="flex items-center">
+                          <div className="flex items-center space-x-3">
+                            <div className="flex items-center text-gray-600 dark:text-gray-400">
                               <Heart className="h-3 w-3 mr-1" />
                               <span>
                                 {(meme.like_count || 0).toLocaleString()}
                               </span>
                             </div>
-                            <div className="flex items-center">
+                            <div className="flex items-center text-gray-600 dark:text-gray-400">
+                              <Download className="h-3 w-3 mr-1" />
+                              <span>
+                                {(meme.download_count || 0).toLocaleString()}
+                              </span>
+                            </div>
+                            <div className="flex items-center text-gray-600 dark:text-gray-400">
                               <Share2 className="h-3 w-3 mr-1" />
                               <span>
                                 {(
@@ -325,7 +330,7 @@ export default function FeaturedMemes({
       </section>
 
       {/* Modal de visualização */}
-      <MemeViewModal
+      <MemeModal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         meme={selectedMeme}

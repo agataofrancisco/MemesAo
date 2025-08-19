@@ -22,6 +22,7 @@ import SearchModal from './components/SearchModal'
 import AdminDashboard from './components/AdminDashboard'
 import BrowseModal from './components/BrowseModal'
 import MemePage from './components/MemePage'
+import RouteTest from './components/RouteTest'
 
 function App() {
   const [isAuthOpen, setIsAuthOpen] = useState(false)
@@ -111,6 +112,15 @@ function AppContent({
     return (
       <Routes>
         <Route path="/meme/:memeId" element={<MemePage />} />
+      </Routes>
+    )
+  }
+
+  // Rota de teste
+  if (location.pathname === '/test') {
+    return (
+      <Routes>
+        <Route path="/test" element={<RouteTest />} />
       </Routes>
     )
   }
