@@ -16,7 +16,7 @@ export function useMemes() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [favorites, setFavorites] = useState<string[]>([]);
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { extractText } = useOCR();
 
   const loadMemes = useCallback(async () => {
@@ -133,12 +133,14 @@ export function useMemes() {
       // Mapear dados para incluir informações relacionadas
       const transformedMemes = memesData.map((meme) => {
         const category = categoriesData?.find((c) => c.id === meme.category_id);
-        const profile = profilesData?.find((p) => p.id === meme.uploaded_by);
+        const userProfile = profilesData?.find(
+          (p) => p.id === meme.uploaded_by
+        );
 
         return {
           ...meme,
           category: category?.name || "Sem categoria",
-          profile: profile ? { username: profile.username } : undefined,
+          profile: userProfile ? { username: userProfile.username } : undefined,
           view_count: meme.view_count || 0,
           download_count: meme.download_count || 0,
           like_count: likeCounts[meme.id] || 0,
@@ -312,9 +314,23 @@ export function useMemes() {
 
       // Determinar se é upload anônimo ou autenticado
       const isAnonymous = !user?.id;
-      const uploaderName = isAnonymous
-        ? "Anônimo"
-        : profile?.username || "Usuário";
+
+      // Buscar o perfil do usuário se estiver autenticado
+      let uploaderName = "Anônimo";
+      if (!isAnonymous && user?.id) {
+        try {
+          const { data: profileData } = await supabase
+            .from("profiles")
+            .select("username")
+            .eq("id", user.id)
+            .single();
+
+          uploaderName = profileData?.username || "Usuário";
+        } catch (error) {
+          console.warn("Erro ao buscar perfil:", error);
+          uploaderName = "Usuário";
+        }
+      }
 
       const { data, error } = await supabase
         .from("memes")
