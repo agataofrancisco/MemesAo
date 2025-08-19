@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Heart, Download, Star, Trophy, Flame, TrendingUp } from 'lucide-react'
+import { Heart, Download, Star, Trophy, Flame, TrendingUp, Share2 } from 'lucide-react'
 import { useMemes } from '../hooks/useMemes'
 import MemeViewModal from './MemeViewModal'
 import type { Meme } from '../lib/supabase'
@@ -129,7 +129,7 @@ export default function TopMemes({ onMemeClick }: TopMemesProps) {
               </h2>
             </div>
             <p className="text-lg sm:text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-              Os 3 memes mais populares com mais visualizações e downloads
+              Os 3 memes mais compartilhados (em alta)
             </p>
           </motion.div>
 
@@ -185,8 +185,8 @@ export default function TopMemes({ onMemeClick }: TopMemesProps) {
                     <div className="text-white text-center">
                       <div className="flex items-center justify-center space-x-4 text-sm">
                         <div className="flex items-center">
-                          <Download className="h-4 w-4 mr-1" />
-                          <span>{meme.download_count || 0}</span>
+                          <Share2 className="h-4 w-4 mr-1" />
+                          <span>{((meme as any).share_count || 0).toLocaleString()}</span>
                         </div>
                       </div>
                       <p className="text-xs mt-2 opacity-75">Clique para ver</p>
