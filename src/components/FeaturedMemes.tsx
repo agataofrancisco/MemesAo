@@ -301,7 +301,7 @@ export default function FeaturedMemes({
                         </div>
                       </div>
                     </motion.button>
-                  )}
+                  ))}
                 </div>
               </motion.div>
             ))}
