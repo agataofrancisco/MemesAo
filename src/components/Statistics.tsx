@@ -20,7 +20,7 @@ export default function Statistics() {
     {
       id: 2,
       icon: Download,
-      value: loading ? '...' : (isLogged ? stats.totalDownloads.toString() : stats.totalDownloads.toString()),
+      value: loading ? '...' : (isLogged ? stats.userDownloads.toString() : stats.totalDownloads.toString()),
       label: isLogged ? 'Seus Downloads' : 'Downloads Realizados',
       color: 'from-purple-500 to-pink-500',
     },
@@ -34,7 +34,7 @@ export default function Statistics() {
     {
       id: 4,
       icon: Heart,
-      value: loading ? '...' : (isLogged ? stats.totalFavorites.toString() : stats.totalFavorites.toString()),
+      value: loading ? '...' : (isLogged ? stats.userFavorites.toString() : stats.totalFavorites.toString()),
       label: isLogged ? 'Seus Likes' : 'Memes Curtidos',
       color: 'from-accent-500 to-red-500',
     },

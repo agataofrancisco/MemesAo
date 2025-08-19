@@ -1,11 +1,14 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase, isSupabaseConfigured } from "../lib/supabase";
+import { useAuth } from "./useAuth";
 
 interface Stats {
   totalMemes: number;
   totalDownloads: number;
   totalUsers: number;
   totalFavorites: number;
+  userDownloads: number;
+  userFavorites: number;
 }
 
 interface CategoryStats {
@@ -23,11 +26,14 @@ export function useStats() {
     totalDownloads: 0,
     totalUsers: 0,
     totalFavorites: 0,
+    userDownloads: 0,
+    userFavorites: 0,
   });
 
   const [categories, setCategories] = useState<CategoryStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
 
   const loadStats = useCallback(async () => {
     if (!isSupabaseConfigured || !supabase) {
@@ -39,23 +45,34 @@ export function useStats() {
       setError(null);
       console.log("Carregando estatísticas do Supabase...");
 
-      // Buscar estatísticas reais do banco
-      const [memesResult, usersResult, downloadsResult, favoritesResult] =
-        await Promise.all([
-          supabase
-            .from("memes")
-            .select("id", { count: "exact", head: true })
-            .eq("status", "approved"),
-          supabase
-            .from("profiles")
-            .select("id", { count: "exact", head: true }),
+      // Buscar estatísticas reais do banco (globais)
+      const [memesResult, usersResult, downloadsResult, favoritesResult] = await Promise.all([
+        supabase
+          .from("memes")
+          .select("id", { count: "exact", head: true })
+          .eq("status", "approved"),
+        supabase.from("profiles").select("id", { count: "exact", head: true }),
+        supabase.from("meme_downloads").select("id", { count: "exact", head: true }),
+        supabase.from("user_favorites").select("id", { count: "exact", head: true }),
+      ]);
+
+      // Buscar estatísticas do usuário (se logado)
+      let userDownloadsCount = 0;
+      let userFavoritesCount = 0;
+      if (user) {
+        const [userDownloadsResult, userFavoritesResult] = await Promise.all([
           supabase
             .from("meme_downloads")
-            .select("id", { count: "exact", head: true }),
+            .select("id", { count: "exact", head: true })
+            .eq("user_id", user.id),
           supabase
             .from("user_favorites")
-            .select("id", { count: "exact", head: true }),
+            .select("id", { count: "exact", head: true })
+            .eq("user_id", user.id),
         ]);
+        if (!userDownloadsResult.error) userDownloadsCount = userDownloadsResult.count || 0;
+        if (!userFavoritesResult.error) userFavoritesCount = userFavoritesResult.count || 0;
+      }
 
       // Verificar se houve erros
       if (memesResult.error) throw memesResult.error;
@@ -68,6 +85,8 @@ export function useStats() {
         totalUsers: usersResult.count || 0,
         totalDownloads: downloadsResult.count || 0,
         totalFavorites: favoritesResult.count || 0,
+        userDownloads: userDownloadsCount,
+        userFavorites: userFavoritesCount,
       };
 
       console.log("Estatísticas carregadas:", newStats);
