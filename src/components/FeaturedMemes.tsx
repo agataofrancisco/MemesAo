@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { motion } from 'framer-motion'
-import { Download, ArrowRight, Sparkles, Heart } from 'lucide-react'
+import { Download, ArrowRight, Sparkles, Heart, Share2 } from 'lucide-react'
 import { useMemes } from '../hooks/useMemes'
 import { useStats } from '../hooks/useStats'
 import MemeViewModal from './MemeViewModal'
@@ -51,6 +51,9 @@ export default function FeaturedMemes({
 
       const sortedMemes = categoryMemes
         .sort((a, b) => {
+          const aShares = (a as any).share_count || 0
+          const bShares = (b as any).share_count || 0
+          if (bShares !== aShares) return bShares - aShares
           const aScore = a.download_count || 0
           const bScore = b.download_count || 0
           return bScore - aScore
@@ -265,8 +268,8 @@ export default function FeaturedMemes({
                           <div className="text-white text-center">
                             <div className="flex items-center justify-center space-x-4 text-sm">
                               <div className="flex items-center">
-                                <Download className="h-4 w-4 mr-1" />
-                                <span>{meme.download_count || 0}</span>
+                                <Share2 className="h-4 w-4 mr-1" />
+                                <span>{((meme as any).share_count || 0).toLocaleString()}</span>
                               </div>
                             </div>
                             <p className="text-xs mt-2 opacity-75">
@@ -291,16 +294,14 @@ export default function FeaturedMemes({
                               </span>
                             </div>
                             <div className="flex items-center">
-                              <Download className="h-3 w-3 mr-1" />
-                              <span>
-                                {(meme.download_count || 0).toLocaleString()}
-                              </span>
+                              <Share2 className="h-3 w-3 mr-1" />
+                              <span>{((meme as any).share_count || 0).toLocaleString()}</span>
                             </div>
                           </div>
                         </div>
                       </div>
-                    </motion.button>
-                  ))}
+                    </motion.button)
+                  )}
                 </div>
               </motion.div>
             ))}
