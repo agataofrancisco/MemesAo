@@ -8,10 +8,13 @@ import {
   Loader,
   ChevronDown,
   X,
+  Settings,
 } from 'lucide-react'
 import { useMemes } from '../hooks/useMemes'
 import { useStats } from '../hooks/useStats'
+import { useAuth } from '../hooks/useAuth'
 import MemeViewModal from './MemeViewModal'
+import UserInterests from './UserInterests'
 import type { Meme } from '../lib/supabase'
 import toast from 'react-hot-toast'
 
@@ -27,11 +30,14 @@ export default function Feed({ className = '' }: FeedProps) {
     toggleFavorite,
     favorites,
     shareMeme,
+    downloadMeme,
   } = useMemes()
   const { categories, loading: categoriesLoading } = useStats()
+  const { user } = useAuth()
 
   const [selectedMeme, setSelectedMeme] = useState<Meme | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isUserInterestsOpen, setIsUserInterestsOpen] = useState(false)
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [showFilters, setShowFilters] = useState(false)
   const [page, setPage] = useState(1)
@@ -40,6 +46,17 @@ export default function Feed({ className = '' }: FeedProps) {
   const [loadingMore, setLoadingMore] = useState(false)
 
   const ITEMS_PER_PAGE = 12
+
+  // Carregar mais memes
+  const loadMore = useCallback(() => {
+    if (loadingMore || !hasMore) return
+
+    setLoadingMore(true)
+    setTimeout(() => {
+      setPage((prev) => prev + 1)
+      setLoadingMore(false)
+    }, 300)
+  }, [loadingMore, hasMore])
 
   // Filtrar memes baseado nas categorias selecionadas
   const getFilteredMemes = useCallback(() => {
@@ -75,17 +92,6 @@ export default function Feed({ className = '' }: FeedProps) {
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
   }, [loadingMore, hasMore, loadMore])
-
-  // Carregar mais memes
-  const loadMore = useCallback(() => {
-    if (loadingMore || !hasMore) return
-
-    setLoadingMore(true)
-    setTimeout(() => {
-      setPage((prev) => prev + 1)
-      setLoadingMore(false)
-    }, 300)
-  }, [loadingMore, hasMore])
 
   // Toggle categoria
   const toggleCategory = (categoryName: string) => {
@@ -193,6 +199,55 @@ export default function Feed({ className = '' }: FeedProps) {
             Descobre os melhores memes das tuas categorias favoritas
           </p>
         </div>
+
+        {/* Call to Action - Criar Conta ou Personalizar */}
+        {user ? (
+          <div className="bg-gradient-to-r from-green-500 to-teal-500 rounded-2xl p-6 mb-8 text-white">
+            <div className="flex flex-col sm:flex-row items-center justify-between">
+              <div className="text-center sm:text-left mb-4 sm:mb-0">
+                <h3 className="text-xl font-bold mb-2">
+                  🎯 Personaliza o teu feed!
+                </h3>
+                <p className="text-green-100">
+                  Ajusta as tuas categorias favoritas para receber conteúdo mais
+                  relevante
+                </p>
+              </div>
+              <button
+                onClick={() => setIsUserInterestsOpen(true)}
+                className="px-6 py-3 bg-white text-green-600 font-semibold rounded-xl hover:bg-gray-100 transition-colors flex items-center"
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                Personalizar
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="bg-gradient-to-r from-primary-500 to-purple-500 rounded-2xl p-6 mb-8 text-white">
+            <div className="flex flex-col sm:flex-row items-center justify-between">
+              <div className="text-center sm:text-left mb-4 sm:mb-0">
+                <h3 className="text-xl font-bold mb-2">
+                  🚀 Cria a tua conta e personaliza o feed!
+                </h3>
+                <p className="text-primary-100">
+                  Seleciona as tuas categorias favoritas e recebe conteúdo
+                  personalizado baseado nos teus interesses
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+                <button
+                  onClick={() => setIsUserInterestsOpen(true)}
+                  className="px-6 py-3 bg-white text-primary-600 font-semibold rounded-xl hover:bg-gray-100 transition-colors"
+                >
+                  Criar Conta
+                </button>
+                <button className="px-6 py-3 bg-white/20 text-white font-semibold rounded-xl hover:bg-white/30 transition-colors">
+                  Entrar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Filtros de Categoria */}
         <div className="mb-8">
@@ -399,6 +454,17 @@ export default function Feed({ className = '' }: FeedProps) {
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         meme={selectedMeme}
+      />
+
+      {/* Modal de Interesses do Usuário */}
+      <UserInterests
+        isOpen={isUserInterestsOpen}
+        onClose={() => setIsUserInterestsOpen(false)}
+        onInterestsUpdated={() => {
+          // Recarregar memes com base nos novos interesses
+          setPage(1)
+          setFilteredMemes([])
+        }}
       />
     </div>
   )
