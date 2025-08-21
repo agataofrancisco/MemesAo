@@ -172,7 +172,7 @@ export default function MemeModal({ isOpen, onClose, meme }: MemeModalProps) {
                       isFavorite ? 'fill-current' : ''
                     }`}
                   />
-                  {isFavorite ? 'Desfavoritar' : 'Favoritar'}
+                  {isFavorite ? 'Descurtir' : 'Curtir'}
                 </button>
 
                 <button

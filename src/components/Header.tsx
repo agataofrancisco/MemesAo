@@ -178,7 +178,7 @@ export default function Header({
                 className="bg-gradient-to-r from-primary-500 to-purple-500 text-white px-3 sm:px-6 py-1.5 sm:py-2 rounded-full text-sm font-medium hover:shadow-lg transition-all duration-300"
               >
                 <Upload size={14} className="inline mr-1 sm:mr-2" />
-                <span className="hidden sm:inline">Contribuir</span>
+                <span className="hidden sm:inline">Publicar</span>
                 <span className="sm:hidden">Upload</span>
               </motion.button>
             </div>

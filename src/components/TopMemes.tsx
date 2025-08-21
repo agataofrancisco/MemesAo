@@ -259,7 +259,7 @@ export default function TopMemes({ onMemeClick }: TopMemesProps) {
               Quer ver seu meme no pódio? Faça upload e ganhe visualizações!
             </p>
             <button className="bg-gradient-to-r from-primary-500 to-purple-600 text-white px-6 py-3 rounded-xl font-medium hover:from-primary-600 hover:to-purple-700 transition-all duration-200 text-sm sm:text-base">
-              Enviar Meme
+              Publicar meme
             </button>
           </motion.div>
         </div>

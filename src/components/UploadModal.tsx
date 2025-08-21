@@ -193,7 +193,7 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
         }
       } catch (error) {
         console.error('Erro no upload:', error)
-        updateMemeFile(file.id, { uploading: false, error: 'Erro ao enviar' })
+        updateMemeFile(file.id, { uploading: false, error: 'Erro ao Publicar' })
       }
 
       setUploadProgress(((i + 1) / totalFiles) * 100)
@@ -469,7 +469,7 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
                     ) : (
                       <>
                         <Upload className="h-5 w-5 mr-2" />
-                        Enviar {files.length} Meme
+                        Publicar {files.length} Meme
                         {files.length !== 1 ? 's' : ''}
                       </>
                     )}

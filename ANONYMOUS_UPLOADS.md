@@ -8,7 +8,7 @@ O sistema MemesAo agora permite que usuários façam upload de memes **sem neces
 
 ### 1. **Sem Verificação de Autenticação**
 
-- O botão "Contribuir" no header está sempre visível
+- O botão "Publicar" no header está sempre visível
 - Qualquer pessoa pode clicar e abrir o modal de upload
 - Não há redirecionamento para login
 
@@ -64,7 +64,7 @@ uploaded_by uuid REFERENCES public.profiles(id) NULL
 - Visualização de memes
 - Download de memes
 - Compartilhamento de memes
-- Favoritar memes (salvo localmente)
+- Curtir memes (salvo localmente)
 
 ### ⚠️ **Limitações**
 
@@ -114,10 +114,10 @@ Execute `test_anonymous_upload.js` no console do navegador para verificar:
 ### Como Testar Manualmente
 
 1. Abra o site sem fazer login
-2. Clique em "Contribuir"
+2. Clique em "Publicar"
 3. Selecione uma imagem
 4. Preencha título e categoria
-5. Clique em "Enviar"
+5. Clique em "Publicar"
 6. Verifique se aparece a mensagem de sucesso anônimo
 
 ## Segurança
@@ -138,7 +138,7 @@ Execute `test_anonymous_upload.js` no console do navegador para verificar:
 
 ## Vantagens dos Uploads Anônimos
 
-1. **Maior Engajamento**: Usuários podem contribuir imediatamente
+1. **Maior Engajamento**: Usuários podem Publicar imediatamente
 2. **Menor Fricção**: Sem necessidade de criar conta
 3. **Mais Conteúdo**: Aumenta o volume de memes no sistema
 4. **Teste Gratuito**: Usuários podem experimentar antes de criar conta
@@ -168,4 +168,4 @@ Os uploads anônimos estão totalmente implementados e funcionais. O sistema:
 - ✅ Preserva a segurança e moderação
 - ✅ Oferece experiência de usuário fluida
 
-Os usuários agora podem contribuir com memes imediatamente, sem barreiras de autenticação, enquanto o sistema mantém a qualidade através da moderação manual.
+Os usuários agora podem Publicar com memes imediatamente, sem barreiras de autenticação, enquanto o sistema mantém a qualidade através da moderação manual.

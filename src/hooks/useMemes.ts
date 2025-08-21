@@ -286,7 +286,7 @@ export function useMemes() {
           return {
             success: false,
             message:
-              "Meme duplicado detectado pelo sistema OCR. Tente enviar outro meme.",
+              "Meme duplicado detectado pelo sistema OCR. Tente Publicar outro meme.",
           };
         }
       }
@@ -355,9 +355,9 @@ export function useMemes() {
       // Inserir multi-categorias se fornecidas
       if (allCategories.length > 1) {
         try {
-          const categoryInserts = allCategories.map(catId => ({
+          const categoryInserts = allCategories.map((catId) => ({
             meme_id: data.id,
-            category_id: catId
+            category_id: catId,
           }));
 
           const { error: categoriesError } = await supabase
@@ -365,7 +365,10 @@ export function useMemes() {
             .insert(categoryInserts);
 
           if (categoriesError) {
-            console.warn("Erro ao inserir categorias adicionais:", categoriesError);
+            console.warn(
+              "Erro ao inserir categorias adicionais:",
+              categoriesError
+            );
           }
         } catch (error) {
           console.warn("Erro ao inserir categorias adicionais:", error);
@@ -384,8 +387,8 @@ export function useMemes() {
       };
     } catch (error) {
       console.error("Erro ao fazer upload:", error);
-      toast.error("Erro ao enviar meme", { id: "upload" });
-      return { success: false, message: "Erro ao enviar meme" };
+      toast.error("Erro ao Publicar meme", { id: "upload" });
+      return { success: false, message: "Erro ao Publicar meme" };
     }
   };
 

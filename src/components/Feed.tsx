@@ -20,9 +20,10 @@ import toast from 'react-hot-toast'
 
 interface FeedProps {
   className?: string
+  onAuthClick?: () => void
 }
 
-export default function Feed({ className = '' }: FeedProps) {
+export default function Feed({ className = '', onAuthClick }: FeedProps) {
   const {
     memes,
     loading,
@@ -236,12 +237,27 @@ export default function Feed({ className = '' }: FeedProps) {
               </div>
               <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
                 <button
-                  onClick={() => setIsUserInterestsOpen(true)}
+                  onClick={() => {
+                    if (onAuthClick) {
+                      onAuthClick()
+                    } else {
+                      toast.success('Redirecionando para criar conta...')
+                    }
+                  }}
                   className="px-6 py-3 bg-white text-primary-600 font-semibold rounded-xl hover:bg-gray-100 transition-colors"
                 >
                   Criar Conta
                 </button>
-                <button className="px-6 py-3 bg-white/20 text-white font-semibold rounded-xl hover:bg-white/30 transition-colors">
+                <button
+                  onClick={() => {
+                    if (onAuthClick) {
+                      onAuthClick()
+                    } else {
+                      toast.success('Redirecionando para entrar...')
+                    }
+                  }}
+                  className="px-6 py-3 bg-white/20 text-white font-semibold rounded-xl hover:bg-white/30 transition-colors"
+                >
                   Entrar
                 </button>
               </div>
@@ -465,6 +481,7 @@ export default function Feed({ className = '' }: FeedProps) {
           setPage(1)
           setFilteredMemes([])
         }}
+        onAuthClick={onAuthClick}
       />
     </div>
   )

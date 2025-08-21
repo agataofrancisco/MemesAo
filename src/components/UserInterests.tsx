@@ -10,6 +10,7 @@ interface UserInterestsProps {
   isOpen: boolean
   onClose: () => void
   onInterestsUpdated?: () => void
+  onAuthClick?: () => void
 }
 
 interface UserInterest {
@@ -26,6 +27,7 @@ export default function UserInterests({
   isOpen,
   onClose,
   onInterestsUpdated,
+  onAuthClick,
 }: UserInterestsProps) {
   const { user } = useAuth()
   const { categories, loading: categoriesLoading } = useStats()
@@ -96,17 +98,39 @@ export default function UserInterests({
   }
 
   const saveInterests = async () => {
-    if (!user) return
+    if (!user) {
+      console.log('Usuário não logado, não pode salvar interesses')
+      toast.error('Precisas de estar logado para salvar interesses')
+      return
+    }
+
+    console.log('Salvando interesses para usuário:', user.id)
+    console.log('Interesses selecionados:', selectedInterests)
+    console.log('Pesos dos interesses:', interestWeights)
 
     setSaving(true)
     try {
       // Deletar interesses antigos
-      await supabase.from('user_interests').delete().eq('user_id', user.id)
+      console.log('Deletando interesses antigos...')
+      const { error: deleteError } = await supabase
+        .from('user_interests')
+        .delete()
+        .eq('user_id', user.id)
+
+      if (deleteError) {
+        console.error('Erro ao deletar interesses antigos:', deleteError)
+        throw deleteError
+      }
+
+      console.log('Interesses antigos deletados com sucesso')
 
       // Inserir novos interesses
       const interestsToInsert = selectedInterests
         .map((categoryName) => {
           const category = categories.find((cat) => cat.name === categoryName)
+          console.log(
+            `Mapeando categoria: ${categoryName} -> ID: ${category?.id}`,
+          )
           return {
             user_id: user.id,
             category_id: category?.id,
@@ -115,12 +139,22 @@ export default function UserInterests({
         })
         .filter((item) => item.category_id)
 
+      console.log('Interesses para inserir:', interestsToInsert)
+
       if (interestsToInsert.length > 0) {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('user_interests')
           .insert(interestsToInsert)
+          .select()
 
-        if (error) throw error
+        if (error) {
+          console.error('Erro ao inserir interesses:', error)
+          throw error
+        }
+
+        console.log('Interesses inseridos com sucesso:', data)
+      } else {
+        console.log('Nenhum interesse válido para inserir')
       }
 
       toast.success('Interesses salvos com sucesso!')
@@ -135,6 +169,70 @@ export default function UserInterests({
   }
 
   if (!isOpen) return null
+
+  // Se não há usuário logado, mostrar mensagem de login
+  if (!user) {
+    return (
+      <AnimatePresence>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md p-6 text-center"
+          >
+            <div className="mb-6">
+              <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Heart className="h-8 w-8 text-primary-500" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                Precisa de uma conta
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400">
+                Para personalizar o teu feed, precisas de criar uma conta ou
+                entrar
+              </p>
+            </div>
+
+            <div className="flex flex-col space-y-3">
+              <button
+                onClick={() => {
+                  onClose()
+                  if (onAuthClick) {
+                    onAuthClick()
+                  } else {
+                    toast.success('Redirecionando para criar conta...')
+                  }
+                }}
+                className="w-full px-6 py-3 bg-primary-500 text-white font-semibold rounded-xl hover:bg-primary-600 transition-colors"
+              >
+                Criar Conta
+              </button>
+              <button
+                onClick={() => {
+                  onClose()
+                  if (onAuthClick) {
+                    onAuthClick()
+                  } else {
+                    toast.success('Redirecionando para entrar...')
+                  }
+                }}
+                className="w-full px-6 py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-semibold rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                Entrar
+              </button>
+              <button
+                onClick={onClose}
+                className="w-full px-6 py-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+              >
+                Cancelar
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      </AnimatePresence>
+    )
+  }
 
   return (
     <AnimatePresence>

@@ -189,7 +189,7 @@ function AppContent({
               </main>
             ) : currentPage === 'feed' ? (
               <main className="w-full max-w-full overflow-x-hidden">
-                <Feed />
+                <Feed onAuthClick={() => setIsAuthOpen(true)} />
               </main>
             ) : null
           }
@@ -200,7 +200,7 @@ function AppContent({
           path="/feed"
           element={
             <main className="w-full max-w-full overflow-x-hidden">
-              <Feed />
+              <Feed onAuthClick={() => setIsAuthOpen(true)} />
             </main>
           }
         />

@@ -101,7 +101,7 @@ export default function Hero({ onBrowseClick, onFeedClick }: HeroProps) {
                 className="w-full sm:w-auto bg-gradient-to-r from-primary-500 to-purple-500 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-medium hover:shadow-lg transition-all duration-300 flex items-center justify-center space-x-2"
               >
                 <Grid className="h-5 w-5 sm:h-6 sm:w-6" />
-                <span>Feed Infinito</span>
+                <span>Ir para o Feed</span>
               </motion.button>
             )}
 
@@ -171,11 +171,11 @@ export default function Hero({ onBrowseClick, onFeedClick }: HeroProps) {
                   <span className="text-2xl font-bold text-white">3</span>
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-                  Contribuir
+                  Publicar
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                  Tem memes? Clique no botão "+" no topo para enviar e ajudar a
-                  comunidade
+                  Tem memes? Clique no botão "+" no topo para Publicar e ajudar
+                  a comunidade
                 </p>
                 <div className="w-full h-20 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center">
                   <Upload className="w-8 h-8 text-gray-400" />
