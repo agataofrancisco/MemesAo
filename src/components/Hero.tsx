@@ -13,9 +13,10 @@ import {
 
 interface HeroProps {
   onBrowseClick?: () => void
+  onFeedClick?: () => void
 }
 
-export default function Hero({ onBrowseClick }: HeroProps) {
+export default function Hero({ onBrowseClick, onFeedClick }: HeroProps) {
   return (
     <section
       id="home"
@@ -85,19 +86,31 @@ export default function Hero({ onBrowseClick }: HeroProps) {
             categorização automática.
           </motion.p>
 
-          {/* Browse Button */}
+          {/* Action Buttons */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
-            className="max-w-md mx-auto mb-8 sm:mb-12 px-2"
+            className="flex flex-col sm:flex-row items-center justify-center space-y-3 sm:space-y-0 sm:space-x-4 mb-8 sm:mb-12 px-2"
           >
+            {onFeedClick && (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={onFeedClick}
+                className="w-full sm:w-auto bg-gradient-to-r from-primary-500 to-purple-500 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-medium hover:shadow-lg transition-all duration-300 flex items-center justify-center space-x-2"
+              >
+                <Grid className="h-5 w-5 sm:h-6 sm:w-6" />
+                <span>Feed Infinito</span>
+              </motion.button>
+            )}
+
             {onBrowseClick && (
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={onBrowseClick}
-                className="w-full bg-gradient-to-r from-teal-500 to-green-500 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-medium hover:shadow-lg transition-all duration-300 flex items-center justify-center space-x-2"
+                className="w-full sm:w-auto bg-gradient-to-r from-teal-500 to-green-500 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-medium hover:shadow-lg transition-all duration-300 flex items-center justify-center space-x-2"
               >
                 <Grid size={18} />
                 <span>Explorar por Categoria</span>

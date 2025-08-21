@@ -21,6 +21,7 @@ interface HeaderProps {
   onUploadClick: () => void
   onAdminClick: () => void
   onProfileClick?: () => void
+  onFeedClick?: () => void
 }
 
 export default function Header({
@@ -28,6 +29,7 @@ export default function Header({
   onUploadClick,
   onAdminClick,
   onProfileClick,
+  onFeedClick,
 }: HeaderProps) {
   const { isDark, toggleTheme } = useTheme()
   const { user, profile, signOut, isConfigured } = useAuth()
@@ -77,6 +79,12 @@ export default function Header({
 
             {/* Desktop Navigation */}
             <nav className="hidden lg:flex items-center space-x-8">
+              <button
+                onClick={onFeedClick}
+                className="text-gray-700 dark:text-gray-300 hover:text-primary-500 dark:hover:text-primary-400 transition-colors"
+              >
+                Feed
+              </button>
               <a
                 href="#home"
                 className="text-gray-700 dark:text-gray-300 hover:text-primary-500 dark:hover:text-primary-400 transition-colors"
@@ -214,6 +222,15 @@ export default function Header({
               exit={{ opacity: 0, height: 0 }}
               className="sm:hidden border-t border-gray-200 dark:border-gray-700 py-4 space-y-2"
             >
+              <button
+                onClick={() => {
+                  onFeedClick?.()
+                  setShowMobileMenu(false)
+                }}
+                className="w-full flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-left"
+              >
+                Feed
+              </button>
               <a
                 href="#home"
                 className="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"

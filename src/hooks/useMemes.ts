@@ -408,38 +408,113 @@ export function useMemes() {
     );
   };
 
-  const downloadMeme = async (meme: Meme) => {
+  // Função para registrar download
+  const registerDownload = async (memeId: string) => {
+    if (!isSupabaseConfigured || !supabase) return;
+
     try {
-      // Registrar download no Supabase se possível
-      if (isSupabaseConfigured && supabase) {
-        await supabase.from("meme_downloads").insert({
-          meme_id: meme.id,
-          user_id: user?.id || null,
-          ip_address: "127.0.0.1",
-        });
+      await supabase.from("meme_downloads").insert({
+        meme_id: memeId,
+        user_id: user?.id || null,
+        ip_address: "127.0.0.1",
+      });
+    } catch (error) {
+      console.error("Erro ao registrar download:", error);
+    }
+  };
+
+  const downloadMeme = useCallback(async (meme: Meme) => {
+    if (!meme.image_url) {
+      toast.error("URL da imagem não encontrada");
+      return;
+    }
+
+    try {
+      // Criar canvas para adicionar watermark
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        throw new Error("Canvas não suportado");
       }
 
-      // Fazer download da imagem
-      const response = await fetch(meme.image_url);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
+      // Carregar imagem
+      const img = new Image();
+      img.crossOrigin = "anonymous";
 
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `${(meme.title || "meme")
-        .replace(/[^a-z0-9]/gi, "_")
-        .toLowerCase()}.jpg`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      img.onload = () => {
+        // Configurar dimensões do canvas
+        canvas.width = img.width;
+        canvas.height = img.height;
 
-      window.URL.revokeObjectURL(url);
-      toast.success("Meme baixado com sucesso!");
+        // Desenhar a imagem original
+        ctx.drawImage(img, 0, 0);
+
+        // Configurar estilo do watermark
+        ctx.font = `${Math.max(
+          16,
+          img.width * 0.03
+        )}px Inter, Arial, sans-serif`;
+        ctx.fillStyle = "rgba(255, 255, 255, 0.8)"; // Branco com 80% opacidade
+        ctx.strokeStyle = "rgba(0, 0, 0, 0.6)"; // Preto com 60% opacidade
+        ctx.lineWidth = 2;
+
+        // Texto do watermark
+        const watermarkText = "Baixado em memes.ao";
+
+        // Posicionar no canto inferior direito
+        const textMetrics = ctx.measureText(watermarkText);
+        const padding = 20;
+        const x = img.width - textMetrics.width - padding;
+        const y = img.height - padding;
+
+        // Desenhar outline (borda preta)
+        ctx.strokeText(watermarkText, x, y);
+
+        // Desenhar texto principal (branco)
+        ctx.fillText(watermarkText, x, y);
+
+        // Converter para blob e baixar
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = `${meme.title || "meme"}.jpg`;
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+
+              // Registrar download no Supabase
+              registerDownload(meme.id);
+              toast.success("Meme baixado com sucesso!");
+            }
+          },
+          "image/jpeg",
+          0.9
+        );
+      };
+
+      img.onerror = () => {
+        // Fallback: baixar imagem original sem watermark
+        const a = document.createElement("a");
+        a.href = meme.image_url;
+        a.download = `${meme.title || "meme"}.jpg`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        registerDownload(meme.id);
+        toast.success("Meme baixado com sucesso!");
+      };
+
+      img.src = meme.image_url;
     } catch (error) {
       console.error("Erro ao baixar meme:", error);
       toast.error("Erro ao baixar meme");
     }
-  };
+  }, []);
 
   const shareMeme = async (meme: Meme) => {
     try {

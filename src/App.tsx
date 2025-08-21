@@ -23,6 +23,7 @@ import AdminDashboard from './components/AdminDashboard'
 import BrowseModal from './components/BrowseModal'
 import MemePage from './components/MemePage'
 import RouteTest from './components/RouteTest'
+import Feed from './components/Feed'
 
 function App() {
   const [isAuthOpen, setIsAuthOpen] = useState(false)
@@ -31,7 +32,9 @@ function App() {
   const [isAdminOpen, setIsAdminOpen] = useState(false)
   const [isBrowseOpen, setIsBrowseOpen] = useState(false)
   const [browseCategory, setBrowseCategory] = useState<string | undefined>()
-  const [currentPage, setCurrentPage] = useState<'home' | 'profile'>('home')
+  const [currentPage, setCurrentPage] = useState<'home' | 'profile' | 'feed'>(
+    'home',
+  )
 
   const handleCategoryClick = (categoryName: string) => {
     setBrowseCategory(categoryName)
@@ -41,6 +44,10 @@ function App() {
   const handleBrowseOpen = () => {
     setBrowseCategory(undefined)
     setIsBrowseOpen(true)
+  }
+
+  const handleFeedClick = () => {
+    setCurrentPage('feed')
   }
 
   return (
@@ -63,6 +70,7 @@ function App() {
           setCurrentPage={setCurrentPage}
           handleCategoryClick={handleCategoryClick}
           handleBrowseOpen={handleBrowseOpen}
+          handleFeedClick={handleFeedClick}
         />
       </Router>
     </ThemeProvider>
@@ -87,6 +95,7 @@ function AppContent({
   setCurrentPage,
   handleCategoryClick,
   handleBrowseOpen,
+  handleFeedClick,
 }: {
   isAuthOpen: boolean
   setIsAuthOpen: (open: boolean) => void
@@ -100,10 +109,11 @@ function AppContent({
   setIsBrowseOpen: (open: boolean) => void
   browseCategory: string | undefined
   setBrowseCategory: (category: string | undefined) => void
-  currentPage: 'home' | 'profile'
-  setCurrentPage: (page: 'home' | 'profile') => void
+  currentPage: 'home' | 'profile' | 'feed'
+  setCurrentPage: (page: 'home' | 'profile' | 'feed') => void
   handleCategoryClick: (categoryName: string) => void
   handleBrowseOpen: () => void
+  handleFeedClick: () => void
 }) {
   const location = useLocation()
 
@@ -136,6 +146,7 @@ function AppContent({
         onSearchClick={() => setIsSearchOpen(true)}
         onAdminClick={() => setIsAdminOpen(true)}
         onProfileClick={() => setCurrentPage('profile')}
+        onFeedClick={handleFeedClick}
       />
 
       <Routes>
@@ -144,7 +155,10 @@ function AppContent({
           element={
             currentPage === 'home' ? (
               <main className="w-full max-w-full overflow-x-hidden">
-                <Hero onBrowseClick={handleBrowseOpen} />
+                <Hero
+                  onBrowseClick={handleBrowseOpen}
+                  onFeedClick={handleFeedClick}
+                />
 
                 {/* 1. Memes em Destaque (Top memes) */}
                 <TopMemes
@@ -174,6 +188,14 @@ function AppContent({
                 <ProfilePage onBack={() => setCurrentPage('home')} />
               </main>
             )
+          }
+        />
+        <Route
+          path="/feed"
+          element={
+            <main className="w-full max-w-full overflow-x-hidden">
+              <Feed />
+            </main>
           }
         />
       </Routes>
