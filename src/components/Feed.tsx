@@ -59,6 +59,23 @@ export default function Feed({ className = '' }: FeedProps) {
     setHasMore(filtered.length > page * ITEMS_PER_PAGE)
   }, [getFilteredMemes, page, selectedCategories])
 
+  // Carregar mais memes automaticamente
+  useEffect(() => {
+    const handleScroll = () => {
+      if (
+        window.innerHeight + window.scrollY >=
+        document.documentElement.scrollHeight - 1000
+      ) {
+        if (!loadingMore && hasMore) {
+          loadMore()
+        }
+      }
+    }
+
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [loadingMore, hasMore, loadMore])
+
   // Carregar mais memes
   const loadMore = useCallback(() => {
     if (loadingMore || !hasMore) return
@@ -67,7 +84,7 @@ export default function Feed({ className = '' }: FeedProps) {
     setTimeout(() => {
       setPage((prev) => prev + 1)
       setLoadingMore(false)
-    }, 500)
+    }, 300)
   }, [loadingMore, hasMore])
 
   // Toggle categoria
@@ -106,6 +123,16 @@ export default function Feed({ className = '' }: FeedProps) {
       await toggleFavorite(meme.id)
     } catch (error) {
       toast.error('Erro ao curtir meme')
+    }
+  }
+
+  // Handle download
+  const handleDownload = async (meme: Meme) => {
+    try {
+      await downloadMeme(meme)
+      toast.success('Meme baixado!')
+    } catch (error) {
+      toast.error('Erro ao baixar')
     }
   }
 
@@ -285,6 +312,16 @@ export default function Feed({ className = '' }: FeedProps) {
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
+                          handleDownload(meme)
+                        }}
+                        className="p-2 bg-white/20 text-white rounded-full hover:bg-white/30 transition-colors"
+                      >
+                        <Download className="h-5 w-5" />
+                      </button>
+
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
                           handleShare(meme)
                         }}
                         className="p-2 bg-white/20 text-white rounded-full hover:bg-white/30 transition-colors"
@@ -325,23 +362,13 @@ export default function Feed({ className = '' }: FeedProps) {
           </AnimatePresence>
         </div>
 
-        {/* Botão Carregar Mais */}
-        {hasMore && (
+        {/* Indicador de carregamento automático */}
+        {loadingMore && (
           <div className="text-center mt-8">
-            <button
-              onClick={loadMore}
-              disabled={loadingMore}
-              className="px-6 py-3 bg-primary-500 text-white rounded-xl font-medium hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {loadingMore ? (
-                <>
-                  <Loader className="h-5 w-5 animate-spin inline mr-2" />
-                  Carregando...
-                </>
-              ) : (
-                'Carregar Mais Memes'
-              )}
-            </button>
+            <div className="inline-flex items-center px-4 py-2 bg-primary-100 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 rounded-lg">
+              <Loader className="h-5 w-5 animate-spin mr-2" />
+              Carregando mais memes...
+            </div>
           </div>
         )}
 

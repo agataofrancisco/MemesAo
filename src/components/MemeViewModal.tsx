@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   X,
@@ -33,6 +33,98 @@ export default function MemeViewModal({
 
   const { downloadMeme, toggleFavorite, favorites, shareMeme } = useMemes()
   const { user } = useAuth()
+
+  // Atualizar meta tags quando a modal abrir
+  useEffect(() => {
+    if (isOpen && meme) {
+      // Atualizar título da página
+      const originalTitle = document.title
+      document.title = `${meme.title || 'Meme'} - MemesAo`
+
+      // Atualizar meta tags Open Graph
+      updateMetaTag(
+        'property',
+        'og:title',
+        meme.title || 'Meme Engraçado - MemesAo',
+      )
+      updateMetaTag(
+        'property',
+        'og:description',
+        meme.description || 'Olha esse meme engraçado!',
+      )
+      updateMetaTag('property', 'og:image', meme.image_url)
+      updateMetaTag(
+        'property',
+        'og:url',
+        `${window.location.origin}/meme/${meme.id}`,
+      )
+      updateMetaTag('property', 'og:type', 'article')
+
+      // Atualizar Twitter Card
+      updateMetaTag(
+        'name',
+        'twitter:title',
+        meme.title || 'Meme Engraçado - MemesAo',
+      )
+      updateMetaTag(
+        'name',
+        'twitter:description',
+        meme.description || 'Olha esse meme engraçado!',
+      )
+      updateMetaTag('name', 'twitter:image', meme.image_url)
+
+      // Restaurar quando a modal fechar
+      return () => {
+        document.title = originalTitle
+        // Restaurar meta tags originais
+        updateMetaTag(
+          'property',
+          'og:title',
+          'MemesAo - O Maior Acervo Digital de Memes Angolanos',
+        )
+        updateMetaTag(
+          'property',
+          'og:description',
+          'Descubra, compartilhe e contribua para o maior acervo digital de memes angolanos. Sistema de OCR integrado para busca inteligente e categorização automática.',
+        )
+        updateMetaTag('property', 'og:image', 'https://memesao.ao/og-image.jpg')
+        updateMetaTag('property', 'og:url', 'https://memesao.ao')
+        updateMetaTag('property', 'og:type', 'website')
+        updateMetaTag(
+          'name',
+          'twitter:title',
+          'MemesAo - O Maior Acervo Digital de Memes Angolanos',
+        )
+        updateMetaTag(
+          'name',
+          'twitter:description',
+          'Descubra, compartilhe e contribua para o maior acervo digital de memes angolanos.',
+        )
+        updateMetaTag(
+          'name',
+          'twitter:image',
+          'https://memesao.ao/og-image.jpg',
+        )
+      }
+    }
+  }, [isOpen, meme])
+
+  // Função para atualizar meta tags
+  const updateMetaTag = (
+    attribute: 'name' | 'property',
+    value: string,
+    content: string,
+  ) => {
+    let meta = document.querySelector(
+      `meta[${attribute}="${value}"]`,
+    ) as HTMLMetaElement
+    if (!meta) {
+      meta = document.createElement('meta')
+      meta.setAttribute(attribute, value)
+      document.head.appendChild(meta)
+    }
+    meta.setAttribute('content', content)
+  }
 
   if (!isOpen || !meme) return null
 

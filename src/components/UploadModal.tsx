@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { useMemes } from '../hooks/useMemes'
 import { useAllCategories } from '../hooks/useAllCategories'
+import MultiCategorySelector from './MultiCategorySelector'
 import toast from 'react-hot-toast'
 
 interface UploadModalProps {
@@ -283,32 +284,29 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
                 </div>
               </div>
 
-              {/* Global Category */}
+              {/* Global Categories */}
               {files.length > 0 && (
                 <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between mb-4">
                     <div className="flex-1">
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Categoria Global (Aplicar a todos)
+                        Categorias Globais (Aplicar a todos)
                       </label>
-                      <select
-                        value={globalCategory}
-                        onChange={(e) => setGlobalCategory(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
-                        disabled={uploading}
-                      >
-                        <option value="">Selecione uma categoria</option>
-                        {categories.map((category) => (
-                          <option key={category.id} value={category.id}>
-                            {category.name}
-                          </option>
-                        ))}
-                      </select>
+                      <MultiCategorySelector
+                        selectedCategories={
+                          globalCategory ? [globalCategory] : []
+                        }
+                        onCategoriesChange={(cats) =>
+                          setGlobalCategory(cats[0] || '')
+                        }
+                        maxCategories={3}
+                        className="mb-3"
+                      />
                     </div>
                     <button
                       type="button"
                       onClick={applyGlobalCategory}
-                      className="ml-3 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors text-sm"
+                      className="ml-4 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors disabled:opacity-50"
                       disabled={!globalCategory || uploading}
                     >
                       Aplicar
