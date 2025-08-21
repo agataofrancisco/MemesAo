@@ -14,49 +14,47 @@ export const supabase = isSupabaseConfigured
 // Tipos para o banco de dados baseados nas migrações
 export interface Profile {
   id: string;
-  username?: string;
-  full_name?: string;
-  avatar_url?: string;
-  role: "user" | "moderator" | "admin";
+  username: string | null;
+  full_name: string | null;
+  avatar_url: string | null;
+  bio: string | null;
+  is_verified: boolean;
   created_at: string;
   updated_at: string;
+  role: "user" | "moderator" | "admin";
 }
 
 export interface Category {
   id: string;
   name: string;
-  slug: string;
   description?: string;
-  icon?: string;
-  color?: string;
-  meme_count: number;
   created_at: string;
 }
 
 export interface Meme {
   id: string;
-  title?: string;
-  description?: string;
+  title: string | null;
+  description: string | null;
   image_url: string;
-  image_path: string;
-  file_size?: number;
-  width?: number;
-  height?: number;
-  format?: string;
-  ocr_text?: string;
-  category_id?: string;
-  uploaded_by?: string;
+  image_path: string | null;
+  file_size: number | null;
+  width: number | null;
+  height: number | null;
+  format: string | null;
+  created_at: string;
+  uploaded_by: string | null;
+  category_id: string | null;
+  view_count: number | null;
+  download_count: number | null;
   status: "pending" | "approved" | "rejected";
-  view_count: number;
-  download_count: number;
+  ocr_text: string | null;
+  category?: string;
+  profile?: { username: string };
   like_count?: number;
   share_count?: number;
-  created_at: string;
-  updated_at: string;
-  // Relacionamentos
-  category?: Category;
-  profile?: Profile;
-  tags?: MemeTag[];
+  // Novos campos para multi-categorias
+  categories?: Category[];
+  category_names?: string[];
 }
 
 export interface MemeTag {
@@ -118,4 +116,30 @@ export interface PendingMeme {
   created_at: string;
   updated_at: string;
   profiles?: Profile;
+}
+
+export interface UserInterest {
+  id: string;
+  user_id: string;
+  category_id: string;
+  weight: number;
+  created_at: string;
+  category?: Category;
+}
+
+export interface UserFollow {
+  id: string;
+  follower_id: string;
+  following_id: string;
+  created_at: string;
+  follower?: Profile;
+  following?: Profile;
+}
+
+export interface MemeCategory {
+  id: string;
+  meme_id: string;
+  category_id: string;
+  created_at: string;
+  category?: Category;
 }

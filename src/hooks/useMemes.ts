@@ -263,8 +263,9 @@ export function useMemes() {
     file: File,
     title: string,
     description: string,
-    categoryId: string, // Mudança: receber category_id em vez de category name
-    tags: string[] = []
+    categoryId: string, // Categoria principal (compatibilidade)
+    tags: string[] = [],
+    allCategories: string[] = [] // Array de todas as categorias
   ): Promise<UploadResult> => {
     if (!isSupabaseConfigured || !supabase) {
       return { success: false, message: "Supabase não configurado" };
@@ -339,7 +340,7 @@ export function useMemes() {
           description,
           image_url: publicUrl,
           image_path: filePath,
-          category_id: categoryId, // Usar category_id correto
+          category_id: categoryId, // Categoria principal (compatibilidade)
           uploaded_by: user?.id || null, // null para uploads anônimos
           ocr_text: extractedText, // Usar ocr_text correto
           status: "pending", // Status pendente para aprovação
@@ -350,6 +351,26 @@ export function useMemes() {
         .single();
 
       if (error) throw error;
+
+      // Inserir multi-categorias se fornecidas
+      if (allCategories.length > 1) {
+        try {
+          const categoryInserts = allCategories.map(catId => ({
+            meme_id: data.id,
+            category_id: catId
+          }));
+
+          const { error: categoriesError } = await supabase
+            .from("meme_categories")
+            .insert(categoryInserts);
+
+          if (categoriesError) {
+            console.warn("Erro ao inserir categorias adicionais:", categoriesError);
+          }
+        } catch (error) {
+          console.warn("Erro ao inserir categorias adicionais:", error);
+        }
+      }
 
       const successMessage = isAnonymous
         ? "Meme enviado para aprovação como anônimo! Aguarde a aprovação de um moderador."

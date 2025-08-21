@@ -26,7 +26,7 @@ interface MemeFile {
   preview: string
   title: string
   description: string
-  categoryId: string
+  categories: string[] // Mudou de categoryId para categories array
   tags: string
   uploading: boolean
   completed: boolean
@@ -94,7 +94,7 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
           preview: e.target?.result as string,
           title: file.name.replace(/\.[^/.]+$/, ''), // Nome do arquivo sem extensão
           description: '',
-          categoryId: globalCategory,
+          categories: globalCategory ? [globalCategory] : [], // Inicializa com categoria global se existir
           tags: '',
           uploading: false,
           completed: false,
@@ -147,12 +147,14 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
       return
     }
 
-    // Verificar se todos os memes têm título e categoria
+    // Verificar se todos os memes têm título e pelo menos uma categoria
     const incompleteFiles = files.filter(
-      (file) => !file.title.trim() || !file.categoryId,
+      (file) => !file.title.trim() || file.categories.length === 0,
     )
     if (incompleteFiles.length > 0) {
-      toast.error('Todos os memes precisam ter título e categoria')
+      toast.error(
+        'Todos os memes precisam ter título e pelo menos uma categoria',
+      )
       return
     }
 
@@ -177,8 +179,9 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
           file.file,
           file.title.trim(),
           file.description.trim(),
-          file.categoryId,
+          file.categories[0], // Usa a primeira categoria como principal (compatibilidade)
           tagsArray,
+          file.categories, // Passa todas as categorias para o upload
         )
 
         if (result.success) {

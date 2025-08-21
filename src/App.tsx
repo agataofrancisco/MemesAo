@@ -183,13 +183,19 @@ function AppContent({
 
                 <Features />
               </main>
-            ) : (
+            ) : currentPage === 'profile' ? (
               <main className="w-full max-w-full overflow-x-hidden">
                 <ProfilePage onBack={() => setCurrentPage('home')} />
               </main>
-            )
+            ) : currentPage === 'feed' ? (
+              <main className="w-full max-w-full overflow-x-hidden">
+                <Feed />
+              </main>
+            ) : null
           }
         />
+
+        {/* Rota específica para o Feed */}
         <Route
           path="/feed"
           element={

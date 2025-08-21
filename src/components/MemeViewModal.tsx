@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   X,
@@ -31,141 +31,8 @@ export default function MemeViewModal({
   const [isFavoriting, setIsFavoriting] = useState(false)
   const [imageLoaded, setImageLoaded] = useState(false)
 
-  const {
-    downloadMeme,
-    toggleFavorite,
-    favorites,
-    shareMeme,
-    updateMemeStats,
-  } = useMemes()
+  const { downloadMeme, toggleFavorite, favorites, shareMeme } = useMemes()
   const { user } = useAuth()
-
-  // Função para atualizar meta tags Open Graph
-  const updateMetaTags = (meme: Meme) => {
-    // Atualizar título
-    const titleMeta = document.querySelector('meta[property="og:title"]')
-    if (titleMeta) {
-      titleMeta.setAttribute(
-        'content',
-        meme.title || 'Meme Engraçado - MemesAo',
-      )
-    }
-
-    // Atualizar descrição
-    const descMeta = document.querySelector('meta[property="og:description"]')
-    if (descMeta) {
-      descMeta.setAttribute(
-        'content',
-        meme.description || 'Olha esse meme engraçado!',
-      )
-    }
-
-    // Atualizar imagem
-    const imageMeta = document.querySelector('meta[property="og:image"]')
-    if (imageMeta) {
-      imageMeta.setAttribute('content', meme.image_url)
-    }
-
-    // Atualizar URL
-    const urlMeta = document.querySelector('meta[property="og:url"]')
-    if (urlMeta) {
-      urlMeta.setAttribute(
-        'content',
-        `${window.location.origin}/meme/${meme.id}`,
-      )
-    }
-
-    // Atualizar Twitter Card
-    const twitterTitle = document.querySelector('meta[name="twitter:title"]')
-    if (twitterTitle) {
-      twitterTitle.setAttribute(
-        'content',
-        meme.title || 'Meme Engraçado - MemesAo',
-      )
-    }
-
-    const twitterDesc = document.querySelector(
-      'meta[name="twitter:description"]',
-    )
-    if (twitterDesc) {
-      twitterDesc.setAttribute(
-        'content',
-        meme.description || 'Olha esse meme engraçado!',
-      )
-    }
-
-    const twitterImage = document.querySelector('meta[name="twitter:image"]')
-    if (twitterImage) {
-      twitterImage.setAttribute('content', meme.image_url)
-    }
-  }
-
-  // Função para restaurar meta tags originais
-  const restoreMetaTags = () => {
-    const defaultTitle = 'MemesAo - O Maior Acervo Digital de Memes Angolanos'
-    const defaultDesc =
-      'Descubra, compartilhe e contribua para o maior acervo digital de memes angolanos. Sistema de OCR integrado para busca inteligente e categorização automática.'
-    const defaultImage = 'https://memesao.ao/og-image.jpg'
-    const defaultUrl = 'https://memesao.ao'
-
-    // Restaurar título
-    const titleMeta = document.querySelector('meta[property="og:title"]')
-    if (titleMeta) {
-      titleMeta.setAttribute('content', defaultTitle)
-    }
-
-    // Restaurar descrição
-    const descMeta = document.querySelector('meta[property="og:description"]')
-    if (descMeta) {
-      descMeta.setAttribute('content', defaultDesc)
-    }
-
-    // Restaurar imagem
-    const imageMeta = document.querySelector('meta[property="og:image"]')
-    if (imageMeta) {
-      imageMeta.setAttribute('content', defaultImage)
-    }
-
-    // Restaurar URL
-    const urlMeta = document.querySelector('meta[property="og:url"]')
-    if (urlMeta) {
-      urlMeta.setAttribute('content', defaultUrl)
-    }
-
-    // Restaurar Twitter Card
-    const twitterTitle = document.querySelector('meta[name="twitter:title"]')
-    if (twitterTitle) {
-      twitterTitle.setAttribute('content', defaultTitle)
-    }
-
-    const twitterDesc = document.querySelector(
-      'meta[name="twitter:description"]',
-    )
-    if (twitterDesc) {
-      twitterDesc.setAttribute('content', defaultDesc)
-    }
-
-    const twitterImage = document.querySelector('meta[name="twitter:image"]')
-    if (twitterImage) {
-      twitterImage.setAttribute('content', defaultImage)
-    }
-  }
-
-  // Atualizar meta tags quando a modal abrir
-  useEffect(() => {
-    if (isOpen && meme) {
-      updateMetaTags(meme)
-      // Atualizar estatísticas em tempo real
-      updateMemeStats(meme.id)
-    }
-
-    // Restaurar meta tags quando a modal fechar
-    return () => {
-      if (!isOpen) {
-        restoreMetaTags()
-      }
-    }
-  }, [isOpen, meme, updateMemeStats])
 
   if (!isOpen || !meme) return null
 
@@ -349,28 +216,6 @@ export default function MemeViewModal({
                   >
                     <Share2 className="h-4 w-4 mr-2" />
                     <span className="hidden sm:inline">Compartilhar</span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      // Testar meta tags
-                      const title = document
-                        .querySelector('meta[property="og:title"]')
-                        ?.getAttribute('content')
-                      const image = document
-                        .querySelector('meta[property="og:image"]')
-                        ?.getAttribute('content')
-                      const url = document
-                        .querySelector('meta[property="og:url"]')
-                        ?.getAttribute('content')
-
-                      console.log('Meta Tags Atuais:', { title, image, url })
-                      toast.success('Meta tags verificadas no console!')
-                    }}
-                    className="flex items-center justify-center px-4 py-2 bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-xl font-medium hover:bg-blue-200 dark:hover:bg-blue-800/30 transition-colors"
-                  >
-                    <Share2 className="h-4 w-4 mr-2" />
-                    <span className="hidden sm:inline">Testar Meta</span>
                   </button>
 
                   <button
