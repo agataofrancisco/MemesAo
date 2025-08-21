@@ -18,7 +18,7 @@ import {
 } from 'lucide-react'
 import { useMemes } from '../hooks/useMemes'
 import { useStats } from '../hooks/useStats'
-import MemeModal from './MemeModal'
+import MemeViewModal from './MemeViewModal'
 import type { Meme } from '../lib/supabase'
 
 interface BrowseModalProps {
@@ -389,7 +389,7 @@ export default function BrowseModal({
       </AnimatePresence>
 
       {/* Modal de Visualização do Meme */}
-      <MemeModal
+      <MemeViewModal
         isOpen={isMemeModalOpen}
         meme={selectedMeme}
         onClose={handleCloseMemeModal}

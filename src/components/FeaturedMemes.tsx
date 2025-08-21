@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 import { Download, ArrowRight, Sparkles, Heart, Share2 } from 'lucide-react'
 import { useMemes } from '../hooks/useMemes'
 import { useStats } from '../hooks/useStats'
-import MemeModal from './MemeModal'
+import MemeViewModal from './MemeViewModal'
 import type { Meme } from '../lib/supabase'
 
 interface FeaturedMemesProps {
@@ -330,7 +330,7 @@ export default function FeaturedMemes({
       </section>
 
       {/* Modal de visualização */}
-      <MemeModal
+      <MemeViewModal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         meme={selectedMeme}

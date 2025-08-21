@@ -11,7 +11,7 @@ import {
   Share2,
 } from 'lucide-react'
 import { useMemes } from '../hooks/useMemes'
-import MemeModal from './MemeModal'
+import MemeViewModal from './MemeViewModal'
 import type { Meme } from '../lib/supabase'
 
 interface TopMemesProps {
@@ -266,7 +266,7 @@ export default function TopMemes({ onMemeClick }: TopMemesProps) {
       </section>
 
       {/* Modal de visualização */}
-      <MemeModal
+      <MemeViewModal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         meme={selectedMeme}

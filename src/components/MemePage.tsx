@@ -62,6 +62,16 @@ export default function MemePage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // Usar o hook useMetaTags para atualizar as meta tags
+  useMetaTags({
+    title: meme ? `${meme.title || 'Meme'} - MemesAo` : 'Meme - MemesAo',
+    description:
+      meme?.description || 'Descubra este meme engraçado no MemesAo!',
+    image: meme?.image_url,
+    url: meme ? `${window.location.origin}/meme/${meme.id}` : undefined,
+    type: 'article',
+  })
+
   useEffect(() => {
     console.log('MemePage useEffect triggered, memeId:', memeId)
 

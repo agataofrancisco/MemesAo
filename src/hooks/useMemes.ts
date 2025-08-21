@@ -468,7 +468,7 @@ export function useMemes() {
       try {
         await navigator.share({
           title: meme.title || "Meme Engraçado",
-          text: meme.description || "Confira este meme!",
+          text: meme.description || "Olha esse meme!",
           url: shareUrl,
         });
         await shareMeme(meme);
@@ -593,6 +593,125 @@ export function useMemes() {
     }
   };
 
+  // Função para atualizar estatísticas de um meme específico
+  const updateMemeStats = useCallback(async (memeId: string) => {
+    if (!isSupabaseConfigured || !supabase) return;
+
+    try {
+      // Buscar estatísticas atualizadas
+      const { data: likesData, error: likesError } = await supabase
+        .from("user_favorites")
+        .select("meme_id")
+        .eq("meme_id", memeId);
+
+      const { data: downloadsData, error: downloadsError } = await supabase
+        .from("meme_downloads")
+        .select("meme_id")
+        .eq("meme_id", memeId);
+
+      const { data: sharesData, error: sharesError } = await supabase
+        .from("meme_shares")
+        .select("meme_id")
+        .eq("meme_id", memeId);
+
+      if (!likesError && !downloadsError && !sharesError) {
+        const likeCount = likesData?.length || 0;
+        const downloadCount = downloadsData?.length || 0;
+        const shareCount = sharesData?.length || 0;
+
+        // Atualizar o meme na lista local
+        setMemes((prevMemes) =>
+          prevMemes.map((meme) =>
+            meme.id === memeId
+              ? {
+                  ...meme,
+                  like_count: likeCount,
+                  download_count: downloadCount,
+                  share_count: shareCount,
+                }
+              : meme
+          )
+        );
+
+        return { likeCount, downloadCount, shareCount };
+      }
+    } catch (error) {
+      console.error("Erro ao atualizar estatísticas do meme:", error);
+    }
+  }, []);
+
+  // Função para buscar um meme específico
+  const getMemeById = useCallback(async (memeId: string) => {
+    if (!isSupabaseConfigured || !supabase) return null;
+
+    try {
+      const { data, error } = await supabase
+        .from("memes")
+        .select(
+          `
+          id,
+          title,
+          description,
+          image_url,
+          image_path,
+          file_size,
+          width,
+          height,
+          format,
+          created_at,
+          uploaded_by,
+          category_id,
+          view_count,
+          download_count,
+          status,
+          ocr_text
+        `
+        )
+        .eq("id", memeId)
+        .eq("status", "approved")
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        // Buscar categoria
+        const { data: categoryData } = await supabase
+          .from("categories")
+          .select("name")
+          .eq("id", data.category_id)
+          .single();
+
+        // Buscar perfil do usuário
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("username")
+          .eq("id", data.uploaded_by)
+          .single();
+
+        // Buscar contagem de likes
+        const { data: likesData } = await supabase
+          .from("user_favorites")
+          .select("meme_id")
+          .eq("meme_id", memeId);
+
+        const transformedMeme = {
+          ...data,
+          category: categoryData?.name || "Sem categoria",
+          profile: profileData ? { username: profileData.username } : undefined,
+          like_count: likesData?.length || 0,
+          download_count: data.download_count || 0,
+          share_count: 0, // Por enquanto
+        };
+
+        return transformedMeme;
+      }
+    } catch (error) {
+      console.error("Erro ao buscar meme por ID:", error);
+    }
+
+    return null;
+  }, []);
+
   // UseEffect otimizado - executar apenas uma vez
   useEffect(() => {
     loadMemes();
@@ -613,5 +732,7 @@ export function useMemes() {
     searchMemes,
     isBackendConfigured: isSupabaseConfigured,
     refresh: loadMemes,
+    updateMemeStats,
+    getMemeById,
   };
 }
