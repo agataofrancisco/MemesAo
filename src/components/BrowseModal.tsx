@@ -15,6 +15,7 @@ import {
   List,
   ChevronLeft,
   ChevronRight,
+  Share2,
 } from 'lucide-react'
 import { useMemes } from '../hooks/useMemes'
 import { useStats } from '../hooks/useStats'
@@ -59,7 +60,7 @@ export default function BrowseModal({
         if (
           meme.category &&
           typeof meme.category === 'object' &&
-          meme.category.name === selectedCategory
+          (meme.category as any).name === selectedCategory
         ) {
           return true
         }
@@ -327,16 +328,22 @@ export default function BrowseModal({
                               </h3>
                               <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
                                 <span>
-                                  {meme.category?.name || 'Sem categoria'}
+                                  {typeof meme.category === 'object'
+                                    ? (meme.category as any).name
+                                    : meme.category || 'Sem categoria'}
                                 </span>
                                 <div className="flex items-center gap-2">
+                                  <span className="flex items-center">
+                                    <Heart className="h-3 w-3 mr-1" />
+                                    {meme.like_count || 0}
+                                  </span>
                                   <span className="flex items-center">
                                     <Download className="h-3 w-3 mr-1" />
                                     {meme.download_count || 0}
                                   </span>
                                   <span className="flex items-center">
-                                    <Heart className="h-3 w-3 mr-1" />
-                                    {meme.like_count || 0}
+                                    <Share2 className="h-3 w-3 mr-1" />
+                                    {(meme as any).share_count || 0}
                                   </span>
                                 </div>
                               </div>

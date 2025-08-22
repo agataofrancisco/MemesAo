@@ -349,6 +349,18 @@ export default function MemeViewModal({
                       {(meme.like_count || 0).toLocaleString()}
                     </span>
                   </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <Share2 className="h-4 w-4 text-gray-500 mr-2" />
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        Partilhas
+                      </span>
+                    </div>
+                    <span className="font-medium text-gray-900 dark:text-white">
+                      {((meme as any).share_count || 0).toLocaleString()}
+                    </span>
+                  </div>
                 </div>
               </div>
 

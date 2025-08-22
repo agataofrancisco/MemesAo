@@ -46,7 +46,8 @@ export default function FeaturedMemes({
     const categoriesWithTopMemes = categories.map((category) => {
       const categoryMemes = allMemes.filter((meme) => {
         return (
-          (meme.category && meme.category.name === category.name) ||
+          (typeof meme.category === 'object' &&
+            (meme.category as any)?.name === category.name) ||
           (meme.category_id && meme.category_id === category.id)
         )
       })
@@ -114,7 +115,7 @@ export default function FeaturedMemes({
 
   if (categoriesLoading || memesLoading) {
     return (
-      <section id="featured" className="py-20 bg-white dark:bg-gray-900">
+      <section id="featured" className="pt-32 pb-20 bg-white dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
@@ -147,7 +148,7 @@ export default function FeaturedMemes({
 
   if (categoriesError || memesError) {
     return (
-      <section id="featured" className="py-20 bg-white dark:bg-gray-900">
+      <section id="featured" className="pt-32 pb-20 bg-white dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
@@ -169,7 +170,7 @@ export default function FeaturedMemes({
 
   if (categoriesWithMemes.length === 0) {
     return (
-      <section id="featured" className="py-20 bg-white dark:bg-gray-900">
+      <section id="featured" className="pt-32 pb-20 bg-white dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
@@ -195,7 +196,7 @@ export default function FeaturedMemes({
 
   return (
     <>
-      <section id="featured" className="py-20 bg-white dark:bg-gray-900">
+      <section id="featured" className="pt-32 pb-20 bg-white dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
