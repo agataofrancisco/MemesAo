@@ -25,6 +25,8 @@ import MemePage from './components/MemePage'
 import RouteTest from './components/RouteTest'
 import Feed from './components/Feed'
 import SimpleDebug from './components/SimpleDebug'
+import RevenueHitsManager from './components/ads/RevenueHitsManager'
+import RevenueHitsConfig from './components/ads/RevenueHitsConfig'
 
 function App() {
   const [isAuthOpen, setIsAuthOpen] = useState(false)
@@ -141,6 +143,13 @@ function AppContent({
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors overflow-x-hidden">
+      {/* Sistema de 6 Anúncios RevenueHits */}
+      <RevenueHitsManager
+        showAnalytics={true}
+        enableOptimization={true}
+        maxAdsPerPage={6}
+      />
+
       <Header
         onAuthClick={() => setIsAuthOpen(true)}
         onUploadClick={() => setIsUploadOpen(true)}
@@ -212,6 +221,16 @@ function AppContent({
           element={
             <main className="w-full max-w-full overflow-x-hidden py-8">
               <SimpleDebug />
+            </main>
+          }
+        />
+
+        {/* Rota de Configuração RevenueHits */}
+        <Route
+          path="/ads-config"
+          element={
+            <main className="w-full max-w-full overflow-x-hidden py-8">
+              <RevenueHitsConfig isOpen={true} onClose={() => {}} />
             </main>
           }
         />
