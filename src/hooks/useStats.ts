@@ -1,4 +1,295 @@
 import { useState } from "react";
 export function useStats() {
-  return { categories: [], loading: false, error: null, refresh: () => {} };
+  const [stats, setStats] = useState<Stats>({
+    totalMemes: 0,
+    totalDownloads: 0,
+    totalUsers: 0,
+    totalFavorites: 0,
+    userDownloads: 0,
+    userFavorites: 0,
+    userShares: 0,
+    userMemes: 0,
+  });
+
+  const [categories, setCategories] = useState<CategoryStats[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
+
+  const loadStats = useCallback(async () => {
+    if (!isSupabaseConfigured || !supabase) {
+      setError("Supabase não configurado");
+      return;
+    }
+
+    try {
+      setError(null);
+      console.log("🔍 useStats - Iniciando carregamento de estatísticas...");
+
+      // Buscar estatísticas reais do banco (globais)
+      console.log("📊 Buscando estatísticas globais...");
+      const [memesResult, usersResult, downloadsResult, favoritesResult] =
+        await Promise.all([
+          supabase
+            .from("memes")
+            .select("id", { count: "exact", head: true })
+            .eq("status", "approved"),
+          supabase
+            .from("profiles")
+            .select("id", { count: "exact", head: true }),
+          supabase
+            .from("meme_downloads")
+            .select("id", { count: "exact", head: true }),
+          supabase
+            .from("user_favorites")
+            .select("id", { count: "exact", head: true }),
+        ]);
+
+      console.log("📊 Resultados das consultas globais:", {
+        memes: memesResult,
+        users: usersResult,
+        downloads: downloadsResult,
+        favorites: favoritesResult,
+      });
+
+      // Buscar estatísticas do usuário (se logado)
+      let userDownloadsCount = 0;
+      let userFavoritesCount = 0;
+      let userSharesCount = 0;
+      let userMemesCount = 0;
+
+      if (user) {
+        console.log(
+          "👤 Usuário logado, carregando estatísticas pessoais...",
+          user.id
+        );
+
+        try {
+          console.log("🔍 Executando consultas para usuário:", user.id);
+
+          const [
+            userDownloadsResult,
+            userFavoritesResult,
+            userSharesResult,
+            userMemesResult,
+          ] = await Promise.all([
+            supabase
+              .from("meme_downloads")
+              .select("id", { count: "exact", head: true })
+              .eq("user_id", user.id),
+            supabase
+              .from("user_favorites")
+              .select("id", { count: "exact", head: true })
+              .eq("user_id", user.id),
+            supabase
+              .from("meme_shares")
+              .select("id", { count: "exact", head: true })
+              .eq("user_id", user.id),
+            supabase
+              .from("memes")
+              .select("id", { count: "exact", head: true })
+              .eq("uploaded_by", user.id),
+          ]);
+
+          console.log("📊 Resultados das consultas pessoais:", {
+            downloads: userDownloadsResult,
+            favorites: userFavoritesResult,
+            shares: userSharesResult,
+            memes: userMemesResult,
+          });
+
+          if (!userDownloadsResult.error)
+            userDownloadsCount = userDownloadsResult.count || 0;
+          if (!userFavoritesResult.error)
+            userFavoritesCount = userFavoritesResult.count || 0;
+          if (!userSharesResult.error)
+            userSharesCount = userSharesResult.count || 0;
+          if (!userMemesResult.error)
+            userMemesCount = userMemesResult.count || 0;
+
+          console.log("✅ Estatísticas pessoais carregadas:", {
+            downloads: userDownloadsCount,
+            favorites: userFavoritesCount,
+            shares: userSharesCount,
+            memes: userMemesCount,
+          });
+        } catch (userStatsError) {
+          console.error(
+            "❌ Erro ao carregar estatísticas pessoais:",
+            userStatsError
+          );
+        }
+      } else {
+        console.log("👤 Nenhum usuário logado, pulando estatísticas pessoais");
+      }
+
+      // Verificar se houve erros
+      if (memesResult.error) throw memesResult.error;
+      if (usersResult.error) throw usersResult.error;
+      if (downloadsResult.error) throw downloadsResult.error;
+      if (favoritesResult.error) throw favoritesResult.error;
+
+      const newStats = {
+        totalMemes: memesResult.count || 0,
+        totalUsers: usersResult.count || 0,
+        totalDownloads: downloadsResult.count || 0,
+        totalFavorites: favoritesResult.count || 0,
+        userDownloads: userDownloadsCount,
+        userFavorites: userFavoritesCount,
+        userShares: userSharesCount,
+        userMemes: userMemesCount,
+      };
+
+      console.log("🎯 Estatísticas finais calculadas:", newStats);
+      setStats(newStats);
+    } catch (error) {
+      console.error("💥 Erro ao carregar estatísticas:", error);
+      setError(
+        `Erro ao carregar estatísticas: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
+    }
+  }, [user]); // Adicionar user como dependência
+
+  const loadCategories = useCallback(async () => {
+    if (!isSupabaseConfigured || !supabase) {
+      setError("Supabase não configurado");
+      return;
+    }
+
+    try {
+      setError(null);
+      console.log("Carregando categorias do Supabase...");
+
+      // Buscar categorias do banco de dados
+      const { data: categoriesData, error } = await supabase!
+        .from("categories")
+        .select("*")
+        .order("name");
+
+      if (error) {
+        console.error("Erro ao buscar categorias:", error);
+        throw error;
+      }
+
+      console.log("Categorias encontradas:", categoriesData?.length || 0);
+
+      if (!categoriesData || categoriesData.length === 0) {
+        console.log("Nenhuma categoria encontrada no banco");
+        setCategories([]);
+        return;
+      }
+
+      // Para cada categoria, contar memes aprovados
+      console.log("Contando memes por categoria...");
+      const categoriesWithCount = await Promise.all(
+        categoriesData.map(async (category) => {
+          try {
+            const { count, error: countError } = await supabase!
+              .from("memes")
+              .select("*", { count: "exact", head: true })
+              .eq("category_id", category.id)
+              .eq("status", "approved");
+
+            if (countError) {
+              console.error(
+                `Erro ao contar memes da categoria ${category.name}:`,
+                countError
+              );
+              return {
+                id: category.id,
+                name: category.name,
+                count: 0,
+                icon: category.icon || "Tag",
+                color: category.color || "from-gray-500 to-gray-600",
+                description:
+                  category.description || `Categoria ${category.name}`,
+              };
+            }
+
+            return {
+              id: category.id,
+              name: category.name,
+              count: count || 0,
+              icon: category.icon || "Tag",
+              color: category.color || "from-gray-500 to-gray-600",
+              description: category.description || `Categoria ${category.name}`,
+            };
+          } catch (error) {
+            console.error(
+              `Erro ao processar categoria ${category.name}:`,
+              error
+            );
+            return {
+              id: category.id,
+              name: category.name,
+              count: 0,
+              icon: category.icon || "Tag",
+              color: category.color || "from-gray-500 to-gray-600",
+              description: category.description || `Categoria ${category.name}`,
+            };
+          }
+        })
+      );
+
+      // Filtrar apenas categorias com memes e ordenar por quantidade
+      const allCategories = categoriesWithCount
+        .filter((category) => category.count > 0) // Só categorias com memes
+        .sort((a, b) => b.count - a.count); // Ordenar por quantidade decrescente
+
+      console.log("Todas as categorias processadas:", allCategories);
+      setCategories(allCategories);
+    } catch (error) {
+      console.error("Erro ao carregar categorias:", error);
+      setError(
+        `Erro ao carregar categorias: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
+      setCategories([]);
+    }
+  }, []); // Sem dependências para categorias
+
+  // Carregamento inicial e quando o usuário mudar
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadData = async () => {
+      setLoading(true);
+      setError(null);
+
+      console.log("Iniciando carregamento de dados...");
+      await Promise.all([loadStats(), loadCategories()]);
+
+      if (isMounted) {
+        setLoading(false);
+        console.log("Carregamento de dados concluído");
+      }
+    };
+
+    loadData();
+
+    // Cleanup para evitar updates após unmount
+    return () => {
+      isMounted = false;
+    };
+  }, [user, loadStats]); // Adicionar user e loadStats como dependências
+
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    await Promise.all([loadStats(), loadCategories()]);
+    setLoading(false);
+  }, [loadStats, loadCategories]);
+
+  return {
+    stats,
+    categories,
+    loading,
+    error,
+    refreshStats: loadStats,
+    refreshCategories: loadCategories,
+    refresh,
+  };
 }
