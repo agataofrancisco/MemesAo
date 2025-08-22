@@ -190,7 +190,7 @@ export default function Feed({ className = '', onAuthClick }: FeedProps) {
     <div
       className={`min-h-screen bg-gradient-to-br from-primary-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 ${className}`}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-8">
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 dark:text-white mb-4">
@@ -424,6 +424,10 @@ export default function Feed({ className = '', onAuthClick }: FeedProps) {
                         <span>
                           {(meme.download_count || 0).toLocaleString()}
                         </span>
+                      </div>
+                      <div className="flex items-center">
+                        <Share2 className="h-4 w-4 mr-1" />
+                        <span>{((meme as any).share_count || 0).toLocaleString()}</span>
                       </div>
                     </div>
                   </div>
