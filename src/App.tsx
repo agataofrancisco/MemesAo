@@ -24,6 +24,14 @@ import BrowseModal from './components/BrowseModal'
 import MemePage from './components/MemePage'
 import RouteTest from './components/RouteTest'
 import Feed from './components/Feed'
+import SimpleDebug from './components/SimpleDebug'
+import {
+  HeaderAd,
+  InlineAd,
+  SidebarAd,
+  FooterAd,
+} from './components/ads/RevenueHitsAd'
+import RevenueHitsConfig from './components/ads/RevenueHitsConfig'
 
 function App() {
   const [isAuthOpen, setIsAuthOpen] = useState(false)
@@ -140,6 +148,9 @@ function AppContent({
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors overflow-x-hidden">
+      {/* 1. Header Ad - Banner superior */}
+      <HeaderAd />
+
       <Header
         onAuthClick={() => setIsAuthOpen(true)}
         onUploadClick={() => setIsUploadOpen(true)}
@@ -160,17 +171,23 @@ function AppContent({
                   onFeedClick={handleFeedClick}
                 />
 
-                {/* 1. Memes em Destaque (Top memes) */}
+                {/* 2. Inline Ad 1 - Após Hero */}
+                <InlineAd id="rh_inline_001" />
+
+                {/* 3. Memes em Destaque (Top memes) */}
                 <TopMemes
                   onMemeClick={(meme) => {
                     console.log('Top meme clicado:', meme)
                   }}
                 />
 
-                {/* 2. Estatísticas globais */}
+                {/* 4. Inline Ad 2 - Após Top Memes */}
+                <InlineAd id="rh_inline_002" />
+
+                {/* 5. Estatísticas globais */}
                 <Statistics />
 
-                {/* 3. Explore os Memes */}
+                {/* 6. Explore os Memes */}
                 <FeaturedMemes
                   onCategoryClick={handleCategoryClick}
                   onMemeClick={(meme) => {
@@ -178,10 +195,23 @@ function AppContent({
                   }}
                 />
 
-                {/* 4. Categorias Populares (top 3) */}
+                {/* 7. Inline Ad 3 - Após Featured Memes */}
+                <InlineAd id="rh_inline_003" />
+
+                {/* 8. Categorias Populares (top 3) */}
                 <Categories onCategoryClick={handleCategoryClick} />
 
-                <Features />
+                {/* 9. Sidebar Ad - Lateral direita */}
+                <div className="max-w-7xl mx-auto px-4 py-8">
+                  <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                    <div className="lg:col-span-3">
+                      <Features />
+                    </div>
+                    <div className="lg:col-span-1">
+                      <SidebarAd />
+                    </div>
+                  </div>
+                </div>
               </main>
             ) : currentPage === 'profile' ? (
               <main className="w-full max-w-full overflow-x-hidden">
@@ -205,6 +235,9 @@ function AppContent({
           }
         />
       </Routes>
+
+      {/* 10. Footer Ad - Banner inferior */}
+      <FooterAd />
 
       <Footer />
 

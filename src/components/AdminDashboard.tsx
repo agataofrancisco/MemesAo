@@ -14,12 +14,19 @@ import {
   Plus,
   Save,
   X,
+  Megaphone,
+  BarChart3,
+  TrendingUp,
+  DollarSign,
+  Eye,
+  MousePointer,
 } from 'lucide-react'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 import type { Meme, PendingMeme } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useAllCategories } from '../hooks/useAllCategories'
 import toast from 'react-hot-toast'
+import RevenueHitsManager from './ads/RevenueHitsManager'
 
 interface PendingMemeWithProfile extends PendingMeme {
   profiles?: {
@@ -60,6 +67,10 @@ export default function AdminDashboard({
     category_id: '',
     status: 'pending',
   })
+
+  // Estado para painel de anúncios
+  const [isAdPanelOpen, setIsAdPanelOpen] = useState(false)
+  const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(false) // New state for analytics
 
   const { user, profile, loading: authLoading } = useAuth()
   const { categories: allCategories } = useAllCategories()
@@ -1009,10 +1020,282 @@ export default function AdminDashboard({
     </AnimatePresence>
   )
 
+  const renderUsers = () => (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+          Gerenciamento de Usuários
+        </h2>
+        <button
+          onClick={() => setIsAdPanelOpen(true)}
+          className="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 transition-colors flex items-center space-x-2"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Gerenciar Usuários</span>
+        </button>
+      </div>
+
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+        <p className="text-gray-600 dark:text-gray-400 text-center py-8">
+          Clique em "Gerenciar Usuários" para abrir o painel completo de
+          administração de usuários.
+        </p>
+      </div>
+    </div>
+  )
+
+  const renderCategories = () => (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+          Gerenciamento de Categorias
+        </h2>
+        <button
+          onClick={() => setIsAdPanelOpen(true)}
+          className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors flex items-center space-x-2"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Gerenciar Categorias</span>
+        </button>
+      </div>
+
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+        <p className="text-gray-600 dark:text-gray-400 text-center py-8">
+          Clique em "Gerenciar Categorias" para abrir o painel completo de
+          administração de categorias.
+        </p>
+      </div>
+    </div>
+  )
+
+  const renderAnalytics = () => (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+          Analytics dos Anúncios
+        </h2>
+        <button
+          onClick={() => setIsAnalyticsOpen(true)}
+          className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors flex items-center space-x-2"
+        >
+          <TrendingUp className="w-4 h-4" />
+          <span>Ver Analytics Detalhados</span>
+        </button>
+      </div>
+
+      {/* Quick Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+          <div className="flex items-center space-x-2">
+            <Eye className="w-5 h-5 text-blue-500" />
+            <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
+              Total Impressões
+            </span>
+          </div>
+          <div className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-2">
+            0
+          </div>
+        </div>
+
+        <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
+          <div className="flex items-center space-x-2">
+            <MousePointer className="w-5 h-5 text-green-500" />
+            <span className="text-sm font-medium text-green-600 dark:text-green-400">
+              Total Cliques
+            </span>
+          </div>
+          <div className="text-2xl font-bold text-green-600 dark:text-green-400 mt-2">
+            0
+          </div>
+        </div>
+
+        <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg border border-purple-200 dark:border-purple-800">
+          <div className="flex items-center space-x-2">
+            <TrendingUp className="w-5 h-5 text-purple-500" />
+            <span className="text-sm font-medium text-purple-600 dark:text-purple-400">
+              CTR Médio
+            </span>
+          </div>
+          <div className="text-2xl font-bold text-purple-600 dark:text-purple-400 mt-2">
+            0%
+          </div>
+        </div>
+
+        <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg border border-orange-200 dark:border-orange-800">
+          <div className="flex items-center space-x-2">
+            <DollarSign className="w-5 h-5 text-orange-500" />
+            <span className="text-sm font-medium text-orange-600 dark:text-orange-400">
+              Revenue Estimado
+            </span>
+          </div>
+          <div className="text-2xl font-bold text-orange-600 dark:text-orange-400 mt-2">
+            $0
+          </div>
+        </div>
+      </div>
+
+      {/* Revenue Projection */}
+      <div className="bg-gradient-to-r from-green-500 to-blue-600 text-white p-6 rounded-lg">
+        <h3 className="text-xl font-semibold mb-4">Projeção de Revenue</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="text-center">
+            <div className="text-2xl font-bold">$37-72</div>
+            <div className="text-sm opacity-90">CPM por 1000 pageviews</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold">$1.110-2.160</div>
+            <div className="text-sm opacity-90">Por mês (30k pageviews)</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold">6</div>
+            <div className="text-sm opacity-90">Anúncios por página</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Ad Performance Table */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          Performance por Anúncio
+        </h3>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 dark:bg-gray-700">
+              <tr>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                  Posição
+                </th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                  Impressões
+                </th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                  Cliques
+                </th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                  CTR
+                </th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                  Revenue
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+              <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                <td className="px-4 py-2 text-sm font-medium text-gray-900 dark:text-white">
+                  Header
+                </td>
+                <td className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400">
+                  0
+                </td>
+                <td className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400">
+                  0
+                </td>
+                <td className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400">
+                  0%
+                </td>
+                <td className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400">
+                  $0
+                </td>
+              </tr>
+              <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                <td className="px-4 py-2 text-sm font-medium text-gray-900 dark:text-white">
+                  Inline 1
+                </td>
+                <td className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400">
+                  0
+                </td>
+                <td className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400">
+                  0
+                </td>
+                <td className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400">
+                  0%
+                </td>
+                <td className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400">
+                  $0
+                </td>
+              </tr>
+              <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                <td className="px-4 py-2 text-sm font-medium text-gray-900 dark:text-white">
+                  Inline 2
+                </td>
+                <td className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400">
+                  0
+                </td>
+                <td className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400">
+                  0
+                </td>
+                <td className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400">
+                  0%
+                </td>
+                <td className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400">
+                  $0
+                </td>
+              </tr>
+              <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                <td className="px-4 py-2 text-sm font-medium text-gray-900 dark:text-white">
+                  Inline 3
+                </td>
+                <td className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400">
+                  0
+                </td>
+                <td className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400">
+                  0
+                </td>
+                <td className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400">
+                  0%
+                </td>
+                <td className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400">
+                  $0
+                </td>
+              </tr>
+              <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                <td className="px-4 py-2 text-sm font-medium text-gray-900 dark:text-white">
+                  Sidebar
+                </td>
+                <td className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400">
+                  0
+                </td>
+                <td className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400">
+                  0
+                </td>
+                <td className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400">
+                  0%
+                </td>
+                <td className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400">
+                  $0
+                </td>
+              </tr>
+              <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                <td className="px-4 py-2 text-sm font-medium text-gray-900 dark:text-white">
+                  Footer
+                </td>
+                <td className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400">
+                  0
+                </td>
+                <td className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400">
+                  0
+                </td>
+                <td className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400">
+                  0%
+                </td>
+                <td className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400">
+                  $0
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  )
+
   const tabs = [
     { id: 'dashboard', name: 'Dashboard', icon: Image },
     { id: 'moderation', name: 'Moderação', icon: Clock },
     { id: 'memes', name: 'Gerenciar Memes', icon: Image },
+    { id: 'ads', name: 'Gerenciar Anúncios', icon: Megaphone },
+    { id: 'analytics', name: 'Analytics', icon: BarChart3 }, // New analytics tab
+    { id: 'users', name: 'Gerenciar Usuários', icon: Users },
   ]
 
   return (
@@ -1087,6 +1370,32 @@ export default function AdminDashboard({
                 {activeTab === 'dashboard' && renderDashboard()}
                 {activeTab === 'moderation' && renderModeration()}
                 {activeTab === 'memes' && renderMemes()}
+                {activeTab === 'ads' && (
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                        Gerenciamento de Anúncios
+                      </h2>
+                      <button
+                        onClick={() => setIsAdPanelOpen(true)}
+                        className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors flex items-center space-x-2"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>Gerenciar Anúncios</span>
+                      </button>
+                    </div>
+
+                    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+                      <p className="text-gray-600 dark:text-gray-400 text-center py-8">
+                        Clique em "Gerenciar Anúncios" para abrir o painel
+                        completo de administração de anúncios.
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {activeTab === 'analytics' && renderAnalytics()}
+                {activeTab === 'users' && renderUsers()}
+                {activeTab === 'categories' && renderCategories()}
               </>
             )}
           </div>
@@ -1095,6 +1404,21 @@ export default function AdminDashboard({
 
       {/* Modal de edição */}
       {renderEditModal()}
+
+      {/* Painel de Anúncios */}
+      <AdAdminPanel
+        isOpen={isAdPanelOpen}
+        onClose={() => setIsAdPanelOpen(false)}
+      />
+
+      {/* Painel de Analytics Detalhados */}
+      <RevenueHitsManager
+        isOpen={isAnalyticsOpen}
+        onClose={() => setIsAnalyticsOpen(false)}
+        showAnalytics={true}
+        enableOptimization={true}
+        maxAdsPerPage={6}
+      />
     </div>
   )
 }
