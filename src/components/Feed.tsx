@@ -16,8 +16,6 @@ import { useAuth } from '../hooks/useAuth'
 import MemeViewModal from './MemeViewModal'
 import UserInterests from './UserInterests'
 import OptimizedImage from './OptimizedImage'
-import DebugFeed from './DebugFeed'
-import SupabaseTest from './SupabaseTest'
 import type { Meme } from '../lib/supabase'
 import toast from 'react-hot-toast'
 
@@ -33,7 +31,14 @@ export default function Feed({
 }: FeedProps) {
   console.log('🔍 Feed: Componente iniciando renderização')
 
-  const { memes, loading, error, hasMore, loadingMore } = useOptimizedMemes()
+  const {
+    memes,
+    loading,
+    error,
+    hasMore,
+    loadingMore,
+    refresh,
+  } = useOptimizedMemes()
   const { user } = useAuth()
   const { categories } = useStats()
   const { canDownload, registerDownload } = useDownloadLimit()
@@ -41,6 +46,9 @@ export default function Feed({
   const [activeFilter, setActiveFilter] = useState<
     'trending' | 'recent' | 'interests'
   >('recent')
+  const [selectedMeme, setSelectedMeme] = useState<Meme | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isUserInterestsOpen, setIsUserInterestsOpen] = useState(false)
 
   console.log('🔍 Feed: Hooks carregados:', {
     memesLength: memes?.length || 0,
@@ -62,9 +70,38 @@ export default function Feed({
       activeFilter,
     })
 
-    // Por enquanto, vamos retornar todos os memes sem filtros
-    // para identificar o problema
-    return safeMemes
+    let filteredMemes = [...safeMemes]
+
+    // Filtrar por categorias selecionadas
+    if (selectedCategories.length > 0) {
+      filteredMemes = filteredMemes.filter((meme) => {
+        if (typeof meme.category_id === 'string') {
+          return selectedCategories.includes(meme.category_id)
+        }
+        return false
+      })
+    }
+
+    // Aplicar filtros principais
+    switch (activeFilter) {
+      case 'trending':
+        // Ordenar por visualizações + downloads + likes
+        filteredMemes.sort((a, b) => {
+          const scoreA = (a.view_count || 0) + (a.download_count || 0) * 2
+          const scoreB = (b.view_count || 0) + (b.download_count || 0) * 2
+          return scoreB - scoreA
+        })
+        break
+      case 'recent':
+        // Ordenar por data de criação (já está ordenado no useMemes)
+        break
+      case 'interests':
+        // Por enquanto, ordenar por data (será implementado depois)
+        break
+    }
+
+    console.log(`getFilteredMemes: ${filteredMemes.length} memes após filtros`)
+    return filteredMemes
   }, [safeMemes, selectedCategories, activeFilter])
 
   // Aplicar filtros quando mudar
@@ -73,7 +110,6 @@ export default function Feed({
       selectedCategories,
       activeFilter,
     })
-    // Por enquanto, não vamos aplicar filtros
   }, [selectedCategories, activeFilter])
 
   // Toggle categoria
@@ -91,7 +127,6 @@ export default function Feed({
   // Toggle filtro
   const toggleFilter = (filter: 'trending' | 'recent' | 'interests') => {
     setActiveFilter(filter)
-    // Por enquanto, não vamos resetar página
   }
 
   // Toggle favorito
@@ -103,11 +138,8 @@ export default function Feed({
     }
 
     try {
-      // await toggleFavorite(meme.id) // toggleFavorite não existe
-      toast.success(
-        // favorites.includes(meme.id) // favorites não existe
-        'Adicionado aos favoritos',
-      )
+      // TODO: Implementar toggle de favorito
+      toast.success('Funcionalidade de favoritos será implementada em breve!')
     } catch (error) {
       toast.error('Erro ao atualizar favoritos')
     }
@@ -116,8 +148,10 @@ export default function Feed({
   // Compartilhar meme
   const handleShare = async (meme: Meme) => {
     try {
-      // await shareMeme(meme.id) // shareMeme não existe
-      toast.success('Meme compartilhado com sucesso!')
+      // TODO: Implementar compartilhamento
+      toast.success(
+        'Funcionalidade de compartilhamento será implementada em breve!',
+      )
     } catch (error) {
       toast.error('Erro ao compartilhar meme')
     }
@@ -132,14 +166,10 @@ export default function Feed({
 
     try {
       // Registrar download no limite
-      const success = registerDownload()
-      if (!success) {
-        toast.error('Limite de downloads atingido. Faça login para continuar.')
-        return
-      }
+      registerDownload()
 
-      // await downloadMeme(meme.id) // downloadMeme não existe
-      toast.success('Download iniciado!')
+      // TODO: Implementar download real
+      toast.success('Funcionalidade de download será implementada em breve!')
     } catch (error) {
       toast.error('Erro ao fazer download')
     }
@@ -147,14 +177,14 @@ export default function Feed({
 
   // Abrir modal do meme
   const handleMemeClick = (meme: Meme) => {
-    // setSelectedMeme(meme) // selectedMeme não existe
-    // setIsModalOpen(true) // isModalOpen não existe
+    setSelectedMeme(meme)
+    setIsModalOpen(true)
   }
 
   // Fechar modal
   const handleCloseModal = () => {
-    // setIsModalOpen(false) // isModalOpen não existe
-    // setSelectedMeme(null) // selectedMeme não existe
+    setIsModalOpen(false)
+    setSelectedMeme(null)
   }
 
   // Handle like
@@ -236,6 +266,8 @@ export default function Feed({
     )
   }
 
+  const filteredMemes = getFilteredMemes()
+
   return (
     <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 ${className}`}>
       {/* Header do Feed */}
@@ -247,12 +279,6 @@ export default function Feed({
           Descubra os memes mais engraçados e compartilhados
         </p>
       </div>
-
-      {/* Debug temporário */}
-      <DebugFeed />
-
-      {/* Teste de conexão Supabase */}
-      <SupabaseTest />
 
       {/* Status de Downloads para usuários anônimos */}
       <DownloadStatus className="mb-6" showDetails={true} />
@@ -266,7 +292,7 @@ export default function Feed({
               onClick={() => toggleFilter('trending')}
               className={`flex items-center space-x-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
                 activeFilter === 'trending'
-                  ? 'bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-400 shadow-sm'
+                  ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm'
                   : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
               }`}
             >
@@ -277,7 +303,7 @@ export default function Feed({
               onClick={() => toggleFilter('recent')}
               className={`flex items-center space-x-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
                 activeFilter === 'recent'
-                  ? 'bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-400 shadow-sm'
+                  ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm'
                   : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
               }`}
             >
@@ -288,7 +314,7 @@ export default function Feed({
               onClick={() => toggleFilter('interests')}
               className={`flex items-center space-x-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
                 activeFilter === 'interests'
-                  ? 'bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-400 shadow-sm'
+                  ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm'
                   : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
               }`}
             >
@@ -312,11 +338,15 @@ export default function Feed({
                 </p>
               </div>
               <button
-                onClick={() => setIsUserInterestsOpen(true)}
-                className="px-6 py-3 bg-white text-green-600 font-semibold rounded-xl hover:bg-gray-100 transition-colors flex items-center"
+                key={category.id}
+                onClick={() => toggleCategory(category.name)}
+                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${
+                  selectedCategories.includes(category.name)
+                    ? 'bg-blue-500 text-white shadow-sm'
+                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                }`}
               >
-                <Settings className="h-4 w-4 mr-2" />
-                Personalizar
+                {category.name} ({category.count})
               </button>
             </div>
           </div>
@@ -569,7 +599,7 @@ export default function Feed({
       {/* Grid de Memes */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
         <AnimatePresence>
-          {safeMemes.map((meme, index) => (
+          {filteredMemes.map((meme, index) => (
             <motion.div
               key={meme.id}
               initial={{ opacity: 0, y: 20 }}
@@ -595,8 +625,8 @@ export default function Feed({
                 </h3>
 
                 <p className="text-xs text-gray-500 dark:text-gray-400 mb-3 line-clamp-1">
-                  {typeof meme.category === 'string'
-                    ? meme.category
+                  {typeof meme.category_id === 'string'
+                    ? meme.category_id
                     : 'Sem categoria'}
                 </p>
 
@@ -606,26 +636,20 @@ export default function Feed({
                     <button
                       onClick={() => handleToggleFavorite(meme)}
                       className={`flex items-center space-x-1 transition-colors ${
-                        // favorites.includes(meme.id) // favorites não existe
                         user
                           ? 'text-gray-600 dark:text-gray-400 hover:text-red-500'
                           : 'text-gray-400 dark:text-gray-600 cursor-not-allowed'
                       }`}
                       title={!user ? 'Faça login para curtir' : ''}
                     >
-                      <Heart
-                        className={`h-3 w-3 ${
-                          // favorites.includes(meme.id) // favorites não existe
-                          user ? 'fill-current' : ''
-                        }`}
-                      />
+                      <Heart className="h-3 w-3" />
                       <span>{(meme.like_count || 0).toLocaleString()}</span>
                     </button>
                     <button
                       onClick={() => handleDownload(meme)}
                       className={`flex items-center space-x-1 transition-colors ${
                         canDownload
-                          ? 'text-gray-600 dark:text-gray-400 hover:text-primary-500'
+                          ? 'text-gray-600 dark:text-gray-400 hover:text-blue-500'
                           : 'text-gray-400 dark:text-gray-600 cursor-not-allowed'
                       }`}
                       title={
@@ -639,7 +663,7 @@ export default function Feed({
                     </button>
                     <button
                       onClick={() => handleShare(meme)}
-                      className="flex items-center space-x-1 text-gray-600 dark:text-gray-400 hover:text-primary-500 transition-colors"
+                      className="flex items-center space-x-1 text-gray-600 dark:text-gray-400 hover:text-green-500 transition-colors"
                       title="Compartilhar meme"
                     >
                       <Share2 className="h-3 w-3" />
@@ -668,7 +692,7 @@ export default function Feed({
       {/* Loading mais memes */}
       {loadingMore && (
         <div className="text-center mt-8">
-          <Loader className="h-8 w-8 text-primary-500 animate-spin mx-auto" />
+          <Loader className="h-8 w-8 text-blue-500 animate-spin mx-auto" />
           <p className="text-gray-600 dark:text-gray-400 mt-2">
             Carregando mais memes...
           </p>
@@ -676,7 +700,7 @@ export default function Feed({
       )}
 
       {/* Sem mais memes */}
-      {!hasMore && safeMemes.length > 0 && (
+      {!hasMore && filteredMemes.length > 0 && (
         <div className="text-center mt-8">
           <p className="text-gray-600 dark:text-gray-400">
             Você chegou ao fim! Não há mais memes para carregar.
@@ -685,7 +709,7 @@ export default function Feed({
       )}
 
       {/* Sem memes com filtros aplicados */}
-      {safeMemes.length === 0 && selectedCategories.length > 0 && (
+      {filteredMemes.length === 0 && selectedCategories.length > 0 && (
         <div className="text-center mt-8">
           <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-8 max-w-md mx-auto">
             <Star className="h-16 w-16 text-gray-400 mx-auto mb-4" />
@@ -696,9 +720,8 @@ export default function Feed({
               onClick={() => {
                 setSelectedCategories([])
                 setActiveFilter('trending')
-                // resetToFirstPage() // resetToFirstPage não existe
               }}
-              className="bg-primary-500 text-white px-4 py-2 rounded-lg hover:bg-primary-600 transition-colors"
+              className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
             >
               Limpar filtros
             </button>
@@ -708,15 +731,15 @@ export default function Feed({
 
       {/* Modal de visualização */}
       <MemeViewModal
-        isOpen={false} // isModalOpen não existe
+        isOpen={isModalOpen}
         onClose={handleCloseModal}
-        meme={null} // selectedMeme não existe
+        meme={selectedMeme}
       />
 
       {/* Modal de Interesses do Usuário */}
       <UserInterests
-        isOpen={false} // isUserInterestsOpen não existe
-        onClose={() => {}} // setIsUserInterestsOpen não existe
+        isOpen={isUserInterestsOpen}
+        onClose={() => setIsUserInterestsOpen(false)}
       />
     </div>
   )

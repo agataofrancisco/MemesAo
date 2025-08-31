@@ -4,7 +4,7 @@ import { useMemes } from "./useMemes";
 export function useOptimizedMemes() {
   console.log("🔍 useOptimizedMemes: Hook iniciando");
 
-  const { memes, loading, error } = useMemes();
+  const { memes, loading, error, refresh } = useMemes();
 
   console.log("🔍 useOptimizedMemes: Dados do useMemes:", {
     memesLength: memes?.length || 0,
@@ -12,7 +12,7 @@ export function useOptimizedMemes() {
     error,
   });
 
-  // Por enquanto, vamos retornar os dados diretamente do useMemes
+  // Garantir que memes seja sempre um array
   const safeMemes = memes || [];
 
   console.log("🔍 useOptimizedMemes: Retornando dados:", {
@@ -29,5 +29,6 @@ export function useOptimizedMemes() {
     error,
     hasMore: false,
     loadingMore: false,
+    refresh,
   };
 }
