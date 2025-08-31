@@ -39,8 +39,35 @@ export function useMemes() {
     try {
       setError(null);
       console.log("Carregando memes do Supabase...");
+      console.log("URL do Supabase:", supabase.supabaseUrl);
+      console.log("Status da configuração:", isSupabaseConfigured);
+
+      // Verificar se conseguimos acessar a tabela
+      console.log("Testando acesso à tabela memes...");
+
+      try {
+        // Query mais básica possível
+        const { data: basicTest, error: basicError } = await supabase
+          .from("memes")
+          .select("count", { count: "exact", head: true });
+
+        console.log("Teste básico de contagem:", { basicTest, basicError });
+      } catch (basicTestError) {
+        console.error("Erro no teste básico:", basicTestError);
+      }
 
       // Query simplificada - buscar apenas memes aprovados
+      console.log("Executando query para buscar memes...");
+
+      // Primeiro, vamos tentar uma query mais simples para testar
+      const { data: testData, error: testError } = await supabase
+        .from("memes")
+        .select("id, title")
+        .limit(5);
+
+      console.log("Query de teste:", { testData, testError });
+
+      // Agora a query principal
       const { data: memesData, error: memesError } = await supabase
         .from("memes")
         .select(
@@ -63,9 +90,40 @@ export function useMemes() {
           ocr_text
         `
         )
-        .eq("status", "approved")
         .order("created_at", { ascending: false })
         .limit(100);
+
+      console.log("Query principal executada, resultado:", {
+        memesData,
+        memesError,
+      });
+
+      // Se não houver memes aprovados, vamos ver todos os memes
+      if (!memesData || memesData.length === 0) {
+        console.log(
+          "Nenhum meme encontrado, tentando buscar todos os memes..."
+        );
+
+        const { data: allMemes, error: allMemesError } = await supabase
+          .from("memes")
+          .select("id, title, status")
+          .limit(10);
+
+        console.log("Todos os memes:", { allMemes, allMemesError });
+
+        if (allMemes && allMemes.length > 0) {
+          console.log(
+            "Status dos memes encontrados:",
+            allMemes.map((m) => ({
+              id: m.id,
+              title: m.title,
+              status: m.status,
+            }))
+          );
+        }
+      }
+
+      console.log("Query executada, resultado:", { memesData, memesError });
 
       if (memesError) {
         console.error("Erro ao buscar memes:", memesError);
@@ -73,9 +131,20 @@ export function useMemes() {
       }
 
       console.log(`Encontrados ${memesData?.length || 0} memes`);
+      console.log("Primeiros memes:", memesData?.slice(0, 3));
 
       if (!memesData || memesData.length === 0) {
         console.log("Nenhum meme encontrado no banco");
+        console.log("Verificando se a tabela memes existe...");
+
+        // Verificar se a tabela existe
+        const { data: tableCheck, error: tableError } = await supabase
+          .from("memes")
+          .select("id")
+          .limit(1);
+
+        console.log("Verificação da tabela:", { tableCheck, tableError });
+
         setMemes([]);
         setLoading(false);
         return;

@@ -17,6 +17,7 @@ import MemeViewModal from './MemeViewModal'
 import UserInterests from './UserInterests'
 import OptimizedImage from './OptimizedImage'
 import DebugFeed from './DebugFeed'
+import SupabaseTest from './SupabaseTest'
 import type { Meme } from '../lib/supabase'
 import toast from 'react-hot-toast'
 
@@ -63,46 +64,30 @@ export default function Feed({ className = '', onAuthClick }: FeedProps) {
 
   // Filtrar memes baseado nas categorias selecionadas e filtro ativo
   const getFilteredMemes = useCallback(() => {
-    let filtered = safeMemes
+    console.log('getFilteredMemes chamado com:', {
+      selectedCategories,
+      activeFilter,
+    })
 
-    // Aplicar filtro de categorias
-    if (selectedCategories.length > 0) {
-      filtered = filtered.filter((meme) =>
-        selectedCategories.includes(meme.category || ''),
-      )
-    }
-
-    return memes.filter((meme) =>
-      selectedCategories.includes(meme.category || ''),
-    )
-  }, [memes, selectedCategories])
-
-    return filtered
+    // Por enquanto, vamos retornar todos os memes sem filtros
+    // para identificar o problema
+    return safeMemes
   }, [safeMemes, selectedCategories, activeFilter])
 
   // Aplicar filtros quando mudar
   useEffect(() => {
-    const filtered = getFilteredMemes()
-    setFilteredMemes(filtered.slice(0, page * ITEMS_PER_PAGE))
-    setHasMore(filtered.length > page * ITEMS_PER_PAGE)
-  }, [getFilteredMemes, page, selectedCategories])
-
-  // Carregar mais memes automaticamente
-  useEffect(() => {
-    const handleScroll = () => {
-      if (
-        window.innerHeight + window.scrollY >=
-        document.documentElement.scrollHeight - 1000
-      ) {
-        if (!loadingMore && hasMore) {
-          loadMore()
-        }
-      }
-    }
-
-    window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [loadingMore, hasMore, loadMore])
+    console.log('useEffect de filtros executado:', {
+      selectedCategories,
+      activeFilter,
+    })
+    // Por enquanto, não vamos aplicar filtros
+  }, [
+    selectedCategories,
+    activeFilter,
+    getFilteredMemes,
+    filterByCategory,
+    resetToFirstPage,
+  ])
 
   // Toggle categoria
   const toggleCategory = (categoryName: string) => {
@@ -227,6 +212,9 @@ export default function Feed({ className = '', onAuthClick }: FeedProps) {
 
       {/* Debug temporário */}
       <DebugFeed />
+
+      {/* Teste de conexão Supabase */}
+      <SupabaseTest />
 
       {/* Status de Downloads para usuários anônimos */}
       <DownloadStatus className="mb-6" showDetails={true} />

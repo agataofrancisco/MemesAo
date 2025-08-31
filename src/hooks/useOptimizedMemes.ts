@@ -35,163 +35,54 @@ export function useOptimizedMemes(options: UseOptimizedMemesOptions = {}) {
     preloadDistance,
   });
 
-  const [currentPage, setCurrentPage] = useState(1);
-  const [visibleMemes, setVisibleMemes] = useState<any[]>([]);
-  const [hasMore, setHasMore] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [memeCache, setMemeCache] = useState<Map<string, any>>(new Map());
-
   // Garantir que memes seja sempre um array
   const safeMemes = memes || [];
 
-  // Calcular memes visíveis baseado na página atual
-  const getVisibleMemes = useCallback(() => {
-    const startIndex = (currentPage - 1) * pageSize;
-    const endIndex = startIndex + pageSize;
-    return safeMemes.slice(startIndex, endIndex);
-  }, [safeMemes, currentPage, pageSize]);
+  // Por enquanto, vamos retornar todos os memes sem paginação
+  // para identificar o problema
+  const visibleMemes = safeMemes;
+  const hasMore = false;
+  const loadingMore = false;
+  const currentPage = 1;
 
-  // Carregar mais memes
+  // Funções simplificadas
   const loadMore = useCallback(async () => {
-    if (loadingMore || !hasMore) return;
+    console.log("loadMore chamado (desabilitado temporariamente)");
+  }, []);
 
-    setLoadingMore(true);
+  const resetToFirstPage = useCallback(() => {
+    console.log("resetToFirstPage chamado (desabilitado temporariamente)");
+  }, []);
 
-    // Simular delay de carregamento
-    await new Promise((resolve) =>
-      setTimeout(resolve, config.PAGINATION.LOAD_DELAY)
-    );
+  const filterByCategory = useCallback((category: string) => {
+    console.log("filterByCategory chamado:", category);
+  }, []);
 
-    setCurrentPage((prev) => prev + 1);
-    setLoadingMore(false);
-  }, [loadingMore, hasMore]);
+  const searchMemes = useCallback((query: string) => {
+    console.log("searchMemes chamado:", query);
+  }, []);
 
-  // Carregar memes automaticamente quando chegar perto do fim
-  const handleScroll = useCallback(() => {
-    if (enableVirtualization) return;
+  const clearCache = useCallback(() => {
+    console.log("clearCache chamado");
+  }, []);
 
-    const scrollPosition = window.scrollY + window.innerHeight;
-    const documentHeight = document.documentElement.scrollHeight;
-
-    if (documentHeight - scrollPosition < preloadDistance) {
-      loadMore();
-    }
-  }, [loadMore, preloadDistance, enableVirtualization]);
-
-  // Adicionar listener de scroll com throttle
-  useEffect(() => {
-    if (!enableVirtualization) {
-      const throttledScroll = throttle(
-        handleScroll,
-        config.SCROLL.THROTTLE_DELAY
-      );
-      window.addEventListener("scroll", throttledScroll, {
-        passive: config.SCROLL.PASSIVE,
-      });
-      return () => window.removeEventListener("scroll", throttledScroll);
-    }
-  }, [
-    handleScroll,
-    enableVirtualization,
-    config.SCROLL.THROTTLE_DELAY,
-    config.SCROLL.PASSIVE,
-  ]);
-
-  // Atualizar memes visíveis quando mudar página ou memes
-  useEffect(() => {
-    const visible = getVisibleMemes();
-    setVisibleMemes(visible);
-    setHasMore(visible.length < safeMemes.length);
-  }, [getVisibleMemes, safeMemes.length]);
-
-  // Cache de memes para melhor performance
   const getCachedMeme = useCallback(
     (id: string) => {
-      if (memeCache.has(id)) {
-        return memeCache.get(id);
-      }
-
-      const meme = safeMemes.find((m) => m.id === id);
-      if (meme) {
-        setMemeCache((prev) => {
-          const newCache = new Map(prev);
-          // Limpar cache se exceder o tamanho máximo
-          if (newCache.size >= config.CACHE.MAX_MEME_CACHE_SIZE) {
-            const firstKey = newCache.keys().next().value;
-            newCache.delete(firstKey);
-          }
-          newCache.set(id, meme);
-          return newCache;
-        });
-      }
-
-      return meme;
+      return safeMemes.find((m) => m.id === id);
     },
-    [safeMemes, memeCache, config.CACHE.MAX_MEME_CACHE_SIZE]
+    [safeMemes]
   );
 
-  // Limpar cache quando necessário
-  const clearCache = useCallback(() => {
-    setMemeCache(new Map());
-  }, []);
-
-  // Reset para primeira página
-  const resetToFirstPage = useCallback(() => {
-    setCurrentPage(1);
-    setVisibleMemes([]);
-    setHasMore(true);
-  }, []);
-
-  // Filtrar memes por categoria
-  const filterByCategory = useCallback(
-    (category: string) => {
-      const filtered = safeMemes.filter((meme) => meme.category === category);
-      setVisibleMemes(filtered.slice(0, pageSize));
-      setHasMore(filtered.length > pageSize);
-      setCurrentPage(1);
-    },
-    [safeMemes, pageSize]
-  );
-
-  // Buscar memes por texto
-  const searchMemes = useCallback(
-    (query: string) => {
-      if (!query.trim()) {
-        resetToFirstPage();
-        return;
-      }
-
-      const searchResults = safeMemes.filter(
-        (meme) =>
-          meme.title?.toLowerCase().includes(query.toLowerCase()) ||
-          meme.category?.toLowerCase().includes(query.toLowerCase())
-      );
-
-      setVisibleMemes(searchResults.slice(0, pageSize));
-      setHasMore(searchResults.length > pageSize);
-      setCurrentPage(1);
-    },
-    [safeMemes, pageSize, resetToFirstPage]
-  );
-
-  // Estatísticas de performance
   const performanceStats = useMemo(
     () => ({
       totalMemes: safeMemes.length,
       visibleCount: visibleMemes.length,
       currentPage,
       hasMore,
-      cacheSize: memeCache.size,
+      cacheSize: 0,
       loadingMore,
     }),
-    [
-      safeMemes.length,
-      visibleMemes.length,
-      currentPage,
-      hasMore,
-      memeCache.size,
-      loadingMore,
-    ]
+    [safeMemes.length, visibleMemes.length, currentPage, hasMore, loadingMore]
   );
 
   return {
