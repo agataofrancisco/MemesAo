@@ -13,6 +13,8 @@ import {
 } from 'lucide-react'
 import { useMemes } from '../hooks/useMemes'
 import { useAuth } from '../hooks/useAuth'
+import { useDownloadLimit } from '../hooks/useDownloadLimit'
+import DownloadStatus from './DownloadStatus'
 import type { Meme } from '../lib/supabase'
 import toast from 'react-hot-toast'
 
@@ -33,6 +35,7 @@ export default function MemeViewModal({
 
   const { downloadMeme, toggleFavorite, favorites, shareMeme } = useMemes()
   const { user } = useAuth()
+  const { canDownload, registerDownload } = useDownloadLimit()
 
   // Atualizar meta tags quando a modal abrir
   useEffect(() => {
@@ -134,9 +137,22 @@ export default function MemeViewModal({
   const handleDownload = async () => {
     if (isDownloading) return
 
+    if (!canDownload) {
+      toast.error('Limite de downloads atingido. Faça login para continuar.')
+      return
+    }
+
     setIsDownloading(true)
     try {
+      // Registrar download no limite
+      const success = registerDownload()
+      if (!success) {
+        toast.error('Limite de downloads atingido. Faça login para continuar.')
+        return
+      }
+
       await downloadMeme(meme)
+      toast.success('Download iniciado!')
     } catch (error) {
       console.error('Erro no download:', error)
       toast.error('Erro ao baixar meme')
@@ -148,9 +164,17 @@ export default function MemeViewModal({
   const handleFavorite = async () => {
     if (isFavoriting) return
 
+    if (!user) {
+      toast.error('Faça login para curtir memes')
+      return
+    }
+
     setIsFavoriting(true)
     try {
       await toggleFavorite(meme.id)
+      toast.success(
+        isFavorited ? 'Removido dos favoritos' : 'Adicionado aos favoritos',
+      )
     } catch (error) {
       console.error('Erro ao curtir:', error)
       toast.error('Erro ao curtir meme')
@@ -257,17 +281,25 @@ export default function MemeViewModal({
 
             {/* Sidebar */}
             <div className="w-full lg:w-80 border-t lg:border-t-0 lg:border-l border-gray-200 dark:border-gray-700 flex flex-col overflow-y-auto">
+              {/* Status de Downloads para usuários anônimos */}
+              <div className="p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
+                <DownloadStatus showDetails={false} />
+              </div>
+
               {/* Actions */}
               <div className="p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     onClick={handleFavorite}
-                    disabled={isFavoriting}
+                    disabled={isFavoriting || !user}
                     className={`flex items-center justify-center px-4 py-3 rounded-xl font-medium transition-all duration-200 ${
                       isFavorited
                         ? 'bg-red-500 text-white hover:bg-red-600'
-                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400'
+                        : user
+                        ? 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400'
+                        : 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
                     } disabled:opacity-50 disabled:cursor-not-allowed`}
+                    title={!user ? 'Faça login para curtir' : ''}
                   >
                     {isFavoriting ? (
                       <Loader className="h-5 w-5 animate-spin" />
@@ -279,7 +311,7 @@ export default function MemeViewModal({
                           }`}
                         />
                         <span className="hidden sm:inline">
-                          {isFavorited ? 'Curtido' : 'curtir'}
+                          {!user ? 'Login' : isFavorited ? 'Curtido' : 'Curtir'}
                         </span>
                       </>
                     )}
@@ -287,15 +319,26 @@ export default function MemeViewModal({
 
                   <button
                     onClick={handleDownload}
-                    disabled={isDownloading}
-                    className="flex items-center justify-center px-4 py-3 bg-primary-500 text-white rounded-xl font-medium hover:bg-primary-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={isDownloading || !canDownload}
+                    className={`flex items-center justify-center px-4 py-3 rounded-xl font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
+                      canDownload
+                        ? 'bg-primary-500 text-white hover:bg-primary-600'
+                        : 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                    }`}
+                    title={
+                      !canDownload
+                        ? 'Limite de downloads atingido. Faça login para continuar.'
+                        : ''
+                    }
                   >
                     {isDownloading ? (
                       <Loader className="h-5 w-5 animate-spin" />
                     ) : (
                       <>
                         <Download className="h-5 w-5 mr-2" />
-                        <span className="hidden sm:inline">Baixar</span>
+                        <span className="hidden sm:inline">
+                          {canDownload ? 'Baixar' : 'Limite'}
+                        </span>
                       </>
                     )}
                   </button>

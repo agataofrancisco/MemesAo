@@ -13,6 +13,7 @@ import {
 import { useMemes } from '../hooks/useMemes'
 import MemeViewModal from './MemeViewModal'
 import type { Meme } from '../lib/supabase'
+// import { InlineAds } from './AdManager'
 
 interface TopMemesProps {
   onMemeClick?: (meme: Meme) => void
@@ -262,6 +263,9 @@ export default function TopMemes({ onMemeClick }: TopMemesProps) {
               Publicar meme
             </button>
           </motion.div>
+
+          {/* Anúncios inline */}
+          {/* <InlineAds /> */}
         </div>
       </section>
 
