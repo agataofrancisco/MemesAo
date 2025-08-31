@@ -45,6 +45,8 @@ function App() {
   )
 
   console.log('App renderizado, currentPage:', currentPage)
+  console.log('App: location.pathname:', location.pathname)
+  console.log('App: user:', !!user)
 
   const handleCategoryClick = (categoryName: string) => {
     setBrowseCategory(categoryName)
@@ -62,27 +64,35 @@ function App() {
 
   return (
     <ThemeProvider>
-      <Router>
-        <AppContent
-          isAuthOpen={isAuthOpen}
-          setIsAuthOpen={setIsAuthOpen}
-          isUploadOpen={isUploadOpen}
-          setIsUploadOpen={setIsUploadOpen}
-          isSearchOpen={isSearchOpen}
-          setIsSearchOpen={setIsSearchOpen}
-          isAdminOpen={isAdminOpen}
-          setIsAdminOpen={setIsAdminOpen}
-          isBrowseOpen={isBrowseOpen}
-          setIsBrowseOpen={setIsBrowseOpen}
-          browseCategory={browseCategory}
-          setBrowseCategory={setBrowseCategory}
+      <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-200">
+        <Header
           currentPage={currentPage}
           setCurrentPage={setCurrentPage}
-          handleCategoryClick={handleCategoryClick}
-          handleBrowseOpen={handleBrowseOpen}
-          handleFeedClick={handleFeedClick}
+          user={user}
+          onLogout={handleLogout}
         />
-      </Router>
+
+        <main className="pt-16">
+          {console.log('App: Renderizando main com currentPage:', currentPage)}
+          <Routes>
+            <Route
+              path="/"
+              element={
+                currentPage === 'feed'
+                  ? console.log('App: Renderizando Feed') || <Feed />
+                  : currentPage === 'profile'
+                  ? console.log('App: Renderizando ProfilePage') || (
+                      <ProfilePage user={user} />
+                    )
+                  : console.log('App: Renderizando Feed (fallback)') || <Feed />
+              }
+            />
+          </Routes>
+        </main>
+
+        {/* Notificação de limite de downloads */}
+        <DownloadLimitNotification onClose={() => {}} />
+      </div>
     </ThemeProvider>
   )
 }

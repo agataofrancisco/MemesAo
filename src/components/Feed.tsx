@@ -26,40 +26,33 @@ interface FeedProps {
   onAuthClick?: () => void
 }
 
-export default function Feed({ className = '', onAuthClick }: FeedProps) {
-  const {
-    memes,
-    loading,
-    error,
-    toggleFavorite,
-    favorites,
-    shareMeme,
-    downloadMeme,
-  } = useMemes()
-  const { categories, loading: categoriesLoading } = useStats()
-  const { user } = useAuth()
+export default function Feed({
+  className = '',
+  onAuthClick,
+  onCategoryClick,
+}: FeedProps) {
+  console.log('🔍 Feed: Componente iniciando renderização')
 
-  // Debug logs
-  console.log('Feed renderizado:', {
+  const { memes, loading, error, hasMore, loadingMore } = useOptimizedMemes()
+  const { user } = useAuth()
+  const { categories } = useStats()
+  const { canDownload, registerDownload } = useDownloadLimit()
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([])
+  const [activeFilter, setActiveFilter] = useState<
+    'trending' | 'recent' | 'interests'
+  >('recent')
+
+  console.log('🔍 Feed: Hooks carregados:', {
     memesLength: memes?.length || 0,
     loading,
     error,
     hasMore,
     loadingMore,
     user: !!user,
+    categoriesLength: categories?.length || 0,
   })
 
-  const [selectedMeme, setSelectedMeme] = useState<Meme | null>(null)
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [isUserInterestsOpen, setIsUserInterestsOpen] = useState(false)
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([])
-  const [showFilters, setShowFilters] = useState(false)
-  const [page, setPage] = useState(1)
-  const [hasMore, setHasMore] = useState(true)
-  const [filteredMemes, setFilteredMemes] = useState<Meme[]>([])
-  const [loadingMore, setLoadingMore] = useState(false)
-
-  // Verificar se memes é undefined ou null
+  // Garantir que memes seja sempre um array
   const safeMemes = memes || []
 
   // Filtrar memes baseado nas categorias selecionadas e filtro ativo

@@ -1,104 +1,39 @@
 import { useState, useEffect } from "react";
-import { supabase, isSupabaseConfigured, type Profile } from "../lib/supabase";
-import type { User } from "@supabase/supabase-js";
+import { supabase, isSupabaseConfigured } from "../lib/supabase";
 
 export function useAuth() {
-  const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [user, setUser] = useState<{ email: string; role: string } | null>(
+    null
+  );
   const [loading, setLoading] = useState(true);
 
+  console.log("🔍 useAuth: Hook iniciando");
+
   useEffect(() => {
+    console.log("🔍 useAuth: useEffect executando");
+
     if (!isSupabaseConfigured || !supabase) {
+      console.log("🔍 useAuth: Supabase não configurado");
       setLoading(false);
       return;
     }
 
-    // Verificar sessão atual
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        loadProfile(session.user.id);
-      } else {
-        setProfile(null);
-        setLoading(false);
-      }
-    });
+    // Por enquanto, vamos simular um usuário anônimo
+    console.log("🔍 useAuth: Definindo usuário anônimo");
+    setUser(null);
+    setLoading(false);
 
-    // Escutar mudanças de autenticação
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        loadProfile(session.user.id);
-      } else {
-        setProfile(null);
-        setLoading(false);
-      }
-    });
-
-    return () => subscription.unsubscribe();
+    // TODO: Implementar autenticação real
   }, []);
 
-  const loadProfile = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", userId)
-        .single();
-
-      if (error) throw error;
-      setProfile(data);
-    } catch (error) {
-      console.error("Erro ao carregar perfil:", error);
-      setProfile(null);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const signUp = async (email: string, password: string, username: string) => {
-    if (!supabase) throw new Error("Supabase não configurado");
-
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          username,
-        },
-      },
-    });
-
-    return { data, error };
-  };
-
-  const signIn = async (email: string, password: string) => {
-    if (!supabase) throw new Error("Supabase não configurado");
-
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    return { data, error };
-  };
-
-  const signOut = async () => {
-    if (!supabase) throw new Error("Supabase não configurado");
-
-    const { error } = await supabase.auth.signOut();
-    return { error };
-  };
+  console.log("🔍 useAuth: Estado atual:", { user, loading });
 
   return {
     user,
-    profile,
     loading,
-    signUp,
-    signIn,
-    signOut,
-    isConfigured: isSupabaseConfigured,
+    signOut: async () => {
+      console.log("🔍 useAuth: signOut chamado");
+      setUser(null);
+    },
   };
 }
