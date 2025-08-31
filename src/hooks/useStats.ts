@@ -238,6 +238,7 @@ export function useStats() {
     let isMounted = true;
 
     const loadData = async () => {
+      console.log("useStats useEffect executando...");
       setLoading(true);
       setError(null);
 
@@ -246,7 +247,9 @@ export function useStats() {
 
       if (isMounted) {
         setLoading(false);
-        console.log("Carregamento de dados concluído");
+        console.log(
+          "Carregamento de dados concluído, loading definido como false"
+        );
       }
     };
 

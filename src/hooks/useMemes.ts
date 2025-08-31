@@ -19,8 +19,18 @@ export function useMemes() {
   const { user, profile } = useAuth();
   const { extractText } = useOCR();
 
+  // Debug logs
+  console.log("useMemes estado atual:", {
+    memesLength: memes.length,
+    loading,
+    error,
+    user: !!user,
+  });
+
   const loadMemes = useCallback(async () => {
+    console.log("loadMemes iniciado");
     if (!isSupabaseConfigured || !supabase) {
+      console.log("Supabase não configurado");
       setError("Supabase não configurado");
       setLoading(false);
       return;
@@ -67,6 +77,7 @@ export function useMemes() {
       if (!memesData || memesData.length === 0) {
         console.log("Nenhum meme encontrado no banco");
         setMemes([]);
+        setLoading(false);
         return;
       }
 
@@ -150,6 +161,7 @@ export function useMemes() {
 
       console.log(`Memes transformados: ${transformedMemes.length}`);
       setMemes(transformedMemes);
+      console.log("Memes definidos no estado, loading definido como false");
     } catch (error) {
       console.error("Erro ao carregar memes:", error);
       const errorMessage =
@@ -159,6 +171,7 @@ export function useMemes() {
       setMemes([]);
     } finally {
       setLoading(false);
+      console.log("loadMemes finalizado, loading definido como false");
     }
   }, []); // Sem dependências para evitar loops
 
@@ -813,6 +826,7 @@ export function useMemes() {
 
   // UseEffect otimizado - executar apenas uma vez
   useEffect(() => {
+    console.log("useMemes useEffect executando...");
     loadMemes();
     loadFavorites();
   }, []); // Array vazio - só executa uma vez

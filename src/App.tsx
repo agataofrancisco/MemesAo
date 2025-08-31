@@ -44,6 +44,8 @@ function App() {
     'home',
   )
 
+  console.log('App renderizado, currentPage:', currentPage)
+
   const handleCategoryClick = (categoryName: string) => {
     setBrowseCategory(categoryName)
     setIsBrowseOpen(true)
@@ -125,7 +127,12 @@ function AppContent({
 }) {
   const location = useLocation()
 
-  console.log('AppContent renderizado, pathname:', location.pathname)
+  console.log(
+    'AppContent renderizado, pathname:',
+    location.pathname,
+    'currentPage:',
+    currentPage,
+  )
 
   // Se estiver na rota do meme, não mostrar o header
   if (location.pathname.startsWith('/meme/')) {

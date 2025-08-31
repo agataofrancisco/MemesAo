@@ -15,6 +15,8 @@ import { useStats } from '../hooks/useStats'
 import { useAuth } from '../hooks/useAuth'
 import MemeViewModal from './MemeViewModal'
 import UserInterests from './UserInterests'
+import OptimizedImage from './OptimizedImage'
+import DebugFeed from './DebugFeed'
 import type { Meme } from '../lib/supabase'
 import toast from 'react-hot-toast'
 
@@ -36,6 +38,16 @@ export default function Feed({ className = '', onAuthClick }: FeedProps) {
   const { categories, loading: categoriesLoading } = useStats()
   const { user } = useAuth()
 
+  // Debug logs
+  console.log('Feed renderizado:', {
+    memesLength: memes?.length || 0,
+    loading,
+    error,
+    hasMore,
+    loadingMore,
+    user: !!user,
+  })
+
   const [selectedMeme, setSelectedMeme] = useState<Meme | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isUserInterestsOpen, setIsUserInterestsOpen] = useState(false)
@@ -46,23 +58,18 @@ export default function Feed({ className = '', onAuthClick }: FeedProps) {
   const [filteredMemes, setFilteredMemes] = useState<Meme[]>([])
   const [loadingMore, setLoadingMore] = useState(false)
 
-  const ITEMS_PER_PAGE = 12
+  // Verificar se memes é undefined ou null
+  const safeMemes = memes || []
 
-  // Carregar mais memes
-  const loadMore = useCallback(() => {
-    if (loadingMore || !hasMore) return
-
-    setLoadingMore(true)
-    setTimeout(() => {
-      setPage((prev) => prev + 1)
-      setLoadingMore(false)
-    }, 300)
-  }, [loadingMore, hasMore])
-
-  // Filtrar memes baseado nas categorias selecionadas
+  // Filtrar memes baseado nas categorias selecionadas e filtro ativo
   const getFilteredMemes = useCallback(() => {
-    if (selectedCategories.length === 0) {
-      return memes
+    let filtered = safeMemes
+
+    // Aplicar filtro de categorias
+    if (selectedCategories.length > 0) {
+      filtered = filtered.filter((meme) =>
+        selectedCategories.includes(meme.category || ''),
+      )
     }
 
     return memes.filter((meme) =>
@@ -70,7 +77,10 @@ export default function Feed({ className = '', onAuthClick }: FeedProps) {
     )
   }, [memes, selectedCategories])
 
-  // Atualizar memes filtrados quando mudar filtros
+    return filtered
+  }, [safeMemes, selectedCategories, activeFilter])
+
+  // Aplicar filtros quando mudar
   useEffect(() => {
     const filtered = getFilteredMemes()
     setFilteredMemes(filtered.slice(0, page * ITEMS_PER_PAGE))
@@ -133,27 +143,8 @@ export default function Feed({ className = '', onAuthClick }: FeedProps) {
     }
   }
 
-  // Handle download
-  const handleDownload = async (meme: Meme) => {
-    try {
-      await downloadMeme(meme)
-      toast.success('Meme baixado!')
-    } catch (error) {
-      toast.error('Erro ao baixar')
-    }
-  }
-
-  // Handle share
-  const handleShare = async (meme: Meme) => {
-    try {
-      await shareMeme(meme)
-      toast.success('Meme partilhado!')
-    } catch (error) {
-      toast.error('Erro ao partilhar')
-    }
-  }
-
-  if (loading || categoriesLoading) {
+  if (loading) {
+    console.log('Feed: Mostrando loading skeleton')
     return (
       <div
         className={`min-h-screen bg-gradient-to-br from-primary-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 ${className}`}
@@ -171,6 +162,7 @@ export default function Feed({ className = '', onAuthClick }: FeedProps) {
   }
 
   if (error) {
+    console.log('Feed: Mostrando erro:', error)
     return (
       <div
         className={`min-h-screen bg-gradient-to-br from-primary-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 ${className}`}
@@ -186,19 +178,98 @@ export default function Feed({ className = '', onAuthClick }: FeedProps) {
     )
   }
 
-  return (
-    <div
-      className={`min-h-screen bg-gradient-to-br from-primary-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 ${className}`}
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-8">
-        {/* Header */}
+  // Verificação de segurança adicional
+  if (!safeMemes || safeMemes.length === 0) {
+    console.log('Feed: Nenhum meme disponível, mostrando estado vazio')
+    return (
+      <div
+        className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 ${className}`}
+      >
         <div className="text-center mb-8">
-          <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 dark:text-white mb-4">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
             Feed de Memes
           </h1>
-          <p className="text-lg sm:text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-            Descobre os melhores memes das tuas categorias favoritas
+          <p className="text-gray-600 dark:text-gray-400">
+            Descubra os memes mais engraçados e compartilhados
           </p>
+        </div>
+
+        {/* Status de Downloads para usuários anônimos */}
+        <DownloadStatus className="mb-6" showDetails={true} />
+
+        {/* Estado vazio */}
+        <div className="text-center mt-8">
+          <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-8 max-w-md mx-auto">
+            <Star className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-500 dark:text-gray-400 mb-4">
+              Nenhum meme disponível no momento
+            </p>
+            <p className="text-gray-400 dark:text-gray-500 text-sm">
+              Tente novamente em alguns instantes
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 ${className}`}>
+      {/* Header do Feed */}
+      <div className="text-center mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+          Feed de Memes
+        </h1>
+        <p className="text-gray-600 dark:text-gray-400">
+          Descubra os memes mais engraçados e compartilhados
+        </p>
+      </div>
+
+      {/* Debug temporário */}
+      <DebugFeed />
+
+      {/* Status de Downloads para usuários anônimos */}
+      <DownloadStatus className="mb-6" showDetails={true} />
+
+      {/* Filtros e Categorias */}
+      <div className="mb-8">
+        {/* Filtros principais */}
+        <div className="flex items-center justify-center mb-6">
+          <div className="flex items-center space-x-1 bg-gray-100 dark:bg-gray-800 rounded-full p-1">
+            <button
+              onClick={() => toggleFilter('trending')}
+              className={`flex items-center space-x-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
+                activeFilter === 'trending'
+                  ? 'bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-400 shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
+              }`}
+            >
+              <TrendingUp className="h-4 w-4" />
+              <span>Em Alta</span>
+            </button>
+            <button
+              onClick={() => toggleFilter('recent')}
+              className={`flex items-center space-x-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
+                activeFilter === 'recent'
+                  ? 'bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-400 shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
+              }`}
+            >
+              <Clock className="h-4 w-4" />
+              <span>Recentes</span>
+            </button>
+            <button
+              onClick={() => toggleFilter('interests')}
+              className={`flex items-center space-x-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
+                activeFilter === 'interests'
+                  ? 'bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-400 shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
+              }`}
+            >
+              <Star className="h-4 w-4" />
+              <span>Interesses</span>
+            </button>
+          </div>
         </div>
 
         {/* Call to Action - Criar Conta ou Personalizar */}
@@ -469,7 +540,147 @@ export default function Feed({ className = '', onAuthClick }: FeedProps) {
         )}
       </div>
 
-      {/* Modal de Visualização */}
+      {/* Grid de Memes */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+        <AnimatePresence>
+          {safeMemes.map((meme, index) => (
+            <motion.div
+              key={meme.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: index * 0.05 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="group relative bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-lg border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-all duration-300"
+            >
+              {/* Imagem do meme com lazy loading otimizado */}
+              <div className="relative aspect-square rounded-xl overflow-hidden mb-4 bg-gray-100 dark:bg-gray-700">
+                <OptimizedImage
+                  src={meme.image_url}
+                  alt={meme.title || 'Meme'}
+                  className="w-full h-full group-hover:scale-110 transition-transform duration-300"
+                  fallback="https://via.placeholder.com/400x400.png?text=Erro+Carregamento"
+                />
+              </div>
+
+              {/* Informações do meme */}
+              <div>
+                <h3 className="font-bold text-gray-900 dark:text-white mb-2 line-clamp-2 text-sm">
+                  {meme.title || 'Meme sem título'}
+                </h3>
+
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-3 line-clamp-1">
+                  {typeof meme.category === 'string'
+                    ? meme.category
+                    : 'Sem categoria'}
+                </p>
+
+                {/* Estatísticas */}
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center space-x-3">
+                    <button
+                      onClick={() => handleToggleFavorite(meme)}
+                      className={`flex items-center space-x-1 transition-colors ${
+                        favorites.includes(meme.id)
+                          ? 'text-red-500'
+                          : user
+                          ? 'text-gray-600 dark:text-gray-400 hover:text-red-500'
+                          : 'text-gray-400 dark:text-gray-600 cursor-not-allowed'
+                      }`}
+                      title={!user ? 'Faça login para curtir' : ''}
+                    >
+                      <Heart
+                        className={`h-3 w-3 ${
+                          favorites.includes(meme.id) ? 'fill-current' : ''
+                        }`}
+                      />
+                      <span>{(meme.like_count || 0).toLocaleString()}</span>
+                    </button>
+                    <button
+                      onClick={() => handleDownload(meme)}
+                      className={`flex items-center space-x-1 transition-colors ${
+                        canDownload
+                          ? 'text-gray-600 dark:text-gray-400 hover:text-primary-500'
+                          : 'text-gray-400 dark:text-gray-600 cursor-not-allowed'
+                      }`}
+                      title={
+                        !canDownload
+                          ? 'Limite de downloads atingido. Faça login para continuar.'
+                          : ''
+                      }
+                    >
+                      <Download className="h-3 w-3" />
+                      <span>{(meme.download_count || 0).toLocaleString()}</span>
+                    </button>
+                    <button
+                      onClick={() => handleShare(meme)}
+                      className="flex items-center space-x-1 text-gray-600 dark:text-gray-400 hover:text-primary-500 transition-colors"
+                      title="Compartilhar meme"
+                    >
+                      <Share2 className="h-3 w-3" />
+                      <span>
+                        {((meme as any).share_count || 0).toLocaleString()}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Overlay de clique */}
+              <button
+                onClick={() => handleMemeClick(meme)}
+                className="absolute inset-0 w-full h-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-black/20 rounded-2xl flex items-center justify-center"
+              >
+                <span className="text-white text-sm font-medium bg-black/50 px-3 py-1 rounded-full">
+                  Ver detalhes
+                </span>
+              </button>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
+
+      {/* Loading mais memes */}
+      {loadingMore && (
+        <div className="text-center mt-8">
+          <Loader className="h-8 w-8 text-primary-500 animate-spin mx-auto" />
+          <p className="text-gray-600 dark:text-gray-400 mt-2">
+            Carregando mais memes...
+          </p>
+        </div>
+      )}
+
+      {/* Sem mais memes */}
+      {!hasMore && safeMemes.length > 0 && (
+        <div className="text-center mt-8">
+          <p className="text-gray-600 dark:text-gray-400">
+            Você chegou ao fim! Não há mais memes para carregar.
+          </p>
+        </div>
+      )}
+
+      {/* Sem memes com filtros aplicados */}
+      {safeMemes.length === 0 && selectedCategories.length > 0 && (
+        <div className="text-center mt-8">
+          <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-8 max-w-md mx-auto">
+            <Star className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-500 dark:text-gray-400 mb-4">
+              Nenhum meme encontrado com os filtros selecionados
+            </p>
+            <button
+              onClick={() => {
+                setSelectedCategories([])
+                setActiveFilter('trending')
+                resetToFirstPage()
+              }}
+              className="bg-primary-500 text-white px-4 py-2 rounded-lg hover:bg-primary-600 transition-colors"
+            >
+              Limpar filtros
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de visualização */}
       <MemeViewModal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
