@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase, isSupabaseConfigured } from "../lib/supabase";
 
 export function useMemes() {
   const [memes, setMemes] = useState<any[]>([]);
@@ -11,65 +10,13 @@ export function useMemes() {
   const loadMemes = useCallback(async () => {
     console.log("🔍 useMemes: loadMemes iniciado");
 
-    if (!isSupabaseConfigured || !supabase) {
-      console.log("🔍 useMemes: Supabase não configurado");
-      setError("Supabase não configurado");
-      setLoading(false);
-      return;
-    }
-
     try {
       setError(null);
-      console.log("🔍 useMemes: Carregando memes do Supabase...");
+      console.log("🔍 useMemes: Simulando carregamento de memes...");
 
-      // Query para buscar memes aprovados
-      const { data: memesData, error: memesError } = await supabase
-        .from("memes")
-        .select(
-          `
-          id,
-          title,
-          description,
-          image_url,
-          image_path,
-          file_size,
-          width,
-          height,
-          format,
-          created_at,
-          uploaded_by,
-          category_id,
-          view_count,
-          download_count,
-          status,
-          ocr_text
-        `
-        )
-        .eq("status", "approved")
-        .order("created_at", { ascending: false })
-        .limit(100);
-
-      console.log("🔍 useMemes: Query executada, resultado:", {
-        memesData,
-        memesError,
-      });
-
-      if (memesError) {
-        console.error("🔍 useMemes: Erro ao buscar memes:", memesError);
-        throw memesError;
-      }
-
-      console.log(`🔍 useMemes: Encontrados ${memesData?.length || 0} memes`);
-      console.log("🔍 useMemes: Primeiros memes:", memesData?.slice(0, 3));
-
-      if (!memesData || memesData.length === 0) {
-        console.log("🔍 useMemes: Nenhum meme encontrado no banco");
-        setMemes([]);
-        setLoading(false);
-        return;
-      }
-
-      setMemes(memesData);
+      // Por enquanto, vamos simular memes vazios
+      console.log("🔍 useMemes: Definindo memes vazios");
+      setMemes([]);
       setLoading(false);
       console.log(
         "🔍 useMemes: Memes definidos no estado, loading definido como false"

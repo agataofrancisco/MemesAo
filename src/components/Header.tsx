@@ -1,20 +1,5 @@
 import React, { useState } from 'react'
-import { motion } from 'framer-motion'
-import {
-  Search,
-  Upload,
-  Moon,
-  Sun,
-  Settings,
-  Smile,
-  User,
-  LogOut,
-  Menu,
-  X,
-} from 'lucide-react'
-import { useTheme } from '../contexts/ThemeContext'
-import { useAuth } from '../hooks/useAuth'
-import AuthModal from './AuthModal'
+import { TrendingUp, Heart, Home, Settings, Moon, Sun } from 'lucide-react'
 
 interface HeaderProps {
   currentPage: 'feed' | 'profile'
@@ -38,8 +23,17 @@ export default function Header({
   const [activeFilter, setActiveFilter] = useState<
     'trending' | 'recent' | 'interests'
   >('recent')
+  const [isDark, setIsDark] = useState(false)
 
-  console.log('🔍 Header: Estados locais:', { isUserMenuOpen, activeFilter })
+  console.log('🔍 Header: Estados locais:', {
+    isUserMenuOpen,
+    activeFilter,
+    isDark,
+  })
+
+  const toggleTheme = () => {
+    setIsDark(!isDark)
+  }
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700">
@@ -49,7 +43,7 @@ export default function Header({
           <div className="flex items-center">
             <button
               onClick={() => setCurrentPage('feed')}
-              className="flex items-center space-x-2 text-2xl font-bold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors"
+              className="flex items-center space-x-2 text-2xl font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
             >
               <span>MemesAo</span>
             </button>
@@ -61,7 +55,7 @@ export default function Header({
               onClick={() => setActiveFilter('trending')}
               className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 activeFilter === 'trending'
-                  ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300'
+                  ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
                   : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
               }`}
             >
@@ -73,7 +67,7 @@ export default function Header({
               onClick={() => setActiveFilter('interests')}
               className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 activeFilter === 'interests'
-                  ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300'
+                  ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
                   : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
               }`}
             >
@@ -85,7 +79,7 @@ export default function Header({
               onClick={() => setActiveFilter('recent')}
               className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 activeFilter === 'recent'
-                  ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300'
+                  ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
                   : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
               }`}
             >
@@ -97,7 +91,16 @@ export default function Header({
           {/* Ações do usuário */}
           <div className="flex items-center space-x-2">
             {/* Botão de tema */}
-            <ThemeToggle />
+            <button
+              onClick={toggleTheme}
+              className="p-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
+            >
+              {isDark ? (
+                <Sun className="h-5 w-5" />
+              ) : (
+                <Moon className="h-5 w-5" />
+              )}
+            </button>
 
             {/* Botão de admin (se for admin) */}
             {user?.role === 'admin' && (
@@ -113,7 +116,7 @@ export default function Header({
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                   className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                 >
-                  <div className="w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                  <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
                     {user.email?.charAt(0).toUpperCase() || 'U'}
                   </div>
                 </button>
@@ -142,7 +145,7 @@ export default function Header({
                 )}
               </div>
             ) : (
-              <button className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors text-sm font-medium">
+              <button className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium">
                 Entrar
               </button>
             )}

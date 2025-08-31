@@ -1,5 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
-import { supabase, isSupabaseConfigured } from "../lib/supabase";
+import { useState, useEffect } from "react";
 
 export function useStats() {
   const [categories, setCategories] = useState<any[]>([]);
@@ -8,17 +7,13 @@ export function useStats() {
 
   console.log("🔍 useStats: Hook iniciando");
 
-  const loadCategories = useCallback(async () => {
-    if (!isSupabaseConfigured || !supabase) {
-      console.log("🔍 useStats: Supabase não configurado");
-      setError("Supabase não configurado");
-      setLoading(false);
-      return;
-    }
+  useEffect(() => {
+    console.log("🔍 useStats: useEffect executando");
 
-    try {
-      setError(null);
-      console.log("🔍 useStats: Carregando categorias do Supabase...");
+    // Por enquanto, vamos simular categorias vazias
+    console.log("🔍 useStats: Definindo categorias vazias");
+    setCategories([]);
+    setLoading(false);
 
       // Buscar categorias do banco de dados
       const { data: categoriesData, error: categoriesError } = await supabase

@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { supabase, isSupabaseConfigured } from "../lib/supabase";
 
 export function useAuth() {
   const [user, setUser] = useState<{ email: string; role: string } | null>(
@@ -11,12 +10,6 @@ export function useAuth() {
 
   useEffect(() => {
     console.log("🔍 useAuth: useEffect executando");
-
-    if (!isSupabaseConfigured || !supabase) {
-      console.log("🔍 useAuth: Supabase não configurado");
-      setLoading(false);
-      return;
-    }
 
     // Por enquanto, vamos simular um usuário anônimo
     console.log("🔍 useAuth: Definindo usuário anônimo");
