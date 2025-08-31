@@ -25,29 +25,10 @@ export function useMemes() {
       // Query simplificada - buscar apenas memes aprovados
       const { data: memesData, error: memesError } = await supabase
         .from("memes")
-        .select(
-          `
-          id,
-          title,
-          description,
-          image_url,
-          image_path,
-          file_size,
-          width,
-          height,
-          format,
-          created_at,
-          uploaded_by,
-          category_id,
-          view_count,
-          download_count,
-          status,
-          ocr_text
-        `
-        )
+        .select("*")
         .eq("status", "approved")
         .order("created_at", { ascending: false })
-        .limit(100);
+        .limit(50);
 
       console.log("🔍 useMemes: Query executada, resultado:", {
         memesData,
@@ -96,9 +77,5 @@ export function useMemes() {
     memes,
     loading,
     error,
-    toggleFavorite: () => console.log("🔍 useMemes: toggleFavorite chamado"),
-    favorites: [],
-    shareMeme: () => console.log("🔍 useMemes: shareMeme chamado"),
-    downloadMeme: () => console.log("🔍 useMemes: downloadMeme chamado"),
   };
 }
