@@ -25,8 +25,9 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase'
 import type { Meme, PendingMeme } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useAllCategories } from '../hooks/useAllCategories'
+// import AdAdminPanel from './AdAdminPanel'
 import toast from 'react-hot-toast'
-import RevenueHitsManager from './ads/RevenueHitsManager'
+// import RevenueHitsManager from './ads/RevenueHitsManager'
 
 interface PendingMemeWithProfile extends PendingMeme {
   profiles?: {
@@ -611,7 +612,7 @@ export default function AdminDashboard({
                   ;(e.target as HTMLImageElement).src =
                     'https://via.placeholder.com/400x300?text=Imagem+não+encontrada'
                 }}
-              />
+              /> */
               <div className="p-4">
                 <h4 className="font-semibold text-gray-900 dark:text-white mb-2">
                   {meme.title || 'Sem título'}
@@ -746,7 +747,7 @@ export default function AdminDashboard({
                           ;(e.target as HTMLImageElement).src =
                             'https://via.placeholder.com/48x48?text=?'
                         }}
-                      />
+                      /> */
                     </td>
                     <td className="px-4 py-3">
                       <div>
@@ -923,11 +924,7 @@ export default function AdminDashboard({
             <div className="p-6 space-y-4 max-h-[calc(90vh-140px)] overflow-y-auto">
               {editingMeme && (
                 <div className="mb-4">
-                  <img
-                    src={editingMeme.image_url}
-                    alt={editingMeme.title || 'Meme'}
-                    className="w-full max-h-64 object-contain rounded-lg bg-gray-100 dark:bg-gray-700"
-                  />
+                  {/* <img src={meme.image_url} alt={meme.title || "Meme sem t�tulo"} className="w-full h-48 object-cover" onError={(e) => { (e.target as HTMLImageElement).src = "https://via.placeholder.com/400x300?text=Imagem+n�o+encontrada" }} /> */}
                 </div>
               )}
 
@@ -943,7 +940,7 @@ export default function AdminDashboard({
                   }
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   placeholder="Título do meme"
-                />
+                /> */
               </div>
 
               <div>
@@ -958,7 +955,7 @@ export default function AdminDashboard({
                   rows={3}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white resize-none"
                   placeholder="Descrição do meme"
-                />
+                /> */
               </div>
 
               <div>
@@ -1406,19 +1403,19 @@ export default function AdminDashboard({
       {renderEditModal()}
 
       {/* Painel de Anúncios */}
-      <AdAdminPanel
+      {/* <AdAdminPanel
         isOpen={isAdPanelOpen}
         onClose={() => setIsAdPanelOpen(false)}
-      />
+      /> */}
 
       {/* Painel de Analytics Detalhados */}
-      <RevenueHitsManager
+      {/* <RevenueHitsManager
         isOpen={isAnalyticsOpen}
         onClose={() => setIsAnalyticsOpen(false)}
         showAnalytics={true}
         enableOptimization={true}
         maxAdsPerPage={6}
-      />
+      /> */}
     </div>
   )
 }
