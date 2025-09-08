@@ -441,7 +441,7 @@ export default function Feed({
       )}
 
       {/* Sem mais memes */}
-      {!hasMore && filteredMemes.length > 0 && (
+      {!hasMore && memes.length > 0 && (
         <div className="text-center mt-8">
           <p className="text-gray-600 dark:text-gray-400">
             Você chegou ao fim! Não há mais memes para carregar.
