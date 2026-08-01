@@ -129,9 +129,9 @@ export function useOptimizedMemes(options: UseOptimizedMemesOptions = {}) {
   // Reset para primeira página
   const resetToFirstPage = useCallback(() => {
     setCurrentPage(1);
-    setVisibleMemes([]);
-    setHasMore(true);
-  }, []);
+    setVisibleMemes(memes.slice(0, pageSize));
+    setHasMore(memes.length > pageSize);
+  }, [memes, pageSize]);
 
   // Filtrar memes por categoria
   const filterByCategory = useCallback(
