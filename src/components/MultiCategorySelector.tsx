@@ -61,6 +61,7 @@ export default function MultiCategorySelector({
             <Tag className="h-3 w-3 mr-1.5" />
             {categoryName}
             <button
+              type="button"
               onClick={() => removeCategory(categoryName)}
               className="ml-2 hover:bg-primary-200 dark:hover:bg-primary-800/30 rounded-full p-0.5 transition-colors"
             >
@@ -73,6 +74,7 @@ export default function MultiCategorySelector({
       {/* Botão para Adicionar Categorias */}
       {selectedCategories.length < maxCategories && (
         <button
+          type="button"
           onClick={toggleSelector}
           className="flex items-center text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 text-sm font-medium transition-colors"
         >
@@ -113,6 +115,7 @@ export default function MultiCategorySelector({
               ) : filteredCategories.length > 0 ? (
                 filteredCategories.map((category) => (
                   <button
+                    type="button"
                     key={category.id}
                     onClick={() => addCategory(category.name)}
                     className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors group"
