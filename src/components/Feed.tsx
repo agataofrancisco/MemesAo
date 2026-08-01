@@ -302,6 +302,16 @@ export default function Feed({ className = '', onAuthClick }: FeedProps) {
                   className="w-full h-full group-hover:scale-110 transition-transform duration-300"
                   fallback="https://via.placeholder.com/400x400.png?text=Erro+Carregamento"
                 />
+                {/* Overlay de clique (apenas sobre a imagem) */}
+                <button
+                  onClick={() => handleMemeClick(meme)}
+                  className="absolute inset-0 w-full h-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-black/20 rounded-xl flex items-center justify-center"
+                  title="Ver detalhes"
+                >
+                  <span className="text-white text-sm font-medium bg-black/50 px-3 py-1 rounded-full">
+                    Ver detalhes
+                  </span>
+                </button>
               </div>
 
               {/* Informações do meme */}
@@ -385,15 +395,6 @@ export default function Feed({ className = '', onAuthClick }: FeedProps) {
                 </div>
               </div>
 
-              {/* Overlay de clique */}
-              <button
-                onClick={() => handleMemeClick(meme)}
-                className="absolute inset-0 w-full h-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-black/20 rounded-2xl flex items-center justify-center"
-              >
-                <span className="text-white text-sm font-medium bg-black/50 px-3 py-1 rounded-full">
-                  Ver detalhes
-                </span>
-              </button>
             </motion.div>
           ))}
         </AnimatePresence>
