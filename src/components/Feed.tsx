@@ -364,6 +364,24 @@ export default function Feed({ className = '', onAuthClick }: FeedProps) {
                       </span>
                     </button>
                   </div>
+
+                  {/* Download rápido */}
+                  <button
+                    onClick={() => handleDownload(meme)}
+                    disabled={!canDownload}
+                    title={
+                      !canDownload
+                        ? 'Limite de downloads atingido. Faça login para continuar.'
+                        : 'Baixar meme'
+                    }
+                    className={`shrink-0 p-2 rounded-lg border transition-colors ${
+                      canDownload
+                        ? 'text-primary-600 border-primary-200 hover:bg-primary-50 dark:text-primary-400 dark:border-primary-800 dark:hover:bg-primary-900/20'
+                        : 'text-gray-400 border-gray-200 dark:border-gray-700 dark:text-gray-600 cursor-not-allowed'
+                    }`}
+                  >
+                    <Download className="h-4 w-4" />
+                  </button>
                 </div>
               </div>
 
