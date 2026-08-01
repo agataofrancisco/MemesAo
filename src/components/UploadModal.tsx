@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { useMemes } from '../hooks/useMemes'
 import { useAllCategories } from '../hooks/useAllCategories'
+import { useOCR } from '../hooks/useOCR'
 import MultiCategorySelector from './MultiCategorySelector'
 import ImageCropper from './ImageCropper'
 import toast from 'react-hot-toast'
@@ -28,6 +29,8 @@ interface MemeFile {
   description: string
   categories: string[] // Mudou de categoryId para categories array
   tags: string
+  ocrText: string
+  ocrStatus: 'idle' | 'processing' | 'done'
   uploading: boolean
   completed: boolean
   error?: string
@@ -49,6 +52,16 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
 
   const { uploadMeme } = useMemes()
   const { categories } = useAllCategories()
+  const { extractText } = useOCR()
+
+  const runOcr = async (memeFileId: string, imageFile: File) => {
+    const text = await extractText(imageFile)
+    setFiles((prev) =>
+      prev.map((f) =>
+        f.id === memeFileId ? { ...f, ocrText: text, ocrStatus: 'done' } : f,
+      ),
+    )
+  }
 
   // Reset form quando modal fecha
   useEffect(() => {
@@ -135,11 +148,14 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
         description: '',
         categories: [...globalCategories], // Inicializa com categorias globais se existirem
         tags: '',
+        ocrText: '',
+        ocrStatus: 'processing',
         uploading: false,
         completed: false,
       }
       setFiles((prev) => [...prev, memeFile])
       setCropTarget(null)
+      runOcr(memeFile.id, croppedFile)
     }
     reader.readAsDataURL(croppedFile)
   }
@@ -213,6 +229,7 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
           file.categories[0], // Usa a primeira categoria como principal (compatibilidade)
           tagsArray,
           file.categories, // Passa todas as categorias para o upload
+          file.ocrText || '',
         )
 
         if (result.success) {
@@ -442,6 +459,18 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
                                 <Loader className="w-4 h-4 animate-spin mr-2" />
                                 Enviando...
                               </div>
+                            )}
+
+                            {file.ocrStatus === 'processing' && (
+                              <div className="flex items-center text-gray-500 dark:text-gray-400 text-xs">
+                                <Loader className="w-3 h-3 animate-spin mr-1.5" />
+                                A processar texto da imagem (OCR)...
+                              </div>
+                            )}
+                            {file.ocrStatus === 'done' && file.ocrText && (
+                              <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-1">
+                                OCR: "{file.ocrText}"
+                              </p>
                             )}
                           </div>
 

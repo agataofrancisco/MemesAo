@@ -13,10 +13,11 @@ import {
   Save,
   X,
   Megaphone,
+  Tag,
 } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { useAllCategories } from '../hooks/useAllCategories'
-import { apiGet, apiPatch, apiDelete } from '../lib/api'
+import { apiGet, apiPost, apiPatch, apiDelete } from '../lib/api'
 import type { Meme } from '../lib/types'
 import AdAdminPanel from './AdAdminPanel'
 import toast from 'react-hot-toast'
@@ -57,6 +58,19 @@ export default function AdminDashboard({
   // Estado para painel de anúncios
   const [isAdPanelOpen, setIsAdPanelOpen] = useState(false)
 
+  // Estados para CRUD de categorias
+  const [adminCategories, setAdminCategories] = useState<
+    { id: string; name: string; count: number; icon: string; color: string; description: string }[]
+  >([])
+  const [categoryForm, setCategoryForm] = useState({
+    name: '',
+    description: '',
+    icon: 'Tag',
+    color: 'from-gray-500 to-gray-600',
+  })
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null)
+  const [savingCategory, setSavingCategory] = useState(false)
+
   const { user, profile, loading: authLoading } = useAuth()
   const { categories: allCategories } = useAllCategories()
 
@@ -72,6 +86,81 @@ export default function AdminDashboard({
       loadDashboardData()
     }
   }, [isOpen, isAdmin, authLoading])
+
+  useEffect(() => {
+    if (isOpen && activeTab === 'categories' && isAdmin) {
+      loadAdminCategories()
+    }
+  }, [isOpen, activeTab, isAdmin])
+
+  const loadAdminCategories = async () => {
+    try {
+      const data = await apiGet<
+        { id: string; name: string; count: number; icon: string; color: string; description: string }[]
+      >('/api/categories')
+      setAdminCategories(data)
+    } catch (error) {
+      console.error('Erro ao carregar categorias:', error)
+      toast.error('Erro ao carregar categorias')
+    }
+  }
+
+  const saveCategory = async () => {
+    if (!categoryForm.name.trim()) {
+      toast.error('O nome da categoria é obrigatório')
+      return
+    }
+    setSavingCategory(true)
+    try {
+      if (editingCategoryId) {
+        await apiPatch(`/api/admin/categories/${editingCategoryId}`, categoryForm)
+        toast.success('Categoria atualizada com sucesso!')
+      } else {
+        await apiPost('/api/admin/categories', categoryForm)
+        toast.success('Categoria criada com sucesso!')
+      }
+      setCategoryForm({ name: '', description: '', icon: 'Tag', color: 'from-gray-500 to-gray-600' })
+      setEditingCategoryId(null)
+      await loadAdminCategories()
+    } catch (error) {
+      console.error('Erro ao salvar categoria:', error)
+      toast.error(
+        `Erro ao salvar categoria: ${
+          error instanceof Error ? error.message : 'Erro desconhecido'
+        }`,
+      )
+    } finally {
+      setSavingCategory(false)
+    }
+  }
+
+  const editCategory = (cat: {
+    id: string
+    name: string
+    icon: string
+    color: string
+    description: string
+  }) => {
+    setEditingCategoryId(cat.id)
+    setCategoryForm({
+      name: cat.name,
+      description: cat.description || '',
+      icon: cat.icon || 'Tag',
+      color: cat.color || 'from-gray-500 to-gray-600',
+    })
+  }
+
+  const deleteCategory = async (categoryId: string) => {
+    if (!confirm('Tem certeza que deseja excluir esta categoria?')) return
+    try {
+      await apiDelete(`/api/admin/categories/${categoryId}`)
+      toast.success('Categoria excluída com sucesso!')
+      await loadAdminCategories()
+    } catch (error) {
+      console.error('Erro ao excluir categoria:', error)
+      toast.error('Erro ao excluir categoria')
+    }
+  }
 
   const loadDashboardData = async () => {
     setLoading(true)
@@ -787,20 +876,180 @@ export default function AdminDashboard({
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
           Gerenciamento de Categorias
         </h2>
-        <button
-          onClick={() => setIsAdPanelOpen(true)}
-          className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors flex items-center space-x-2"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Gerenciar Categorias</span>
-        </button>
+        <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-3 py-1 rounded-full text-sm">
+          {adminCategories.length} categorias
+        </span>
       </div>
 
+      {/* Formulário Criar/Editar */}
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-        <p className="text-gray-600 dark:text-gray-400 text-center py-8">
-          Clique em "Gerenciar Categorias" para abrir o painel completo de
-          administração de categorias.
-        </p>
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          {editingCategoryId ? 'Editar Categoria' : 'Nova Categoria'}
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Nome *
+            </label>
+            <input
+              type="text"
+              value={categoryForm.name}
+              onChange={(e) =>
+                setCategoryForm({ ...categoryForm, name: e.target.value })
+              }
+              placeholder="Ex: Animais"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Descrição
+            </label>
+            <input
+              type="text"
+              value={categoryForm.description}
+              onChange={(e) =>
+                setCategoryForm({ ...categoryForm, description: e.target.value })
+              }
+              placeholder="Ex: Memes com animais"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Ícone (lucide)
+            </label>
+            <select
+              value={categoryForm.icon}
+              onChange={(e) =>
+                setCategoryForm({ ...categoryForm, icon: e.target.value })
+              }
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+            >
+              {['Tag', 'Smile', 'Gamepad', 'Film', 'Trophy', 'Briefcase', 'Heart', 'Music', 'Coffee', 'Users', 'Star', 'Zap', 'TrendingUp', 'Sparkles'].map((i) => (
+                <option key={i} value={i}>
+                  {i}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Cor (gradiente)
+            </label>
+            <select
+              value={categoryForm.color}
+              onChange={(e) =>
+                setCategoryForm({ ...categoryForm, color: e.target.value })
+              }
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+            >
+              {[
+                'from-primary-500 to-blue-500',
+                'from-purple-500 to-pink-500',
+                'from-teal-500 to-green-500',
+                'from-accent-500 to-red-500',
+                'from-indigo-500 to-purple-500',
+                'from-pink-500 to-red-500',
+                'from-green-500 to-teal-500',
+                'from-yellow-500 to-orange-500',
+                'from-red-500 to-orange-500',
+                'from-blue-500 to-purple-500',
+                'from-gray-500 to-gray-600',
+              ].map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div className="flex gap-3 mt-4">
+          <button
+            type="button"
+            onClick={saveCategory}
+            disabled={savingCategory}
+            className="inline-flex items-center px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors disabled:opacity-50"
+          >
+            <Save className="w-4 h-4 mr-2" />
+            {savingCategory ? 'Salvando...' : editingCategoryId ? 'Atualizar' : 'Criar Categoria'}
+          </button>
+          {editingCategoryId && (
+            <button
+              type="button"
+              onClick={() => {
+                setEditingCategoryId(null)
+                setCategoryForm({
+                  name: '',
+                  description: '',
+                  icon: 'Tag',
+                  color: 'from-gray-500 to-gray-600',
+                })
+              }}
+              className="inline-flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            >
+              <X className="w-4 h-4 mr-2" />
+              Cancelar
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Lista de Categorias */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="divide-y divide-gray-200 dark:divide-gray-700">
+          {adminCategories.length === 0 ? (
+            <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+              Nenhuma categoria encontrada.
+            </div>
+          ) : (
+            adminCategories.map((cat) => (
+              <div
+                key={cat.id}
+                className="flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+              >
+                <div className="flex items-center space-x-4 min-w-0">
+                  <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${cat.color} flex items-center justify-center text-white shrink-0`}>
+                    <Tag className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-semibold text-gray-900 dark:text-white">
+                        {cat.name}
+                      </h4>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        ({cat.count} memes)
+                      </span>
+                    </div>
+                    {cat.description && (
+                      <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                        {cat.description}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => editCategory(cat)}
+                    className="p-2 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                    title="Editar categoria"
+                  >
+                    <Edit className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => deleteCategory(cat.id)}
+                    className="p-2 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                    title="Excluir categoria"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       </div>
     </div>
   )
@@ -809,6 +1058,7 @@ export default function AdminDashboard({
     { id: 'dashboard', name: 'Dashboard', icon: Image },
     { id: 'moderation', name: 'Moderação', icon: Clock },
     { id: 'memes', name: 'Gerenciar Memes', icon: Image },
+    { id: 'categories', name: 'Categorias', icon: Tag },
     { id: 'ads', name: 'Gerenciar Anúncios', icon: Megaphone },
     { id: 'users', name: 'Gerenciar Usuários', icon: Users },
   ]

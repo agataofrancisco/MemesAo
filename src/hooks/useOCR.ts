@@ -1,25 +1,30 @@
 import { useState } from 'react';
-import { createWorker } from 'tesseract.js';
-import toast from 'react-hot-toast';
+import { createWorker, Worker } from 'tesseract.js';
+
+let workerPromise: Promise<Worker> | null = null;
+
+function getWorker(): Promise<Worker> {
+  if (!workerPromise) {
+    workerPromise = createWorker('por', 1, {
+      logger: m => {
+        if (m.status === 'recognizing text') {
+          console.log(`OCR Progress: ${Math.round(m.progress * 100)}%`);
+        }
+      },
+    });
+  }
+  return workerPromise;
+}
 
 export function useOCR() {
   const [isProcessing, setIsProcessing] = useState(false);
 
   const extractText = async (imageFile: File): Promise<string> => {
     setIsProcessing(true);
-    
-    try {
-      const worker = await createWorker('por', 1, {
-        logger: m => {
-          if (m.status === 'recognizing text') {
-            // Opcional: mostrar progresso
-            console.log(`OCR Progress: ${Math.round(m.progress * 100)}%`);
-          }
-        }
-      });
 
+    try {
+      const worker = await getWorker();
       const { data: { text } } = await worker.recognize(imageFile);
-      await worker.terminate();
 
       // Limpar e processar o texto extraído
       const cleanText = text
@@ -31,7 +36,6 @@ export function useOCR() {
       return cleanText;
     } catch (error) {
       console.error('Erro no OCR:', error);
-      toast.error('Erro ao processar texto da imagem');
       return '';
     } finally {
       setIsProcessing(false);
@@ -40,7 +44,7 @@ export function useOCR() {
 
   const suggestCategory = (ocrText: string): string => {
     const text = ocrText.toLowerCase();
-    
+
     // Palavras-chave para categorização automática
     const categoryKeywords = {
       'Reação': ['quando', 'cara', 'expressão', 'reação', 'sentimento', 'emoção'],
@@ -71,6 +75,6 @@ export function useOCR() {
   return {
     extractText,
     suggestCategory,
-    isProcessing
+    isProcessing,
   };
 }

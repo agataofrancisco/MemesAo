@@ -190,7 +190,8 @@ export function useMemes() {
       description: string,
       categoryId: string,
       tags: string[],
-      categories: string[]
+      categories: string[],
+      ocrText = ''
     ): Promise<UploadResult> => {
       try {
         const form = new FormData();
@@ -200,6 +201,7 @@ export function useMemes() {
         form.append("category_id", categoryId);
         form.append("tags", JSON.stringify(tags));
         form.append("categories", JSON.stringify(categories));
+        form.append("ocr_text", ocrText);
 
         await apiPost("/api/memes", form);
         return { success: true };

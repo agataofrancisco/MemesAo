@@ -335,6 +335,7 @@ async function uploadMeme(request: Request, env: Env, session: SessionPayload): 
   const categoryId = ((form.get("category_id") as string) || "").trim() || null;
   const tagsRaw = (form.get("tags") as string) || "[]";
   const categoriesRaw = (form.get("categories") as string) || "[]";
+  const ocrText = ((form.get("ocr_text") as string) || "").trim().slice(0, 2000) || null;
 
   let tags: string[] = [];
   let categories: string[] = [];
@@ -361,8 +362,8 @@ async function uploadMeme(request: Request, env: Env, session: SessionPayload): 
 
   const inserts: D1PreparedStatement[] = [
     env.DB.prepare(
-      `INSERT INTO memes (id, title, description, image_url, image_path, file_size, format, category_id, uploaded_by, status, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`
+      `INSERT INTO memes (id, title, description, image_url, image_path, file_size, format, category_id, ocr_text, uploaded_by, status, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`
     ).bind(
       memeId,
       title || file.name.replace(/\.[^/.]+$/, ""),
@@ -372,6 +373,7 @@ async function uploadMeme(request: Request, env: Env, session: SessionPayload): 
       file.size,
       extension,
       categoryId,
+      ocrText,
       session.sub,
       createdAt,
       createdAt,
@@ -514,6 +516,83 @@ async function getStats(request: Request, env: Env, session: SessionPayload | nu
 }
 
 /* ----- Categorias ----- */
+
+function slugify(name: string): string {
+  return name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "") || "categoria";
+}
+
+async function createCategory(request: Request, env: Env): Promise<Response> {
+  const body = await readJson<{ name?: string; description?: string; icon?: string; color?: string }>(request);
+  const name = (body.name || "").trim();
+  if (!name) return error("Nome da categoria é obrigatório", 400);
+
+  const id = "cat-" + uuid();
+  const slug = slugify(name);
+  const icon = body.icon?.trim() || "Tag";
+  const color = body.color?.trim() || "from-gray-500 to-gray-600";
+  const description = body.description?.trim() || null;
+
+  try {
+    await env.DB.prepare(
+      "INSERT INTO categories (id, name, slug, description, icon, color, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)"
+    ).bind(id, name, slug, description, icon, color, nowIso()).run();
+  } catch {
+    return error("Já existe uma categoria com este nome", 409);
+  }
+
+  return json({ success: true, category: { id, name, slug, description, icon, color, count: 0 } });
+}
+
+async function updateCategory(request: Request, env: Env, id: string): Promise<Response> {
+  const body = await readJson<{ name?: string; description?: string; icon?: string; color?: string }>(request);
+  const updates: string[] = [];
+  const params: unknown[] = [];
+
+  if (body.name !== undefined) {
+    const name = body.name.trim();
+    if (!name) return error("Nome da categoria não pode ser vazio", 400);
+    updates.push("name = ?", "slug = ?");
+    params.push(name, slugify(name));
+  }
+  if (body.description !== undefined) {
+    updates.push("description = ?");
+    params.push(body.description.trim() || null);
+  }
+  if (body.icon !== undefined) {
+    updates.push("icon = ?");
+    params.push(body.icon.trim() || "Tag");
+  }
+  if (body.color !== undefined) {
+    updates.push("color = ?");
+    params.push(body.color.trim() || "from-gray-500 to-gray-600");
+  }
+
+  if (updates.length === 0) return error("Nada para atualizar", 400);
+  params.push(id);
+
+  try {
+    await env.DB.prepare(`UPDATE categories SET ${updates.join(", ")} WHERE id = ?`).bind(...params).run();
+  } catch {
+    return error("Já existe uma categoria com este nome", 409);
+  }
+
+  return json({ success: true });
+}
+
+async function deleteCategory(env: Env, id: string): Promise<Response> {
+  await env.DB.batch([
+    env.DB.prepare("DELETE FROM meme_categories WHERE category_id = ?").bind(id),
+    env.DB.prepare("UPDATE memes SET category_id = NULL WHERE category_id = ?").bind(id),
+    env.DB.prepare("DELETE FROM user_interests WHERE category_id = ?").bind(id),
+    env.DB.prepare("DELETE FROM categories WHERE id = ?").bind(id),
+  ]);
+  return json({ success: true });
+}
 
 async function getCategories(env: Env): Promise<Response> {
   const result = await env.DB.prepare(
@@ -703,6 +782,18 @@ export default {
     if (pathname === "/api/admin/dashboard" && method === "GET") {
       if (!isStaff(session)) return error("Acesso negado", 403);
       return adminDashboard(env);
+    }
+
+    // Admin: Categorias
+    if (pathname === "/api/admin/categories" && method === "POST") {
+      if (!isStaff(session)) return error("Acesso negado", 403);
+      return createCategory(request, env);
+    }
+    const adminCategoryId = parseIdParam(pathname, "/api/admin/categories/");
+    if (adminCategoryId) {
+      if (!isStaff(session)) return error("Acesso negado", 403);
+      if (method === "PATCH") return updateCategory(request, env, adminCategoryId);
+      if (method === "DELETE") return deleteCategory(env, adminCategoryId);
     }
 
     return error("Rota não encontrada", 404);
