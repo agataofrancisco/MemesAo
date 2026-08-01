@@ -50,7 +50,7 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
   const { categories } = useStats()
 
   // Refs para controlar debounce e cancelar requests
-  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastSearchRef = useRef<string>('')
   const searchAbortControllerRef = useRef<AbortController | null>(null)
 

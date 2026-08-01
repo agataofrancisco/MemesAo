@@ -24,8 +24,10 @@
     "react-router-dom": "^7.8.1",
     "tesseract.js": "^5.0.4"
   },
+  "optionalDependencies": {
+    "@cloudflare/workerd-windows-64": "^1.20260801.1"
+  },
   "devDependencies": {
-    "@cloudflare/workerd-windows-64": "^1.20260801.1",
     "@cloudflare/workers-types": "^5.20260801.1",
     "@eslint/js": "^9.9.1",
     "@types/react": "^18.3.5",
