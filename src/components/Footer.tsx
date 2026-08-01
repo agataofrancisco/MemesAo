@@ -1,4 +1,3 @@
-import React from 'react'
 import { motion } from 'framer-motion'
 import { Smile, Mail } from 'lucide-react'
 
@@ -16,7 +15,7 @@ export default function Footer() {
           >
             <div className="flex items-center space-x-3 mb-6">
               <Smile className="h-8 w-8 text-primary-500" />
-              <span className="text-2xl font-bold bg-gradient-to-r from-primary-500 to-purple-500 bg-clip-text text-transparent">
+              <span className="text-2xl font-bold text-primary-300">
                 MemesAo
               </span>
             </div>

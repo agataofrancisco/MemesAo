@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import {
   Settings,
@@ -7,7 +7,6 @@ import {
   Check,
   AlertCircle,
   DollarSign,
-  TrendingUp,
 } from 'lucide-react'
 
 interface RevenueHitsConfigProps {
@@ -20,7 +19,6 @@ export default function RevenueHitsConfig({
   onClose,
 }: RevenueHitsConfigProps) {
   const [publisherId, setPublisherId] = useState('')
-  const [adIds, setAdIds] = useState<string[]>([])
   const [isConfigured, setIsConfigured] = useState(false)
   const [copied, setCopied] = useState<string | null>(null)
   const [showInstructions, setShowInstructions] = useState(true)
@@ -297,7 +295,7 @@ window.revenueHitsConfig = {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="bg-gradient-to-r from-green-500 to-blue-600 text-white rounded-lg p-6"
+              className="bg-primary-700 text-white rounded-lg p-6"
             >
               <h3 className="text-lg font-semibold mb-4 flex items-center space-x-2">
                 <DollarSign className="w-5 h-5" />

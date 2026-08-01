@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Heart, Star, Target, CheckCircle, Plus, X, Save } from 'lucide-react'
+import { Heart, Target, CheckCircle, X, Save } from 'lucide-react'
 import { useStats } from '../hooks/useStats'
 import { useAuth } from '../hooks/useAuth'
-import { supabase } from '../lib/supabase'
+import { apiGet, apiPut } from '../lib/api'
+import type { UserInterest } from '../lib/types'
 import toast from 'react-hot-toast'
 
 interface UserInterestsProps {
@@ -11,16 +12,6 @@ interface UserInterestsProps {
   onClose: () => void
   onInterestsUpdated?: () => void
   onAuthClick?: () => void
-}
-
-interface UserInterest {
-  id: string
-  category_id: string
-  weight: number
-  category: {
-    id: string
-    name: string
-  }
 }
 
 export default function UserInterests({
@@ -37,7 +28,6 @@ export default function UserInterests({
     Record<string, number>
   >({})
   const [saving, setSaving] = useState(false)
-  const [currentInterests, setCurrentInterests] = useState<UserInterest[]>([])
 
   // Carregar interesses atuais do usuário
   useEffect(() => {
@@ -48,27 +38,18 @@ export default function UserInterests({
 
   const loadUserInterests = async () => {
     try {
-      const { data, error } = await supabase
-        .from('user_interests')
-        .select(
-          `
-          id,
-          category_id,
-          weight,
-          category:categories(id, name)
-        `,
-        )
-        .eq('user_id', user.id)
-
-      if (error) throw error
+      const data = await apiGet<UserInterest[]>('/api/interests')
 
       if (data) {
-        setCurrentInterests(data)
-        const interests = data.map((item) => item.category.name)
-        const weights = data.reduce((acc, item) => {
-          acc[item.category.name] = item.weight
-          return acc
-        }, {} as Record<string, number>)
+        const interests: string[] = []
+        const weights: Record<string, number> = {}
+        for (const item of data) {
+          const category = item.category
+          if (category?.name) {
+            interests.push(category.name)
+            weights[category.name] = item.weight
+          }
+        }
 
         setSelectedInterests(interests)
         setInterestWeights(weights)
@@ -110,21 +91,6 @@ export default function UserInterests({
 
     setSaving(true)
     try {
-      // Deletar interesses antigos
-      console.log('Deletando interesses antigos...')
-      const { error: deleteError } = await supabase
-        .from('user_interests')
-        .delete()
-        .eq('user_id', user.id)
-
-      if (deleteError) {
-        console.error('Erro ao deletar interesses antigos:', deleteError)
-        throw deleteError
-      }
-
-      console.log('Interesses antigos deletados com sucesso')
-
-      // Inserir novos interesses
       const interestsToInsert = selectedInterests
         .map((categoryName) => {
           const category = categories.find((cat) => cat.name === categoryName)
@@ -132,30 +98,15 @@ export default function UserInterests({
             `Mapeando categoria: ${categoryName} -> ID: ${category?.id}`,
           )
           return {
-            user_id: user.id,
-            category_id: category?.id,
+            category_id: category?.id || '',
             weight: interestWeights[categoryName] || 1,
           }
         })
-        .filter((item) => item.category_id)
+        .filter((item) => !!item.category_id)
 
       console.log('Interesses para inserir:', interestsToInsert)
 
-      if (interestsToInsert.length > 0) {
-        const { data, error } = await supabase
-          .from('user_interests')
-          .insert(interestsToInsert)
-          .select()
-
-        if (error) {
-          console.error('Erro ao inserir interesses:', error)
-          throw error
-        }
-
-        console.log('Interesses inseridos com sucesso:', data)
-      } else {
-        console.log('Nenhum interesse válido para inserir')
-      }
+      await apiPut('/api/interests', { categories: interestsToInsert })
 
       toast.success('Interesses salvos com sucesso!')
       onInterestsUpdated?.()
@@ -359,11 +310,11 @@ export default function UserInterests({
             </div>
 
             {/* Dicas */}
-            <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
-              <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">
+            <div className="mt-6 p-4 bg-primary-50 dark:bg-primary-900/20 rounded-xl">
+              <h4 className="font-semibold text-primary-900 dark:text-primary-100 mb-2">
                 💡 Como funciona?
               </h4>
-              <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
+              <ul className="text-sm text-primary-800 dark:text-primary-200 space-y-1">
                 <li>
                   • <strong>Seleciona</strong> as categorias que mais te
                   interessam

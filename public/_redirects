@@ -1,8 +1,0 @@
-# Redirects para React Router
-/*    /index.html   200
-
-# Redirecionamentos específicos para memes
-/meme/*    /index.html   200
-
-# Fallback para todas as outras rotas
-/*    /index.html   404 

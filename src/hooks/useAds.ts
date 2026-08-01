@@ -173,6 +173,7 @@ export function useAds() {
     } finally {
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Registrar impressão de anúncio

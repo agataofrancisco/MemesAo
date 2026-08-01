@@ -6,11 +6,15 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "typecheck": "tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p worker/tsconfig.json",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "worker:dev": "wrangler dev --local",
+    "worker:deploy": "wrangler deploy",
+    "worker:db": "wrangler d1 execute memesao-db",
+    "worker:types": "wrangler types worker/types.d.ts"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.39.0",
     "@types/react-router-dom": "^5.3.3",
     "framer-motion": "^10.18.0",
     "lucide-react": "^0.344.0",
@@ -21,6 +25,8 @@
     "tesseract.js": "^5.0.4"
   },
   "devDependencies": {
+    "@cloudflare/workerd-windows-64": "^1.20260801.1",
+    "@cloudflare/workers-types": "^5.20260801.1",
     "@eslint/js": "^9.9.1",
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",
@@ -34,6 +40,7 @@
     "tailwindcss": "^3.4.1",
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.3.0",
-    "vite": "^5.4.2"
+    "vite": "^5.4.2",
+    "wrangler": "^4.118.0"
   }
 }

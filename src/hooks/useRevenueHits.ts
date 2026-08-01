@@ -28,6 +28,26 @@ interface RevenueHitsConfig {
   showAdLabels: boolean;
 }
 
+// IDs padrão dos anúncios
+const defaultAdIds = [
+  "rh_header_001",
+  "rh_inline_001",
+  "rh_inline_002",
+  "rh_inline_003",
+  "rh_sidebar_001",
+  "rh_footer_001",
+];
+
+// Posições dos anúncios
+const adPositions = [
+  "header",
+  "inline-1",
+  "inline-2",
+  "inline-3",
+  "sidebar",
+  "footer",
+];
+
 export function useRevenueHits() {
   const [ads, setAds] = useState<RevenueHitsAd[]>([]);
   const [stats, setStats] = useState<RevenueHitsStats>({
@@ -47,26 +67,6 @@ export function useRevenueHits() {
     showAdLabels: true,
   });
   const [isInitialized, setIsInitialized] = useState(false);
-
-  // IDs padrão dos anúncios
-  const defaultAdIds = [
-    "rh_header_001",
-    "rh_inline_001",
-    "rh_inline_002",
-    "rh_inline_003",
-    "rh_sidebar_001",
-    "rh_footer_001",
-  ];
-
-  // Posições dos anúncios
-  const adPositions = [
-    "header",
-    "inline-1",
-    "inline-2",
-    "inline-3",
-    "sidebar",
-    "footer",
-  ];
 
   // Inicializar sistema de anúncios
   const initializeAds = useCallback(() => {

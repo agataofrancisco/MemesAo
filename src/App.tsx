@@ -9,22 +9,13 @@ import { Toaster } from 'react-hot-toast'
 import { ThemeProvider } from './contexts/ThemeContext'
 import Header from './components/Header'
 import ProfilePage from './components/ProfilePage'
-import Hero from './components/Hero'
-import TopMemes from './components/TopMemes'
-import Statistics from './components/Statistics'
-import FeaturedMemes from './components/FeaturedMemes'
-import Categories from './components/Categories'
-import Features from './components/Features'
 import Footer from './components/Footer'
 import AuthModal from './components/AuthModal'
 import UploadModal from './components/UploadModal'
 import SearchModal from './components/SearchModal'
 import AdminDashboard from './components/AdminDashboard'
-import BrowseModal from './components/BrowseModal'
 import MemePage from './components/MemePage'
-import RouteTest from './components/RouteTest'
 import Feed from './components/Feed'
-import SimpleDebug from './components/SimpleDebug'
 import RevenueHitsManager from './components/ads/RevenueHitsManager'
 import RevenueHitsConfig from './components/ads/RevenueHitsConfig'
 
@@ -33,21 +24,7 @@ function App() {
   const [isUploadOpen, setIsUploadOpen] = useState(false)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [isAdminOpen, setIsAdminOpen] = useState(false)
-  const [isBrowseOpen, setIsBrowseOpen] = useState(false)
-  const [browseCategory, setBrowseCategory] = useState<string | undefined>()
-  const [currentPage, setCurrentPage] = useState<'home' | 'profile' | 'feed'>(
-    'home',
-  )
-
-  const handleCategoryClick = (categoryName: string) => {
-    setBrowseCategory(categoryName)
-    setIsBrowseOpen(true)
-  }
-
-  const handleBrowseOpen = () => {
-    setBrowseCategory(undefined)
-    setIsBrowseOpen(true)
-  }
+  const [currentPage, setCurrentPage] = useState<'feed' | 'profile'>('feed')
 
   const handleFeedClick = () => {
     setCurrentPage('feed')
@@ -65,14 +42,8 @@ function App() {
           setIsSearchOpen={setIsSearchOpen}
           isAdminOpen={isAdminOpen}
           setIsAdminOpen={setIsAdminOpen}
-          isBrowseOpen={isBrowseOpen}
-          setIsBrowseOpen={setIsBrowseOpen}
-          browseCategory={browseCategory}
-          setBrowseCategory={setBrowseCategory}
           currentPage={currentPage}
           setCurrentPage={setCurrentPage}
-          handleCategoryClick={handleCategoryClick}
-          handleBrowseOpen={handleBrowseOpen}
           handleFeedClick={handleFeedClick}
         />
       </Router>
@@ -90,14 +61,8 @@ function AppContent({
   setIsSearchOpen,
   isAdminOpen,
   setIsAdminOpen,
-  isBrowseOpen,
-  setIsBrowseOpen,
-  browseCategory,
-  setBrowseCategory,
   currentPage,
   setCurrentPage,
-  handleCategoryClick,
-  handleBrowseOpen,
   handleFeedClick,
 }: {
   isAuthOpen: boolean
@@ -108,23 +73,14 @@ function AppContent({
   setIsSearchOpen: (open: boolean) => void
   isAdminOpen: boolean
   setIsAdminOpen: (open: boolean) => void
-  isBrowseOpen: boolean
-  setIsBrowseOpen: (open: boolean) => void
-  browseCategory: string | undefined
-  setBrowseCategory: (category: string | undefined) => void
-  currentPage: 'home' | 'profile' | 'feed'
-  setCurrentPage: (page: 'home' | 'profile' | 'feed') => void
-  handleCategoryClick: (categoryName: string) => void
-  handleBrowseOpen: () => void
+  currentPage: 'feed' | 'profile'
+  setCurrentPage: (page: 'feed' | 'profile') => void
   handleFeedClick: () => void
 }) {
   const location = useLocation()
 
-  console.log('AppContent renderizado, pathname:', location.pathname)
-
   // Se estiver na rota do meme, não mostrar o header
   if (location.pathname.startsWith('/meme/')) {
-    console.log('Renderizando MemePage para:', location.pathname)
     return (
       <Routes>
         <Route path="/meme/:memeId" element={<MemePage />} />
@@ -132,20 +88,11 @@ function AppContent({
     )
   }
 
-  // Rota de teste
-  if (location.pathname === '/test') {
-    return (
-      <Routes>
-        <Route path="/test" element={<RouteTest />} />
-      </Routes>
-    )
-  }
-
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors overflow-x-hidden">
-      {/* Sistema de 6 Anúncios RevenueHits */}
+      {/* Sistema de Anúncios RevenueHits */}
       <RevenueHitsManager
-        showAnalytics={true}
+        showAnalytics={false}
         enableOptimization={true}
         maxAdsPerPage={6}
       />
@@ -163,45 +110,13 @@ function AppContent({
         <Route
           path="/"
           element={
-            currentPage === 'home' ? (
-              <main className="w-full max-w-full overflow-x-hidden">
-                <Hero
-                  onBrowseClick={handleBrowseOpen}
-                  onFeedClick={handleFeedClick}
-                />
-
-                {/* 1. Memes em Destaque (Top memes) */}
-                <TopMemes
-                  onMemeClick={(meme) => {
-                    console.log('Top meme clicado:', meme)
-                  }}
-                />
-
-                {/* 2. Estatísticas globais */}
-                <Statistics />
-
-                {/* 3. Explore os Memes */}
-                <FeaturedMemes
-                  onCategoryClick={handleCategoryClick}
-                  onMemeClick={(meme) => {
-                    console.log('Meme clicado:', meme)
-                  }}
-                />
-
-                {/* 4. Categorias Populares (top 3) */}
-                <Categories onCategoryClick={handleCategoryClick} />
-
-                <Features />
-              </main>
-            ) : currentPage === 'profile' ? (
-              <main className="w-full max-w-full overflow-x-hidden">
-                <ProfilePage onBack={() => setCurrentPage('home')} />
-              </main>
-            ) : currentPage === 'feed' ? (
-              <main className="w-full max-w-full overflow-x-hidden">
+            <main className="w-full max-w-full overflow-x-hidden pt-16">
+              {currentPage === 'feed' ? (
                 <Feed onAuthClick={() => setIsAuthOpen(true)} />
-              </main>
-            ) : null
+              ) : (
+                <ProfilePage onBack={() => setCurrentPage('feed')} />
+              )}
+            </main>
           }
         />
 
@@ -209,18 +124,8 @@ function AppContent({
         <Route
           path="/feed"
           element={
-            <main className="w-full max-w-full overflow-x-hidden">
+            <main className="w-full max-w-full overflow-x-hidden pt-16">
               <Feed onAuthClick={() => setIsAuthOpen(true)} />
-            </main>
-          }
-        />
-
-        {/* Rota de Debug */}
-        <Route
-          path="/debug"
-          element={
-            <main className="w-full max-w-full overflow-x-hidden py-8">
-              <SimpleDebug />
             </main>
           }
         />
@@ -251,11 +156,6 @@ function AppContent({
       <AdminDashboard
         isOpen={isAdminOpen}
         onClose={() => setIsAdminOpen(false)}
-      />
-      <BrowseModal
-        isOpen={isBrowseOpen}
-        onClose={() => setIsBrowseOpen(false)}
-        initialCategory={browseCategory}
       />
 
       <Toaster position="top-right" />

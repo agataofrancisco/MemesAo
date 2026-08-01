@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search,
   X,
   Filter,
   Tag,
-  Calendar,
   TrendingUp,
   Download,
   Heart,
@@ -14,6 +13,7 @@ import {
 } from 'lucide-react'
 import { useMemes } from '../hooks/useMemes'
 import { useStats } from '../hooks/useStats'
+import type { Meme } from '../lib/types'
 
 interface SearchModalProps {
   isOpen: boolean
@@ -39,10 +39,12 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('')
   const [showFilters, setShowFilters] = useState(false)
-  const [results, setResults] = useState<any[]>([])
+  const [results, setResults] = useState<Meme[]>([])
   const [searching, setSearching] = useState(false)
   const [searchHistory, setSearchHistory] = useState<string[]>([])
-  const [searchCache, setSearchCache] = useState<Map<string, any[]>>(new Map())
+  const [searchCache, setSearchCache] = useState<Map<string, Meme[]>>(
+    new Map(),
+  )
 
   const { searchMemes, downloadMeme, toggleFavorite, favorites } = useMemes()
   const { categories } = useStats()
@@ -112,7 +114,9 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
           const newCache = new Map(searchCache)
           if (newCache.size >= 10) {
             const firstKey = newCache.keys().next().value
-            newCache.delete(firstKey)
+            if (firstKey !== undefined) {
+              newCache.delete(firstKey)
+            }
           }
           newCache.set(cacheKey, searchResults)
           setSearchCache(newCache)
@@ -388,7 +392,7 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
                         >
                           <img
                             src={result.image_url}
-                            alt={result.title}
+                            alt={result.title || 'Meme'}
                             className="w-full h-32 object-cover"
                           />
                           <div className="p-3">
@@ -400,7 +404,7 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
                                 <Tag size={12} className="mr-1" />
                                 {result.category}
                               </span>
-                              <span>{result.likes} likes</span>
+                              <span>{(result.like_count || 0)} likes</span>
                             </div>
                             {result.ocr_text && (
                               <p className="text-xs text-gray-400 mb-3 line-clamp-2">

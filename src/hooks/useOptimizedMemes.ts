@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useMemes } from "./useMemes";
 import { getOptimizedConfig, throttle } from "../config/performance";
+import type { Meme } from "../lib/types";
 
 interface UseOptimizedMemesOptions {
   pageSize?: number;
@@ -27,10 +28,10 @@ export function useOptimizedMemes(options: UseOptimizedMemesOptions = {}) {
   } = useMemes();
 
   const [currentPage, setCurrentPage] = useState(1);
-  const [visibleMemes, setVisibleMemes] = useState<any[]>([]);
+  const [visibleMemes, setVisibleMemes] = useState<Meme[]>([]);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [memeCache, setMemeCache] = useState<Map<string, any>>(new Map());
+  const [memeCache, setMemeCache] = useState<Map<string, Meme>>(new Map());
 
   // Calcular memes visíveis baseado na página atual
   const getVisibleMemes = useCallback(() => {
@@ -52,7 +53,7 @@ export function useOptimizedMemes(options: UseOptimizedMemesOptions = {}) {
 
     setCurrentPage((prev) => prev + 1);
     setLoadingMore(false);
-  }, [loadingMore, hasMore]);
+  }, [loadingMore, hasMore, config.PAGINATION.LOAD_DELAY]);
 
   // Carregar memes automaticamente quando chegar perto do fim
   const handleScroll = useCallback(() => {
@@ -106,7 +107,9 @@ export function useOptimizedMemes(options: UseOptimizedMemesOptions = {}) {
           // Limpar cache se exceder o tamanho máximo
           if (newCache.size >= config.CACHE.MAX_MEME_CACHE_SIZE) {
             const firstKey = newCache.keys().next().value;
-            newCache.delete(firstKey);
+            if (firstKey !== undefined) {
+              newCache.delete(firstKey);
+            }
           }
           newCache.set(id, meme);
           return newCache;

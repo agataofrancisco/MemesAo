@@ -1,13 +1,10 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   X,
   Upload,
   Image as ImageIcon,
-  Tag,
-  FileText,
   Loader,
-  Plus,
   Trash2,
   Check,
 } from 'lucide-react'
@@ -41,7 +38,7 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
   const [uploadProgress, setUploadProgress] = useState(0)
 
   const { uploadMeme } = useMemes()
-  const { categories, loading: categoriesLoading } = useAllCategories()
+  const { categories } = useAllCategories()
 
   // Reset form quando modal fecha
   useEffect(() => {
@@ -135,7 +132,7 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
     }
 
     setFiles((prev) =>
-      prev.map((file) => ({ ...file, categoryId: globalCategory })),
+      prev.map((file) => ({ ...file, categories: [globalCategory] })),
     )
     toast.success('Categoria aplicada a todos os memes')
   }
@@ -239,7 +236,7 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                 Envie até 10 memes de uma vez
               </p>
-              <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+              <p className="text-xs text-primary-600 dark:text-primary-400 mt-1">
                 💡 Não precisa de conta! Seus memes aparecerão como "Anônimo"
               </p>
             </div>
@@ -269,7 +266,7 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
                     <p className="text-xs text-gray-500">
                       PNG, JPG, GIF até 5MB cada • Máximo 10 arquivos
                     </p>
-                    <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                    <p className="text-xs text-primary-600 dark:text-primary-400 font-medium">
                       ✨ Upload gratuito e sem necessidade de conta!
                     </p>
                   </div>
@@ -335,7 +332,7 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
                         key={file.id}
                         className={`border rounded-xl p-4 ${
                           file.completed
-                            ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20'
+                            ? 'border-success-200 bg-success-50 dark:border-success-800 dark:bg-success-900/20'
                             : file.error
                             ? 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20'
                             : 'border-gray-200 dark:border-gray-600'
@@ -350,7 +347,7 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
                               className="w-20 h-20 object-cover rounded-lg"
                             />
                             {file.completed && (
-                              <div className="absolute -mt-2 -ml-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                              <div className="absolute -mt-2 -ml-2 w-6 h-6 bg-success-500 rounded-full flex items-center justify-center">
                                 <Check className="w-4 h-4 text-white" />
                               </div>
                             )}
@@ -372,26 +369,6 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
                                 disabled={uploading || file.completed}
                                 maxLength={100}
                               />
-                            </div>
-
-                            <div>
-                              <select
-                                value={file.categoryId}
-                                onChange={(e) =>
-                                  updateMemeFile(file.id, {
-                                    categoryId: e.target.value,
-                                  })
-                                }
-                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
-                                disabled={uploading || file.completed}
-                              >
-                                <option value="">Categoria *</option>
-                                {categories.map((category) => (
-                                  <option key={category.id} value={category.id}>
-                                    {category.name}
-                                  </option>
-                                ))}
-                              </select>
                             </div>
 
                             <div>
@@ -454,11 +431,11 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-3 bg-gradient-to-r from-primary-500 to-purple-600 text-white rounded-xl hover:from-primary-600 hover:to-purple-700 transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                    className="flex-1 px-4 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-xl transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                     disabled={
                       uploading ||
                       files.length === 0 ||
-                      files.some((f) => !f.title.trim() || !f.categoryId)
+                      files.some((f) => !f.title.trim() || f.categories.length === 0)
                     }
                   >
                     {uploading ? (
@@ -478,8 +455,8 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
               )}
 
               {/* Info */}
-              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
-                <p className="text-blue-700 dark:text-blue-300 text-sm">
+              <div className="bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 rounded-xl p-4">
+                <p className="text-primary-700 dark:text-primary-300 text-sm">
                   <strong>Nota:</strong> Todos os memes serão revisados antes de
                   serem publicados. Evite conteúdo ofensivo ou que infrinja
                   direitos autorais.

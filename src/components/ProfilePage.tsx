@@ -1,26 +1,25 @@
-import React, { useMemo, useEffect } from 'react'
+import { useMemo, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Download, Heart, Share2, LogOut, User } from 'lucide-react'
+import { ArrowLeft, Download, Heart, Share2, User } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { useStats } from '../hooks/useStats'
-import toast from 'react-hot-toast'
 
 interface ProfilePageProps {
-  user: { email: string; role: string } | null
+  onBack: () => void
 }
 
 export default function ProfilePage({ onBack }: ProfilePageProps) {
-  const { user, profile, signOut } = useAuth()
+  const { user, profile } = useAuth()
   const { stats, loading, error } = useStats()
 
   // Debug: Log dos dados recebidos
   useEffect(() => {
-    console.log('🔍 ProfilePage - Debug dos dados:')
+    console.log('ðŸ” ProfilePage - Debug dos dados:')
     console.log('👤 User:', user)
     console.log('👤 Profile:', profile)
     console.log('📊 Stats:', stats)
-    console.log('⏳ Loading:', loading)
-    console.log('❌ Error:', error)
+    console.log('â³ Loading:', loading)
+    console.log('âŒ Error:', error)
   }, [user, profile, stats, loading, error])
 
   const personalStats = useMemo(
@@ -61,6 +60,14 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
   return (
     <div className="min-h-screen py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <button
+          onClick={onBack}
+          className="flex items-center text-gray-600 dark:text-gray-400 hover:text-primary-500 transition-colors mb-6"
+        >
+          <ArrowLeft className="h-5 w-5 mr-2" />
+          Voltar
+        </button>
+
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">
             Perfil do Usuário
@@ -89,9 +96,9 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
 
         {/* Debug: Mostrar estado de loading e erro */}
         {loading && (
-          <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-            <p className="text-blue-600 dark:text-blue-300 text-sm">
-              ⏳ Carregando estatísticas...
+          <div className="mb-6 p-4 bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 rounded-lg">
+            <p className="text-primary-600 dark:text-primary-300 text-sm">
+              â³ Carregando estatísticas...
             </p>
           </div>
         )}
@@ -99,7 +106,7 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
         {error && (
           <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
             <p className="text-red-600 dark:text-red-300 text-sm">
-              ❌ Erro: {error}
+              âŒ Erro: {error}
             </p>
           </div>
         )}

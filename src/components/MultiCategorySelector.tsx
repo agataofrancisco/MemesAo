@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Plus, Tag, Check } from 'lucide-react'
+import { X, Plus, Tag } from 'lucide-react'
 import { useStats } from '../hooks/useStats'
-import type { Category } from '../lib/supabase'
 
 interface MultiCategorySelectorProps {
   selectedCategories: string[]

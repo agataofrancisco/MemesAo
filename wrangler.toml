@@ -1,0 +1,23 @@
+name = "memesao"
+main = "worker/src/index.ts"
+compatibility_date = "2025-01-01"
+
+# Assets estáticos da SPA (Vite build -> dist/)
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+
+# Banco de dados D1
+[[d1_databases]]
+binding = "DB"
+database_name = "memesao-db"
+database_id = "4d8ed94c-6413-424b-9681-6195bf75558b"
+
+# Storage R2 para os memes
+[[r2_buckets]]
+binding = "MEMES_BUCKET"
+bucket_name = "memes-ao"
+
+# Segredos definidos via: npx wrangler secret put AUTH_SECRET / ADMIN_EMAIL
+# Local: .dev.vars (raiz, junto do wrangler.toml)

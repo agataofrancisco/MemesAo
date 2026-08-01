@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   X,
@@ -15,7 +15,7 @@ import { useMemes } from '../hooks/useMemes'
 import { useAuth } from '../hooks/useAuth'
 import { useDownloadLimit } from '../hooks/useDownloadLimit'
 import DownloadStatus from './DownloadStatus'
-import type { Meme } from '../lib/supabase'
+import type { Meme } from '../lib/types'
 import toast from 'react-hot-toast'
 
 interface MemeViewModalProps {
@@ -195,7 +195,7 @@ export default function MemeViewModal({
         })
         await shareMeme(meme)
         toast.success('Meme partilhado com sucesso!')
-      } catch (error) {
+      } catch {
         // User cancelled sharing
         console.log('Partilha cancelada pelo usuário')
       }
@@ -205,7 +205,7 @@ export default function MemeViewModal({
         await navigator.clipboard.writeText(memeUrl)
         toast.success('Link copiado para área de transferência!')
         await shareMeme(meme)
-      } catch (error) {
+      } catch {
         toast.error('Erro ao copiar link')
       }
     }
@@ -401,7 +401,7 @@ export default function MemeViewModal({
                       </span>
                     </div>
                     <span className="font-medium text-gray-900 dark:text-white">
-                      {((meme as any).share_count || 0).toLocaleString()}
+                      {(meme.share_count || 0).toLocaleString()}
                     </span>
                   </div>
                 </div>

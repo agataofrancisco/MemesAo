@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { TrendingUp, Eye, MousePointer, DollarSign } from 'lucide-react'
 
@@ -47,15 +47,15 @@ export default function RevenueHitsAd({
   const getAdStyles = () => {
     switch (position) {
       case 'header':
-        return 'bg-gradient-to-r from-blue-500 to-purple-600 text-white border-b-2 border-blue-600'
+        return 'bg-gray-700 text-white border-b-2 border-gray-600'
       case 'footer':
-        return 'bg-gradient-to-r from-purple-500 to-blue-600 text-white border-t-2 border-purple-600'
+        return 'bg-gray-700 text-white border-t-2 border-gray-600'
       case 'inline':
-        return 'bg-gradient-to-r from-green-500 to-teal-600 text-white border-2 border-green-600'
+        return 'bg-gray-600 text-white border-2 border-gray-500'
       case 'sidebar':
-        return 'bg-gradient-to-r from-orange-500 to-red-600 text-white border-2 border-orange-600'
+        return 'bg-gray-600 text-white border-2 border-gray-500'
       default:
-        return 'bg-gradient-to-r from-gray-500 to-gray-600 text-white border-2 border-gray-600'
+        return 'bg-gray-700 text-white border-2 border-gray-600'
     }
   }
 
@@ -183,7 +183,12 @@ export default function RevenueHitsAd({
 }
 
 // Componentes específicos para cada posição
-export function HeaderAd() {
+interface AdCallbacks {
+  onImpression?: () => void
+  onClick?: () => void
+}
+
+export function HeaderAd({ onImpression, onClick }: AdCallbacks) {
   return (
     <RevenueHitsAd
       id="rh_header"
@@ -191,6 +196,8 @@ export function HeaderAd() {
       size="banner"
       className="mb-4"
       showAnalytics={true}
+      onImpression={onImpression}
+      onClick={onClick}
     />
   )
 }
@@ -198,9 +205,13 @@ export function HeaderAd() {
 export function InlineAd({
   id,
   className = '',
+  onImpression,
+  onClick,
 }: {
   id: string
   className?: string
+  onImpression?: () => void
+  onClick?: () => void
 }) {
   return (
     <RevenueHitsAd
@@ -209,11 +220,13 @@ export function InlineAd({
       size="medium"
       className={`my-6 ${className}`}
       showAnalytics={true}
+      onImpression={onImpression}
+      onClick={onClick}
     />
   )
 }
 
-export function SidebarAd() {
+export function SidebarAd({ onImpression, onClick }: AdCallbacks) {
   return (
     <RevenueHitsAd
       id="rh_sidebar"
@@ -221,11 +234,13 @@ export function SidebarAd() {
       size="large"
       className="mb-6"
       showAnalytics={true}
+      onImpression={onImpression}
+      onClick={onClick}
     />
   )
 }
 
-export function FooterAd() {
+export function FooterAd({ onImpression, onClick }: AdCallbacks) {
   return (
     <RevenueHitsAd
       id="rh_footer"
@@ -233,6 +248,8 @@ export function FooterAd() {
       size="banner"
       className="mt-8"
       showAnalytics={true}
+      onImpression={onImpression}
+      onClick={onClick}
     />
   )
 }

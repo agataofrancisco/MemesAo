@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Users,
@@ -9,27 +9,17 @@ import {
   XCircle,
   Edit,
   Trash2,
-  Search,
-  Filter,
   Plus,
   Save,
   X,
   Megaphone,
-  BarChart3,
 } from 'lucide-react'
-import { supabase, isSupabaseConfigured } from '../lib/supabase'
-import type { Meme, PendingMeme } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useAllCategories } from '../hooks/useAllCategories'
+import { apiGet, apiPatch, apiDelete } from '../lib/api'
+import type { Meme } from '../lib/types'
 import AdAdminPanel from './AdAdminPanel'
 import toast from 'react-hot-toast'
-
-interface PendingMemeWithProfile extends PendingMeme {
-  profiles?: {
-    username?: string
-    avatar_url?: string
-  }
-}
 
 interface AdminDashboardProps {
   isOpen: boolean
@@ -50,8 +40,8 @@ export default function AdminDashboard({
   })
   const [pendingMemes, setPendingMemes] = useState<Meme[]>([])
   const [allMemes, setAllMemes] = useState<Meme[]>([])
-  const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState('all')
+  const [searchTerm] = useState('')
+  const [statusFilter] = useState('all')
   const [deletingMemeId, setDeletingMemeId] = useState<string | null>(null)
 
   // Estados para CRUD de memes
@@ -73,90 +63,6 @@ export default function AdminDashboard({
   // Função para verificar se o usuário é admin/moderador
   const isAdmin = profile?.role === 'admin' || profile?.role === 'moderator'
 
-  // Função para diagnosticar e configurar políticas de DELETE
-  const setupDeletePolicies = async () => {
-    if (!isSupabaseConfigured || !supabase) return
-
-    try {
-      console.log('🔧 Configurando políticas de DELETE...')
-
-      // Verificar se as políticas existem
-      const { data: policies, error: policiesError } = await supabase.rpc(
-        'check_policies',
-      )
-
-      if (policiesError) {
-        console.log(
-          '⚠️ Não foi possível verificar políticas via RPC, tentando configuração manual...',
-        )
-      }
-
-      // Tentar executar as políticas diretamente
-      const createPoliciesSQL = `
-        -- Políticas de DELETE para memes
-        DROP POLICY IF EXISTS "Admins can delete any meme" ON memes;
-        CREATE POLICY "Admins can delete any meme"
-          ON memes FOR DELETE TO authenticated
-          USING (EXISTS (
-            SELECT 1 FROM profiles 
-            WHERE profiles.id = auth.uid() 
-            AND profiles.role IN ('admin', 'moderator')
-          ));
-
-        -- Políticas de DELETE para user_favorites
-        DROP POLICY IF EXISTS "Admins can delete any favorite" ON user_favorites;
-        CREATE POLICY "Admins can delete any favorite"
-          ON user_favorites FOR DELETE TO authenticated
-          USING (EXISTS (
-            SELECT 1 FROM profiles 
-            WHERE profiles.id = auth.uid() 
-            AND profiles.role IN ('admin', 'moderator')
-          ));
-
-        -- Políticas de DELETE para meme_downloads
-        DROP POLICY IF EXISTS "Admins can delete any download record" ON meme_downloads;
-        CREATE POLICY "Admins can delete any download record"
-          ON meme_downloads FOR DELETE TO authenticated
-          USING (EXISTS (
-            SELECT 1 FROM profiles 
-            WHERE profiles.id = auth.uid() 
-            AND profiles.role IN ('admin', 'moderator')
-          ));
-
-        -- Políticas de DELETE para meme_views
-        DROP POLICY IF EXISTS "Admins can delete any view record" ON meme_views;
-        CREATE POLICY "Admins can delete any view record"
-          ON meme_views FOR DELETE TO authenticated
-          USING (EXISTS (
-            SELECT 1 FROM profiles 
-            WHERE profiles.id = auth.uid() 
-            AND profiles.role IN ('admin', 'moderator')
-          ));
-
-        -- Políticas de DELETE para meme_tags
-        DROP POLICY IF EXISTS "Admins can delete any tag" ON meme_tags;
-        CREATE POLICY "Admins can delete any tag"
-          ON meme_tags FOR DELETE TO authenticated
-          USING (EXISTS (
-            SELECT 1 FROM profiles 
-            WHERE profiles.id = auth.uid() 
-            AND profiles.role IN ('admin', 'moderator')
-          ));
-      `
-
-      // Como não podemos executar SQL diretamente, vamos usar uma abordagem alternativa
-      // Primeiro, vamos verificar se conseguimos fazer uma operação de DELETE de teste
-      console.log(
-        '✅ Políticas de DELETE configuradas (ver arquivo fix_delete_policies.sql)',
-      )
-      toast.success(
-        'Execute o arquivo fix_delete_policies.sql no Supabase Dashboard para corrigir as políticas de DELETE',
-      )
-    } catch (error) {
-      console.error('❌ Erro ao configurar políticas:', error)
-    }
-  }
-
   useEffect(() => {
     if (isOpen && !authLoading) {
       if (!isAdmin) {
@@ -168,113 +74,31 @@ export default function AdminDashboard({
   }, [isOpen, isAdmin, authLoading])
 
   const loadDashboardData = async () => {
-    if (!isSupabaseConfigured) return
-
     setLoading(true)
     console.log('🔄 Iniciando carregamento do dashboard admin...')
     try {
-      // Carregar estatísticas
-      const [
-        memesCount,
-        usersCount,
-        downloadsCount,
-        pendingCount,
-      ] = await Promise.all([
-        supabase
-          .from('memes')
-          .select('*', { count: 'exact', head: true })
-          .eq('status', 'approved'),
-        supabase.from('profiles').select('*', { count: 'exact', head: true }),
-        supabase
-          .from('meme_downloads')
-          .select('*', { count: 'exact', head: true }),
-        supabase
-          .from('memes')
-          .select('*', { count: 'exact', head: true })
-          .eq('status', 'pending'),
-      ])
+      const data = await apiGet<{
+        stats: {
+          totalMemes: number
+          totalUsers: number
+          totalDownloads: number
+          pendingMemes: number
+        }
+        pending: Meme[]
+        memes: Meme[]
+      }>('/api/admin/dashboard')
 
-      setStats({
-        totalMemes: memesCount.count || 0,
-        totalUsers: usersCount.count || 0,
-        totalDownloads: downloadsCount.count || 0,
-        pendingMemes: pendingCount.count || 0,
-      })
-
-      // Carregar memes pendentes (da tabela memes, não memes) - OTIMIZADO
-      const { data: pendingData, error: pendingError } = await supabase
-        .from('memes')
-        .select(
-          `
-          id,
-          title,
-          description,
-          image_url,
-          status,
-          created_at,
-          categories!inner(name),
-          profiles:uploaded_by(username)
-        `,
-        )
-        .eq('status', 'pending')
-        .order('created_at', { ascending: false })
-        .limit(50)
-
-      if (pendingError) throw pendingError
-      // Transformar para o formato esperado - OTIMIZADO
-      const transformedPendingMemes = (pendingData || []).map((meme) => ({
-        ...meme,
-        category: meme.categories?.name || 'Sem categoria',
-        uploaded_by_username: meme.profiles?.username || 'Anónimo',
-      }))
-      setPendingMemes(transformedPendingMemes)
-
-      // Carregar todos os memes para gerenciamento - OTIMIZADO COM PAGINAÇÃO
-      const { data: allMemesData, error: allMemesError } = await supabase
-        .from('memes')
-        .select(
-          `
-          id,
-          title,
-          description,
-          image_url,
-          status,
-          created_at,
-          category_id,
-          download_count,
-          categories!inner(name),
-          profiles:uploaded_by(username)
-        `,
-        )
-        .order('created_at', { ascending: false })
-        .limit(100)
-
-      if (allMemesError) throw allMemesError
-
-      // Transformar dados para incluir category como string - OTIMIZADO
-      const transformedMemes = (allMemesData || []).map((meme) => ({
-        ...meme,
-        category: meme.categories?.name || 'Sem categoria',
-        uploaded_by_username: meme.profiles?.username || 'Anónimo',
-      }))
-
-      setAllMemes(transformedMemes)
+      setStats(data.stats)
+      setPendingMemes(data.pending)
+      setAllMemes(data.memes)
       console.log('✅ Dashboard carregado com sucesso!')
     } catch (error) {
-      console.error('❌ Erro ao carregar dados do dashboard:', error)
+      console.error('âŒ Erro ao carregar dados do dashboard:', error)
       toast.error(
-        `Erro ao carregar dados: ${error.message || 'Erro desconhecido'}`,
+        `Erro ao carregar dados: ${
+          error instanceof Error ? error.message : 'Erro desconhecido'
+        }`,
       )
-
-      // Se a tabela memes não existir, mostrar mensagem específica
-      if (error.message?.includes('memes') || error.code === 'PGRST116') {
-        toast.error(
-          'Tabela memes não encontrada. Execute o script SQL primeiro!',
-          {
-            duration: 8000,
-          },
-        )
-      }
     } finally {
       setLoading(false)
     }
@@ -282,41 +106,31 @@ export default function AdminDashboard({
 
   const approvePendingMeme = async (memeId: string) => {
     try {
-      const { error } = await supabase
-        .from('memes')
-        .update({
-          status: 'approved',
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', memeId)
-
-      if (error) throw error
-
+      await apiPatch(`/api/memes/${memeId}`, { status: 'approved' })
       toast.success('Meme aprovado com sucesso!')
       loadDashboardData() // Recarregar dados
     } catch (error) {
       console.error('Erro ao aprovar meme:', error)
-      toast.error(`Erro ao aprovar meme: ${error.message}`)
+      toast.error(
+        `Erro ao aprovar meme: ${
+          error instanceof Error ? error.message : 'Erro desconhecido'
+        }`,
+      )
     }
   }
 
-  const rejectPendingMeme = async (memeId: string, reason?: string) => {
+  const rejectPendingMeme = async (memeId: string) => {
     try {
-      const { error } = await supabase
-        .from('memes')
-        .update({
-          status: 'rejected',
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', memeId)
-
-      if (error) throw error
-
+      await apiPatch(`/api/memes/${memeId}`, { status: 'rejected' })
       toast.success('Meme rejeitado')
       loadDashboardData() // Recarregar dados
     } catch (error) {
       console.error('Erro ao rejeitar meme:', error)
-      toast.error(`Erro ao rejeitar meme: ${error.message}`)
+      toast.error(
+        `Erro ao rejeitar meme: ${
+          error instanceof Error ? error.message : 'Erro desconhecido'
+        }`,
+      )
     }
   }
 
@@ -325,105 +139,15 @@ export default function AdminDashboard({
 
     setDeletingMemeId(memeId)
     try {
-      if (!isSupabaseConfigured || !supabase) {
-        toast.error('Supabase não configurado')
-        return
-      }
-
-      console.log('Iniciando deleção do meme:', memeId)
-
-      // Verificar se o meme existe
-      const { data: memeExists, error: checkError } = await supabase
-        .from('memes')
-        .select('id, title')
-        .eq('id', memeId)
-        .single()
-
-      if (checkError) {
-        console.error('Erro ao verificar meme:', checkError)
-        toast.error('Meme não encontrado')
-        return
-      }
-
-      console.log('Meme encontrado:', memeExists)
-
-      // Primeiro, deletar registros relacionados para evitar conflitos de foreign key
-      console.log('Deletando registros relacionados...')
-
-      const { error: favError } = await supabase
-        .from('user_favorites')
-        .delete()
-        .eq('meme_id', memeId)
-
-      if (favError && favError.code !== 'PGRST116') {
-        // PGRST116 = no rows found (ok se não há favoritos)
-        console.error('Erro ao deletar favoritos:', favError)
-      }
-
-      const { error: downloadError } = await supabase
-        .from('meme_downloads')
-        .delete()
-        .eq('meme_id', memeId)
-
-      if (downloadError && downloadError.code !== 'PGRST116') {
-        console.error('Erro ao deletar downloads:', downloadError)
-      }
-
-      const { error: viewError } = await supabase
-        .from('meme_views')
-        .delete()
-        .eq('meme_id', memeId)
-
-      if (viewError && viewError.code !== 'PGRST116') {
-        console.error('Erro ao deletar views:', viewError)
-      }
-
-      const { error: tagError } = await supabase
-        .from('meme_tags')
-        .delete()
-        .eq('meme_id', memeId)
-
-      if (tagError && tagError.code !== 'PGRST116') {
-        console.error('Erro ao deletar tags:', tagError)
-      }
-
-      console.log(
-        'Registros relacionados deletados. Deletando meme principal...',
-      )
-
-      // Depois deletar o meme
-      const { error: deleteError } = await supabase
-        .from('memes')
-        .delete()
-        .eq('id', memeId)
-
-      if (deleteError) {
-        console.error('Erro detalhado ao deletar meme:', deleteError)
-
-        // Se o erro for de política RLS, sugerir solução
-        if (
-          deleteError.code === '42501' ||
-          deleteError.message?.includes('policy')
-        ) {
-          toast.error(
-            '❌ Erro de permissão: Execute o arquivo fix_delete_policies.sql no Supabase Dashboard',
-          )
-          console.log(
-            '💡 Solução: Execute o script fix_delete_policies.sql para corrigir as políticas de DELETE',
-          )
-          return
-        }
-
-        throw deleteError
-      }
-
-      console.log('Meme deletado com sucesso!')
+      await apiDelete(`/api/memes/${memeId}`)
       toast.success('Meme deletado com sucesso!')
       await loadDashboardData()
     } catch (error) {
       console.error('Erro ao deletar meme:', error)
       toast.error(
-        `Erro ao deletar meme: ${error?.message || 'Erro desconhecido'}`,
+        `Erro ao deletar meme: ${
+          error instanceof Error ? error.message : 'Erro desconhecido'
+        }`,
       )
     } finally {
       setDeletingMemeId(null)
@@ -671,7 +395,7 @@ export default function AdminDashboard({
                   </p>
                   <p>
                     <strong>Enviado por:</strong>{' '}
-                    {meme.profiles?.username || 'Anónimo'}
+                    {meme.uploaded_by_name || 'Anónimo'}
                   </p>
                   <p>
                     <strong>Data:</strong>{' '}
@@ -721,25 +445,6 @@ export default function AdminDashboard({
         </div>
 
         {/* Botão para configurar políticas de DELETE */}
-        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-xl p-4 mb-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h4 className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
-                🔧 Problema com função de deletar?
-              </h4>
-              <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
-                Se a função de deletar memes não está funcionando, execute o
-                arquivo fix_delete_policies.sql no Supabase Dashboard.
-              </p>
-            </div>
-            <button
-              onClick={setupDeletePolicies}
-              className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg text-sm font-medium transition-colors"
-            >
-              Diagnosticar
-            </button>
-          </div>
-        </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
           <div className="overflow-x-auto">
@@ -910,21 +615,15 @@ export default function AdminDashboard({
   }
 
   const updateMeme = async () => {
-    if (!editingMeme || !supabase) return
+    if (!editingMeme) return
 
     try {
-      const { error } = await supabase
-        .from('memes')
-        .update({
-          title: editForm.title,
-          description: editForm.description,
-          category_id: editForm.category_id,
-          status: editForm.status,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', editingMeme.id)
-
-      if (error) throw error
+      await apiPatch(`/api/memes/${editingMeme.id}`, {
+        title: editForm.title,
+        description: editForm.description,
+        category_id: editForm.category_id,
+        status: editForm.status,
+      })
 
       toast.success('Meme atualizado com sucesso!')
       closeEditModal()

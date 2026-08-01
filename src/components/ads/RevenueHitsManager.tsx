@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import {
   BarChart3,
@@ -36,26 +36,6 @@ export default function RevenueHitsManager({
   const [isOptimizing, setIsOptimizing] = useState(false)
   const [adPerformance, setAdPerformance] = useState<AdMetrics[]>([])
 
-  // IDs únicos para cada anúncio
-  const adIds = [
-    'rh_header_001',
-    'rh_inline_001',
-    'rh_inline_002',
-    'rh_inline_003',
-    'rh_sidebar_001',
-    'rh_footer_001',
-  ]
-
-  // Posições dos anúncios
-  const adPositions = [
-    'header',
-    'inline-1',
-    'inline-2',
-    'inline-3',
-    'sidebar',
-    'footer',
-  ]
-
   // Registrar impressão
   const handleImpression = useCallback((adId: string, position: string) => {
     setTotalImpressions((prev) => prev + 1)
@@ -91,7 +71,7 @@ export default function RevenueHitsManager({
   }, [])
 
   // Registrar clique
-  const handleClick = useCallback((adId: string, position: string) => {
+  const handleClick = useCallback((adId: string) => {
     setTotalClicks((prev) => prev + 1)
 
     // Calcular revenue estimado (CPM médio $5-10)
@@ -162,7 +142,7 @@ export default function RevenueHitsManager({
             <button
               onClick={optimizeAdPlacement}
               disabled={isOptimizing}
-              className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+              className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
             >
               {isOptimizing ? (
                 <RefreshCw className="w-4 h-4 animate-spin" />
@@ -225,7 +205,7 @@ export default function RevenueHitsManager({
           </div>
 
           {/* Revenue estimado */}
-          <div className="bg-gradient-to-r from-green-500 to-blue-600 text-white p-4 rounded-lg">
+          <div className="bg-primary-700 text-white p-4 rounded-lg">
             <div className="flex items-center justify-between">
               <div>
                 <h4 className="font-semibold mb-1">Revenue Estimado (CPM)</h4>
@@ -308,16 +288,31 @@ export default function RevenueHitsManager({
       {/* Sistema de 6 Anúncios */}
       <div className="space-y-6">
         {/* 1. Header Ad */}
-        <HeaderAd />
+        <HeaderAd
+          onImpression={() => handleImpression('rh_header_001', 'header')}
+          onClick={() => handleClick('rh_header_001')}
+        />
 
         {/* 2. Inline Ad 1 */}
-        <InlineAd id="rh_inline_001" />
+        <InlineAd
+          id="rh_inline_001"
+          onImpression={() => handleImpression('rh_inline_001', 'inline-1')}
+          onClick={() => handleClick('rh_inline_001')}
+        />
 
         {/* 3. Inline Ad 2 */}
-        <InlineAd id="rh_inline_002" />
+        <InlineAd
+          id="rh_inline_002"
+          onImpression={() => handleImpression('rh_inline_002', 'inline-2')}
+          onClick={() => handleClick('rh_inline_002')}
+        />
 
         {/* 4. Inline Ad 3 */}
-        <InlineAd id="rh_inline_003" />
+        <InlineAd
+          id="rh_inline_003"
+          onImpression={() => handleImpression('rh_inline_003', 'inline-3')}
+          onClick={() => handleClick('rh_inline_003')}
+        />
 
         {/* 5. Sidebar Ad */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -330,12 +325,18 @@ export default function RevenueHitsManager({
             </div>
           </div>
           <div className="lg:col-span-1">
-            <SidebarAd />
+            <SidebarAd
+              onImpression={() => handleImpression('rh_sidebar_001', 'sidebar')}
+              onClick={() => handleClick('rh_sidebar_001')}
+            />
           </div>
         </div>
 
         {/* 6. Footer Ad */}
-        <FooterAd />
+        <FooterAd
+          onImpression={() => handleImpression('rh_footer_001', 'footer')}
+          onClick={() => handleClick('rh_footer_001')}
+        />
       </div>
     </div>
   )

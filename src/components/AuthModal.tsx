@@ -38,11 +38,15 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
       } else {
         const { error } = await signUp(formData.email, formData.password, formData.username);
         if (error) throw error;
-        toast.success('Conta criada com sucesso! Verifique seu email.');
+        toast.success('Conta criada com sucesso!');
       }
       onClose();
-    } catch (error: any) {
-      toast.error(error.message || 'Erro ao processar solicitação');
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : 'Erro ao processar solicitação',
+      );
     } finally {
       setLoading(false);
     }
@@ -92,8 +96,8 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 é necessário configurar o Supabase.
               </p>
               
-              <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-                <p className="text-sm text-blue-800 dark:text-blue-200">
+              <div className="bg-primary-50 dark:bg-primary-900/20 p-4 rounded-lg">
+                <p className="text-sm text-primary-800 dark:text-primary-200">
                   <strong>Você ainda pode:</strong> Navegar, buscar, baixar memes e usar favoritos locais 
                   sem criar uma conta.
                 </p>
@@ -203,7 +207,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     whileTap={{ scale: 0.98 }}
                     type="submit"
                     disabled={loading}
-                    className="w-full bg-gradient-to-r from-primary-500 to-purple-500 text-white py-3 rounded-lg font-medium hover:shadow-lg transition-all duration-300 disabled:opacity-50"
+                    className="w-full bg-primary-600 hover:bg-primary-700 text-white py-3 rounded-lg font-medium hover:shadow-lg transition-all duration-300 disabled:opacity-50"
                   >
                     {loading ? 'Processando...' : (isLogin ? 'Entrar' : 'Criar Conta')}
                   </motion.button>
@@ -220,7 +224,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
               </div>
 
               {/* Benefícios */}
-              <div className="w-full md:w-80 bg-gradient-to-br from-primary-500 to-purple-500 p-6 md:p-8 text-white">
+              <div className="w-full md:w-80 bg-primary-700 p-6 md:p-8 text-white">
                 <h3 className="text-xl font-bold mb-6">
                   Benefícios da Conta
                 </h3>

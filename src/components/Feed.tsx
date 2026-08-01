@@ -1,14 +1,10 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Heart,
   Download,
   Share2,
-  Filter,
   Loader,
-  ChevronDown,
-  X,
-  Settings,
   TrendingUp,
   Clock,
   Star,
@@ -21,20 +17,15 @@ import DownloadStatus from './DownloadStatus'
 import MemeViewModal from './MemeViewModal'
 import UserInterests from './UserInterests'
 import OptimizedImage from './OptimizedImage'
-import type { Meme } from '../lib/supabase'
+import type { Meme } from '../lib/types'
 import toast from 'react-hot-toast'
 
 interface FeedProps {
   className?: string
   onAuthClick?: () => void
-  onCategoryClick?: (category: string) => void
 }
 
-export default function Feed({
-  className = '',
-  onAuthClick,
-  onCategoryClick,
-}: FeedProps) {
+export default function Feed({ className = '', onAuthClick }: FeedProps) {
   const {
     memes,
     loading,
@@ -45,72 +36,27 @@ export default function Feed({
     downloadMeme,
     hasMore,
     loadingMore,
-    loadMore,
     resetToFirstPage,
     filterByCategory,
-    searchMemes,
   } = useOptimizedMemes({
     pageSize: 20,
     preloadDistance: 800,
   })
-  const { categories, loading: categoriesLoading } = useStats()
+  const { categories } = useStats()
   const { user } = useAuth()
-  const { canDownload, registerDownload, getDownloadInfo } = useDownloadLimit()
+  const { canDownload, registerDownload } = useDownloadLimit()
 
   const [selectedMeme, setSelectedMeme] = useState<Meme | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isUserInterestsOpen, setIsUserInterestsOpen] = useState(false)
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
-  const [showFilters, setShowFilters] = useState(false)
   const [activeFilter, setActiveFilter] = useState<
     'trending' | 'recent' | 'interests'
   >('trending')
 
-  // Filtrar memes baseado nas categorias selecionadas e filtro ativo
-  const getFilteredMemes = useCallback(() => {
-    let filtered = memes
-
-    // Aplicar filtro de categorias
-    if (selectedCategories.length > 0) {
-      filtered = filtered.filter((meme) =>
-        selectedCategories.includes(meme.category || ''),
-      )
-    }
-
-    // Aplicar filtro de ordenação
-    switch (activeFilter) {
-      case 'trending':
-        filtered = [...filtered].sort((a, b) => {
-          const scoreA =
-            (a.like_count || 0) * 1 +
-            (a.download_count || 0) * 2 +
-            ((a as any).share_count || 0) * 3
-          const scoreB =
-            (b.like_count || 0) * 1 +
-            (b.download_count || 0) * 2 +
-            ((b as any).share_count || 0) * 3
-          return scoreB - scoreA
-        })
-        break
-      case 'recent':
-        filtered = [...filtered].sort((a, b) => {
-          const dateA = new Date(a.created_at || 0).getTime()
-          const dateB = new Date(b.created_at || 0).getTime()
-          return dateB - dateA
-        })
-        break
-      case 'interests':
-        // Manter ordem original para interesses
-        break
-    }
-
-    return filtered
-  }, [memes, selectedCategories, activeFilter])
-
   // Aplicar filtros quando mudar
   useEffect(() => {
     if (selectedCategories.length > 0) {
-      const filtered = getFilteredMemes()
       filterByCategory(selectedCategories[0])
     } else {
       resetToFirstPage()
@@ -118,20 +64,15 @@ export default function Feed({
   }, [
     selectedCategories,
     activeFilter,
-    getFilteredMemes,
     filterByCategory,
     resetToFirstPage,
   ])
 
-  // Toggle categoria
+  // Toggle categoria (seleção única)
   const toggleCategory = (categoryName: string) => {
-    setSelectedCategories((prev) => {
-      if (prev.includes(categoryName)) {
-        return prev.filter((cat) => cat !== categoryName)
-      } else {
-        return [...prev, categoryName]
-      }
-    })
+    setSelectedCategories((prev) =>
+      prev.includes(categoryName) ? [] : [categoryName],
+    )
   }
 
   // Toggle filtro
@@ -155,7 +96,7 @@ export default function Feed({
           ? 'Removido dos favoritos'
           : 'Adicionado aos favoritos',
       )
-    } catch (error) {
+    } catch {
       toast.error('Erro ao atualizar favoritos')
     }
   }
@@ -165,7 +106,7 @@ export default function Feed({
     try {
       await shareMeme(meme.id)
       toast.success('Meme compartilhado com sucesso!')
-    } catch (error) {
+    } catch {
       toast.error('Erro ao compartilhar meme')
     }
   }
@@ -187,7 +128,7 @@ export default function Feed({
 
       await downloadMeme(meme.id)
       toast.success('Download iniciado!')
-    } catch (error) {
+    } catch {
       toast.error('Erro ao fazer download')
     }
   }
@@ -314,17 +255,27 @@ export default function Feed({
         {/* Categorias */}
         {categories && categories.length > 0 && (
           <div className="flex items-center justify-center flex-wrap gap-2">
-            {categories.slice(0, 8).map((category) => (
+            <button
+              onClick={() => setSelectedCategories([])}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${
+                selectedCategories.length === 0
+                  ? 'bg-primary-600 text-white shadow-sm'
+                  : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+              }`}
+            >
+              Todas
+            </button>
+            {categories.map((category) => (
               <button
-                key={category}
-                onClick={() => toggleCategory(category)}
+                key={category.id}
+                onClick={() => toggleCategory(category.name)}
                 className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${
-                  selectedCategories.includes(category)
-                    ? 'bg-primary-500 text-white shadow-sm'
+                  selectedCategories.includes(category.name)
+                    ? 'bg-primary-600 text-white shadow-sm'
                     : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
                 }`}
               >
-                {category}
+                {category.name}
               </button>
             ))}
           </div>
@@ -409,7 +360,7 @@ export default function Feed({
                     >
                       <Share2 className="h-3 w-3" />
                       <span>
-                        {((meme as any).share_count || 0).toLocaleString()}
+                        {(meme.share_count || 0).toLocaleString()}
                       </span>
                     </button>
                   </div>
@@ -463,7 +414,7 @@ export default function Feed({
                 setActiveFilter('trending')
                 resetToFirstPage()
               }}
-              className="bg-primary-500 text-white px-4 py-2 rounded-lg hover:bg-primary-600 transition-colors"
+              className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors"
             >
               Limpar filtros
             </button>

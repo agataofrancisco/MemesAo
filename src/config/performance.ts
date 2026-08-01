@@ -71,8 +71,10 @@ export const PERFORMANCE_CONFIG = {
 export const isSlowDevice = (): boolean => {
   // Verificar se o dispositivo tem memória limitada
   if ("memory" in performance) {
-    const memory = (performance as any).memory;
-    if (memory.usedJSHeapSize < 50 * 1024 * 1024) {
+    const memory = (performance as unknown as {
+      memory?: { usedJSHeapSize: number };
+    }).memory;
+    if (memory && memory.usedJSHeapSize < 50 * 1024 * 1024) {
       // < 50MB
       return true;
     }
@@ -80,10 +82,13 @@ export const isSlowDevice = (): boolean => {
 
   // Verificar se é um dispositivo móvel com conexão lenta
   if ("connection" in navigator) {
-    const connection = (navigator as any).connection;
+    const connection = (navigator as unknown as {
+      connection?: { effectiveType: string };
+    }).connection;
     if (
-      connection.effectiveType === "slow-2g" ||
-      connection.effectiveType === "2g"
+      connection &&
+      (connection.effectiveType === "slow-2g" ||
+        connection.effectiveType === "2g")
     ) {
       return true;
     }
@@ -125,24 +130,24 @@ export const getOptimizedConfig = () => {
 };
 
 // Função para debounce
-export const debounce = <T extends (...args: any[]) => any>(
-  func: T,
+export const debounce = <Args extends unknown[]>(
+  func: (...args: Args) => unknown,
   wait: number
-): ((...args: Parameters<T>) => void) => {
+): ((...args: Args) => void) => {
   let timeout: NodeJS.Timeout;
-  return (...args: Parameters<T>) => {
+  return (...args: Args) => {
     clearTimeout(timeout);
     timeout = setTimeout(() => func(...args), wait);
   };
 };
 
 // Função para throttle
-export const throttle = <T extends (...args: any[]) => any>(
-  func: T,
+export const throttle = <Args extends unknown[]>(
+  func: (...args: Args) => unknown,
   limit: number
-): ((...args: Parameters<T>) => void) => {
+): ((...args: Args) => void) => {
   let inThrottle: boolean;
-  return (...args: Parameters<T>) => {
+  return (...args: Args) => {
     if (!inThrottle) {
       func(...args);
       inThrottle = true;

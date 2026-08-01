@@ -1,12 +1,11 @@
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ArrowLeft, Heart, Download, Share2, Eye, Trophy } from 'lucide-react'
 import { useMemes } from '../hooks/useMemes'
 import { useMetaTags } from '../hooks/useMetaTags'
-import { supabase } from '../lib/supabase'
-import type { Meme } from '../lib/supabase'
-import toast from 'react-hot-toast'
+import { apiGet } from '../lib/api'
+import type { Meme } from '../lib/types'
 
 export default function MemePage() {
   const { memeId } = useParams<{ memeId: string }>()
@@ -14,49 +13,7 @@ export default function MemePage() {
 
   console.log('MemePage renderizado com memeId:', memeId)
 
-  // Verificar se memeId existe
-  if (!memeId) {
-    console.log('memeId não fornecido')
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-primary-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
-        <div className="text-center">
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-8 max-w-md mx-auto">
-            <p className="text-red-600 dark:text-red-300">
-              ID do meme não fornecido
-            </p>
-            <button
-              onClick={() => navigate('/')}
-              className="mt-4 bg-primary-500 text-white px-4 py-2 rounded-lg hover:bg-primary-600 transition-colors"
-            >
-              Voltar ao início
-            </button>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  // Usar try-catch para evitar erros no hook
-  let memeHooks
-  try {
-    memeHooks = useMemes()
-    console.log('useMemes carregado com sucesso:', memeHooks)
-  } catch (err) {
-    console.error('Erro ao carregar useMemes:', err)
-    memeHooks = {
-      toggleFavorite: () => Promise.resolve(),
-      favorites: [],
-      downloadMeme: () => Promise.resolve(),
-      shareMemeWithUrl: () => Promise.resolve(),
-    }
-  }
-
-  const {
-    toggleFavorite,
-    favorites,
-    downloadMeme,
-    shareMemeWithUrl,
-  } = memeHooks
+  const { toggleFavorite, favorites, downloadMeme, shareMemeWithUrl } = useMemes()
 
   const [meme, setMeme] = useState<Meme | null>(null)
   const [loading, setLoading] = useState(true)
@@ -82,42 +39,12 @@ export default function MemePage() {
         setLoading(true)
         console.log('Loading meme with ID:', memeId)
 
-        console.log('Tentando buscar meme no Supabase...')
+        const data = await apiGet<{ meme: Meme }>(
+          `/api/memes/${encodeURIComponent(memeId)}`,
+        )
 
-        // Buscar meme com todas as informações
-        const { data, error } = await supabase
-          .from('memes')
-          .select(
-            `
-            *,
-            category:categories(name),
-            profile:profiles(username, full_name)
-          `,
-          )
-          .eq('id', memeId)
-          .eq('status', 'approved')
-          .single()
-
-        console.log('Resposta do Supabase:', { data, error })
-
-        if (error) throw error
-
-        if (data) {
-          // Transformar dados
-          const transformedMeme = {
-            ...data,
-            category: data.category?.name || 'Sem categoria',
-            uploaded_by_name:
-              data.profile?.username || data.profile?.full_name || 'Anônimo',
-          }
-
-          setMeme(transformedMeme)
-
-          // Incrementar view count
-          await supabase
-            .from('memes')
-            .update({ view_count: (data.view_count || 0) + 1 })
-            .eq('id', memeId)
+        if (data.meme) {
+          setMeme(data.meme)
         }
       } catch (err) {
         console.error('Erro ao carregar meme:', err)
@@ -129,6 +56,28 @@ export default function MemePage() {
 
     loadMeme()
   }, [memeId])
+
+  // Verificar se memeId existe
+  if (!memeId) {
+    console.log('memeId não fornecido')
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-8 max-w-md mx-auto">
+            <p className="text-red-600 dark:text-red-300">
+              ID do meme não fornecido
+            </p>
+            <button
+              onClick={() => navigate('/')}
+              className="mt-4 bg-primary-500 text-white px-4 py-2 rounded-lg hover:bg-primary-600 transition-colors"
+            >
+              Voltar ao início
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   const handleBack = () => {
     navigate('/')
@@ -152,7 +101,7 @@ export default function MemePage() {
   if (loading) {
     console.log('Renderizando loading...')
     return (
-      <div className="min-h-screen bg-gradient-to-br from-primary-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-500 mx-auto"></div>
           <p className="mt-4 text-gray-600 dark:text-gray-400">
@@ -165,7 +114,7 @@ export default function MemePage() {
 
   if (error || !meme) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-primary-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
           <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-8 max-w-md mx-auto">
             <p className="text-red-600 dark:text-red-300">
@@ -187,7 +136,7 @@ export default function MemePage() {
   const score =
     (meme.like_count || 0) +
     (meme.download_count || 0) * 2 +
-    ((meme as any).share_count || 0) * 3
+    (meme.share_count || 0) * 3
 
   // Meta tags para SEO e partilhas (comentado temporariamente para debug)
   // useMetaTags({
@@ -199,7 +148,7 @@ export default function MemePage() {
   // })
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-purple-50 dark:from-gray-900 dark:to-gray-800">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
       <div className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -256,9 +205,9 @@ export default function MemePage() {
               </p>
               <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
                 <span>Categoria: {meme.category}</span>
-                <span>•</span>
+                <span>⬢</span>
                 <span>Por: {meme.uploaded_by_name}</span>
-                <span>•</span>
+                <span>⬢</span>
                 <span>
                   {new Date(meme.created_at).toLocaleDateString('pt-BR')}
                 </span>
@@ -281,7 +230,7 @@ export default function MemePage() {
 
               <div className="text-center">
                 <div className="flex items-center justify-center mb-1">
-                  <Download className="h-5 w-5 text-blue-500" />
+                  <Download className="h-5 w-5 text-primary-500" />
                 </div>
                 <div className="text-2xl font-bold text-gray-900 dark:text-white">
                   {(meme.download_count || 0).toLocaleString()}
@@ -293,10 +242,10 @@ export default function MemePage() {
 
               <div className="text-center">
                 <div className="flex items-center justify-center mb-1">
-                  <Share2 className="h-5 w-5 text-green-500" />
+                  <Share2 className="h-5 w-5 text-success-500" />
                 </div>
                 <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {((meme as any).share_count || 0).toLocaleString()}
+                  {(meme.share_count || 0).toLocaleString()}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400">
                   Partilhas
@@ -305,7 +254,7 @@ export default function MemePage() {
 
               <div className="text-center">
                 <div className="flex items-center justify-center mb-1">
-                  <Trophy className="h-5 w-5 text-yellow-500" />
+                  <Trophy className="h-5 w-5 text-accent-500" />
                 </div>
                 <div className="text-2xl font-bold text-gray-900 dark:text-white">
                   {score.toLocaleString()}
@@ -334,7 +283,7 @@ export default function MemePage() {
 
               <button
                 onClick={handleDownload}
-                className="flex-1 flex items-center justify-center px-6 py-3 bg-blue-500 text-white rounded-xl font-medium hover:bg-blue-600 transition-all duration-200"
+                className="flex-1 flex items-center justify-center px-6 py-3 bg-primary-600 text-white rounded-xl font-medium hover:bg-primary-700 transition-all duration-200"
               >
                 <Download className="h-5 w-5 mr-2" />
                 Download
@@ -342,7 +291,7 @@ export default function MemePage() {
 
               <button
                 onClick={handleShare}
-                className="flex-1 flex items-center justify-center px-6 py-3 bg-green-500 text-white rounded-xl font-medium hover:bg-green-600 transition-all duration-200"
+                className="flex-1 flex items-center justify-center px-6 py-3 bg-success-600 text-white rounded-xl font-medium hover:bg-success-700 transition-all duration-200"
               >
                 <Share2 className="h-5 w-5 mr-2" />
                 Partilhar

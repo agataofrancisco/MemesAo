@@ -1,17 +1,5 @@
-import { createClient } from "@supabase/supabase-js";
+// Tipos partilhados entre a SPA e a API do Worker (Cloudflare).
 
-const supabaseUrl = "https://zsiqcnwnisfdkaiibpxf.supabase.co";
-const supabaseAnonKey =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpzaXFjbnduaXNmZGthaWlicHhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTExMDMyNzQsImV4cCI6MjA2NjY3OTI3NH0.mgMcls6TaEkoTuxp6iLOlQ_m4NKri0vHHqEAfUV7lKg";
-
-// Verificar se as variáveis de ambiente estão configuradas
-export const isSupabaseConfigured = !!(supabaseUrl && supabaseAnonKey);
-
-export const supabase = isSupabaseConfigured
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : null;
-
-// Tipos para o banco de dados baseados nas migrações
 export interface Profile {
   id: string;
   username: string | null;
@@ -28,7 +16,9 @@ export interface Category {
   id: string;
   name: string;
   description?: string;
-  created_at: string;
+  icon?: string;
+  color?: string;
+  created_at?: string;
 }
 
 export interface Meme {
@@ -49,10 +39,11 @@ export interface Meme {
   status: "pending" | "approved" | "rejected";
   ocr_text: string | null;
   category?: string;
-  profile?: { username: string };
+  profile?: { username?: string | null; full_name?: string | null } | null;
   like_count?: number;
   share_count?: number;
-  // Novos campos para multi-categorias
+  uploaded_by_name?: string;
+  // Multi-categorias
   categories?: Category[];
   category_names?: string[];
 }

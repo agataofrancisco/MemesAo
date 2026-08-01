@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   Plus,
@@ -7,8 +7,6 @@ import {
   Eye,
   MousePointer,
   TrendingUp,
-  Calendar,
-  Target,
   BarChart3,
   Save,
   X,
@@ -22,7 +20,7 @@ interface AdAdminPanelProps {
 }
 
 export default function AdAdminPanel({ isOpen, onClose }: AdAdminPanelProps) {
-  const { ads, placements, loading, error, refreshAds } = useAds()
+  const { ads, refreshAds } = useAds()
   const [activeTab, setActiveTab] = useState<
     'overview' | 'create' | 'edit' | 'analytics'
   >('overview')
@@ -622,7 +620,11 @@ export default function AdAdminPanel({ isOpen, onClose }: AdAdminPanelProps) {
             ].map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
+                onClick={() =>
+                  setActiveTab(
+                    tab.id as 'overview' | 'create' | 'edit' | 'analytics',
+                  )
+                }
                 className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
                   activeTab === tab.id
                     ? 'border-blue-500 text-blue-600 dark:text-blue-400'
