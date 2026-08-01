@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import {
-  BrowserRouter as Router,
   Routes,
   Route,
   useLocation,
@@ -32,21 +31,19 @@ function App() {
 
   return (
     <ThemeProvider>
-      <Router>
-        <AppContent
-          isAuthOpen={isAuthOpen}
-          setIsAuthOpen={setIsAuthOpen}
-          isUploadOpen={isUploadOpen}
-          setIsUploadOpen={setIsUploadOpen}
-          isSearchOpen={isSearchOpen}
-          setIsSearchOpen={setIsSearchOpen}
-          isAdminOpen={isAdminOpen}
-          setIsAdminOpen={setIsAdminOpen}
-          currentPage={currentPage}
-          setCurrentPage={setCurrentPage}
-          handleFeedClick={handleFeedClick}
-        />
-      </Router>
+      <AppContent
+        isAuthOpen={isAuthOpen}
+        setIsAuthOpen={setIsAuthOpen}
+        isUploadOpen={isUploadOpen}
+        setIsUploadOpen={setIsUploadOpen}
+        isSearchOpen={isSearchOpen}
+        setIsSearchOpen={setIsSearchOpen}
+        isAdminOpen={isAdminOpen}
+        setIsAdminOpen={setIsAdminOpen}
+        currentPage={currentPage}
+        setCurrentPage={setCurrentPage}
+        handleFeedClick={handleFeedClick}
+      />
     </ThemeProvider>
   )
 }
