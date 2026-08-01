@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Plus, Tag } from 'lucide-react'
-import { useStats } from '../hooks/useStats'
+import { useAllCategories } from '../hooks/useAllCategories'
 
 interface MultiCategorySelectorProps {
   selectedCategories: string[]
@@ -16,27 +16,30 @@ export default function MultiCategorySelector({
   maxCategories = 5,
   className = '',
 }: MultiCategorySelectorProps) {
-  const { categories, loading } = useStats()
+  const { categories, loading } = useAllCategories()
   const [showSelector, setShowSelector] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
 
+  const categoryName = (id: string) =>
+    categories.find((c) => c.id === id)?.name || id
+
   const availableCategories = categories.filter(
-    (cat) => !selectedCategories.includes(cat.name),
+    (cat) => !selectedCategories.includes(cat.id),
   )
 
   const filteredCategories = availableCategories.filter((cat) =>
     cat.name.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
-  const addCategory = (categoryName: string) => {
+  const addCategory = (categoryId: string) => {
     if (selectedCategories.length < maxCategories) {
-      onCategoriesChange([...selectedCategories, categoryName])
+      onCategoriesChange([...selectedCategories, categoryId])
       setSearchTerm('')
     }
   }
 
-  const removeCategory = (categoryName: string) => {
-    onCategoriesChange(selectedCategories.filter((cat) => cat !== categoryName))
+  const removeCategory = (categoryId: string) => {
+    onCategoriesChange(selectedCategories.filter((cat) => cat !== categoryId))
   }
 
   const toggleSelector = () => {
@@ -50,19 +53,19 @@ export default function MultiCategorySelector({
     <div className={`space-y-3 ${className}`}>
       {/* Categorias Selecionadas */}
       <div className="flex flex-wrap gap-2">
-        {selectedCategories.map((categoryName) => (
+        {selectedCategories.map((categoryId) => (
           <motion.div
-            key={categoryName}
+            key={categoryId}
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
             className="flex items-center bg-primary-100 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 px-3 py-1.5 rounded-full text-sm font-medium"
           >
             <Tag className="h-3 w-3 mr-1.5" />
-            {categoryName}
+            {categoryName(categoryId)}
             <button
               type="button"
-              onClick={() => removeCategory(categoryName)}
+              onClick={() => removeCategory(categoryId)}
               className="ml-2 hover:bg-primary-200 dark:hover:bg-primary-800/30 rounded-full p-0.5 transition-colors"
             >
               <X className="h-3 w-3" />
@@ -117,7 +120,7 @@ export default function MultiCategorySelector({
                   <button
                     type="button"
                     key={category.id}
-                    onClick={() => addCategory(category.name)}
+                    onClick={() => addCategory(category.id)}
                     className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors group"
                   >
                     <div className="flex items-center">

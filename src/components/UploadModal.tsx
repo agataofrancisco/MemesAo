@@ -7,6 +7,7 @@ import {
   Loader,
   Trash2,
   Check,
+  Tag,
 } from 'lucide-react'
 import { useMemes } from '../hooks/useMemes'
 import { useAllCategories } from '../hooks/useAllCategories'
@@ -40,7 +41,7 @@ interface CropQueueItem {
 
 export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
   const [files, setFiles] = useState<MemeFile[]>([])
-  const [globalCategory, setGlobalCategory] = useState('')
+  const [globalCategories, setGlobalCategories] = useState<string[]>([])
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [cropQueue, setCropQueue] = useState<CropQueueItem[]>([])
@@ -53,7 +54,7 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
   useEffect(() => {
     if (!isOpen) {
       setFiles([])
-      setGlobalCategory('')
+      setGlobalCategories([])
       setUploading(false)
       setUploadProgress(0)
       setCropQueue([])
@@ -69,13 +70,6 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
     setCropQueue((q) => q.slice(1))
     setCropTarget(next)
   }, [cropQueue, cropTarget])
-
-  // Selecionar primeira categoria automaticamente quando carregadas
-  useEffect(() => {
-    if (categories.length > 0 && !globalCategory) {
-      setGlobalCategory(categories[0].id)
-    }
-  }, [categories, globalCategory])
 
   const handleFilesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(e.target.files || [])
@@ -139,7 +133,7 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
         preview: ev.target?.result as string,
         title: target.file.name.replace(/\.[^/.]+$/, ''), // Nome do arquivo sem extensão
         description: '',
-        categories: globalCategory ? [globalCategory] : [], // Inicializa com categoria global se existir
+        categories: [...globalCategories], // Inicializa com categorias globais se existirem
         tags: '',
         uploading: false,
         completed: false,
@@ -165,15 +159,15 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
   }
 
   const applyGlobalCategory = () => {
-    if (!globalCategory) {
+    if (globalCategories.length === 0) {
       toast.error('Selecione uma categoria global primeiro')
       return
     }
 
     setFiles((prev) =>
-      prev.map((file) => ({ ...file, categories: [globalCategory] })),
+      prev.map((file) => ({ ...file, categories: [...globalCategories] })),
     )
-    toast.success('Categoria aplicada a todos os memes')
+    toast.success('Categoria(s) aplicada(s) a todos os memes')
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -330,12 +324,8 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
                         Categorias Globais (Aplicar a todos)
                       </label>
                       <MultiCategorySelector
-                        selectedCategories={
-                          globalCategory ? [globalCategory] : []
-                        }
-                        onCategoriesChange={(cats) =>
-                          setGlobalCategory(cats[0] || '')
-                        }
+                        selectedCategories={globalCategories}
+                        onCategoriesChange={setGlobalCategories}
                         maxCategories={3}
                         className="mb-3"
                       />
@@ -344,7 +334,7 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
                       type="button"
                       onClick={applyGlobalCategory}
                       className="ml-4 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors disabled:opacity-50"
-                      disabled={!globalCategory || uploading}
+                      disabled={globalCategories.length === 0 || uploading}
                     >
                       Aplicar
                     </button>
@@ -430,6 +420,20 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
                             {file.error && (
                               <div className="text-red-600 text-sm">
                                 {file.error}
+                              </div>
+                            )}
+
+                            {file.categories.length > 0 && (
+                              <div className="flex flex-wrap gap-1.5">
+                                {file.categories.map((catId) => (
+                                  <span
+                                    key={catId}
+                                    className="inline-flex items-center text-xs px-2 py-1 rounded-full bg-primary-100 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 font-medium"
+                                  >
+                                    <Tag className="h-3 w-3 mr-1" />
+                                    {categories.find((c) => c.id === catId)?.name || catId}
+                                  </span>
+                                ))}
                               </div>
                             )}
 
