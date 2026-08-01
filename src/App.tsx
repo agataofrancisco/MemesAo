@@ -15,9 +15,8 @@ import SearchModal from './components/SearchModal'
 import AdminDashboard from './components/AdminDashboard'
 import MemePage from './components/MemePage'
 import Feed from './components/Feed'
-import RevenueHitsManager from './components/ads/RevenueHitsManager'
+// import RevenueHitsManager from './components/ads/RevenueHitsManager'
 import RevenueHitsConfig from './components/ads/RevenueHitsConfig'
-
 function App() {
   const [isAuthOpen, setIsAuthOpen] = useState(false)
   const [isUploadOpen, setIsUploadOpen] = useState(false)
@@ -87,12 +86,13 @@ function AppContent({
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors overflow-x-hidden">
-      {/* Sistema de Anúncios RevenueHits */}
+      {/* Sistema de Anúncios RevenueHits DESATIVADO — sem anúncios por decisão do dono
       <RevenueHitsManager
         showAnalytics={false}
         enableOptimization={true}
         maxAdsPerPage={6}
       />
+      */}
 
       <Header
         onAuthClick={() => setIsAuthOpen(true)}
