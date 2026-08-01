@@ -11,6 +11,7 @@ import {
 import { useMemes } from '../hooks/useMemes'
 import { useAllCategories } from '../hooks/useAllCategories'
 import MultiCategorySelector from './MultiCategorySelector'
+import ImageCropper from './ImageCropper'
 import toast from 'react-hot-toast'
 
 interface UploadModalProps {
@@ -31,11 +32,19 @@ interface MemeFile {
   error?: string
 }
 
+interface CropQueueItem {
+  id: string
+  file: File
+  src: string
+}
+
 export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
   const [files, setFiles] = useState<MemeFile[]>([])
   const [globalCategory, setGlobalCategory] = useState('')
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
+  const [cropQueue, setCropQueue] = useState<CropQueueItem[]>([])
+  const [cropTarget, setCropTarget] = useState<CropQueueItem | null>(null)
 
   const { uploadMeme } = useMemes()
   const { categories } = useAllCategories()
@@ -47,8 +56,19 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
       setGlobalCategory('')
       setUploading(false)
       setUploadProgress(0)
+      setCropQueue([])
+      setCropTarget(null)
     }
   }, [isOpen])
+
+  // Processar fila de corte: abre o cropper para cada imagem selecionada
+  useEffect(() => {
+    if (cropTarget) return
+    if (cropQueue.length === 0) return
+    const next = cropQueue[0]
+    setCropQueue((q) => q.slice(1))
+    setCropTarget(next)
+  }, [cropQueue, cropTarget])
 
   // Selecionar primeira categoria automaticamente quando carregadas
   useEffect(() => {
@@ -68,51 +88,70 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
       return
     }
 
-    const newFiles: MemeFile[] = []
-
-    selectedFiles.forEach((file) => {
+    const validFiles = selectedFiles.filter((file) => {
       // Verificar tipo de arquivo
       if (!file.type.startsWith('image/')) {
         toast.error(`${file.name} não é uma imagem válida`)
-        return
+        return false
       }
 
       // Verificar tamanho (máximo 5MB)
       if (file.size > 5 * 1024 * 1024) {
         toast.error(`${file.name} é muito grande. Máximo 5MB.`)
-        return
+        return false
       }
 
-      // Criar preview
+      return true
+    })
+
+    if (validFiles.length === 0) {
+      e.target.value = ''
+      return
+    }
+
+    // Cada imagem entra na fila de corte (abre o cropper uma a uma)
+    validFiles.forEach((file) => {
       const reader = new FileReader()
-      reader.onload = (e) => {
-        const memeFile: MemeFile = {
+      reader.onload = (ev) => {
+        const item: CropQueueItem = {
           id: Math.random().toString(36).substring(2),
           file,
-          preview: e.target?.result as string,
-          title: file.name.replace(/\.[^/.]+$/, ''), // Nome do arquivo sem extensão
-          description: '',
-          categories: globalCategory ? [globalCategory] : [], // Inicializa com categoria global se existir
-          tags: '',
-          uploading: false,
-          completed: false,
+          src: ev.target?.result as string,
         }
-        newFiles.push(memeFile)
-
-        if (
-          newFiles.length ===
-          selectedFiles.filter(
-            (f) => f.type.startsWith('image/') && f.size <= 5 * 1024 * 1024,
-          ).length
-        ) {
-          setFiles((prev) => [...prev, ...newFiles])
-        }
+        setCropQueue((q) => [...q, item])
       }
       reader.readAsDataURL(file)
     })
 
     // Limpar input
     e.target.value = ''
+  }
+
+  const handleCropConfirm = (croppedFile: File) => {
+    const target = cropTarget
+    if (!target) return
+
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      const memeFile: MemeFile = {
+        id: target.id,
+        file: croppedFile,
+        preview: ev.target?.result as string,
+        title: target.file.name.replace(/\.[^/.]+$/, ''), // Nome do arquivo sem extensão
+        description: '',
+        categories: globalCategory ? [globalCategory] : [], // Inicializa com categoria global se existir
+        tags: '',
+        uploading: false,
+        completed: false,
+      }
+      setFiles((prev) => [...prev, memeFile])
+      setCropTarget(null)
+    }
+    reader.readAsDataURL(croppedFile)
+  }
+
+  const handleCropCancel = () => {
+    setCropTarget(null)
   }
 
   const updateMemeFile = (id: string, updates: Partial<MemeFile>) => {
@@ -215,11 +254,12 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
   if (!isOpen) return null
 
   return (
-    <AnimatePresence>
-      <div
-        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto"
-        onClick={onClose}
-      >
+    <>
+      <AnimatePresence>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto"
+          onClick={onClose}
+        >
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -466,6 +506,18 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
           </div>
         </motion.div>
       </div>
-    </AnimatePresence>
+      </AnimatePresence>
+
+      {/* Corte de imagem */}
+      {cropTarget && (
+        <ImageCropper
+          src={cropTarget.src}
+          fileName={cropTarget.file.name}
+          fileType={cropTarget.file.type}
+          onCancel={handleCropCancel}
+          onConfirm={handleCropConfirm}
+        />
+      )}
+    </>
   )
 }
