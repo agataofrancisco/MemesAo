@@ -11,9 +11,6 @@ import {
 } from 'lucide-react'
 import { useOptimizedMemes } from '../hooks/useOptimizedMemes'
 import { useStats } from '../hooks/useStats'
-import { useAuth } from '../hooks/useAuth'
-import { useDownloadLimit } from '../hooks/useDownloadLimit'
-import DownloadStatus from './DownloadStatus'
 import MemeViewModal from './MemeViewModal'
 import UserInterests from './UserInterests'
 import OptimizedImage from './OptimizedImage'
@@ -25,7 +22,7 @@ interface FeedProps {
   onAuthClick?: () => void
 }
 
-export default function Feed({ className = '', onAuthClick }: FeedProps) {
+export default function Feed({ className = '', onAuthClick: _onAuthClick }: FeedProps) {
   const {
     memes,
     loading,
@@ -43,8 +40,6 @@ export default function Feed({ className = '', onAuthClick }: FeedProps) {
     preloadDistance: 800,
   })
   const { categories } = useStats()
-  const { user } = useAuth()
-  const { canDownload, registerDownload } = useDownloadLimit()
 
   const [selectedMeme, setSelectedMeme] = useState<Meme | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -83,21 +78,15 @@ export default function Feed({ className = '', onAuthClick }: FeedProps) {
 
   // Toggle favorito
   const handleToggleFavorite = async (meme: Meme) => {
-    if (!user) {
-      toast.error('Faça login para curtir memes')
-      onAuthClick?.()
-      return
-    }
-
     try {
       await toggleFavorite(meme.id)
       toast.success(
         favorites.includes(meme.id)
-          ? 'Removido dos favoritos'
-          : 'Adicionado aos favoritos',
+          ? 'Removido o curtida'
+          : 'Curtido!',
       )
     } catch {
-      toast.error('Erro ao atualizar favoritos')
+      toast.error('Erro ao atualizar curtida')
     }
   }
 
@@ -113,19 +102,7 @@ export default function Feed({ className = '', onAuthClick }: FeedProps) {
 
   // Download meme
   const handleDownload = async (meme: Meme) => {
-    if (!canDownload) {
-      toast.error('Limite de downloads atingido. Faça login para continuar.')
-      return
-    }
-
     try {
-      // Registrar download no limite
-      const success = registerDownload()
-      if (!success) {
-        toast.error('Limite de downloads atingido. Faça login para continuar.')
-        return
-      }
-
       await downloadMeme(meme.id)
       toast.success('Download iniciado!')
     } catch {
@@ -207,9 +184,6 @@ export default function Feed({ className = '', onAuthClick }: FeedProps) {
           Descubra os memes mais engraçados e compartilhados
         </p>
       </div>
-
-      {/* Status de Downloads para usuários anônimos */}
-      <DownloadStatus className="mb-6" showDetails={true} />
 
       {/* Filtros e Categorias */}
       <div className="mb-8">
@@ -334,11 +308,9 @@ export default function Feed({ className = '', onAuthClick }: FeedProps) {
                       className={`flex items-center space-x-1 transition-colors ${
                         favorites.includes(meme.id)
                           ? 'text-red-500'
-                          : user
-                          ? 'text-gray-600 dark:text-gray-400 hover:text-red-500'
-                          : 'text-gray-400 dark:text-gray-600 cursor-not-allowed'
+                          : 'text-gray-600 dark:text-gray-400 hover:text-red-500'
                       }`}
-                      title={!user ? 'Faça login para curtir' : ''}
+                      title={favorites.includes(meme.id) ? 'Remover curtida' : 'Curtir'}
                     >
                       <Heart
                         className={`h-3 w-3 ${
@@ -346,22 +318,6 @@ export default function Feed({ className = '', onAuthClick }: FeedProps) {
                         }`}
                       />
                       <span>{(meme.like_count || 0).toLocaleString()}</span>
-                    </button>
-                    <button
-                      onClick={() => handleDownload(meme)}
-                      className={`flex items-center space-x-1 transition-colors ${
-                        canDownload
-                          ? 'text-gray-600 dark:text-gray-400 hover:text-primary-500'
-                          : 'text-gray-400 dark:text-gray-600 cursor-not-allowed'
-                      }`}
-                      title={
-                        !canDownload
-                          ? 'Limite de downloads atingido. Faça login para continuar.'
-                          : ''
-                      }
-                    >
-                      <Download className="h-3 w-3" />
-                      <span>{(meme.download_count || 0).toLocaleString()}</span>
                     </button>
                     <button
                       onClick={() => handleShare(meme)}
@@ -375,20 +331,11 @@ export default function Feed({ className = '', onAuthClick }: FeedProps) {
                     </button>
                   </div>
 
-                  {/* Download rápido */}
+                  {/* Download */}
                   <button
                     onClick={() => handleDownload(meme)}
-                    disabled={!canDownload}
-                    title={
-                      !canDownload
-                        ? 'Limite de downloads atingido. Faça login para continuar.'
-                        : 'Baixar meme'
-                    }
-                    className={`shrink-0 p-2 rounded-lg border transition-colors ${
-                      canDownload
-                        ? 'text-primary-600 border-primary-200 hover:bg-primary-50 dark:text-primary-400 dark:border-primary-800 dark:hover:bg-primary-900/20'
-                        : 'text-gray-400 border-gray-200 dark:border-gray-700 dark:text-gray-600 cursor-not-allowed'
-                    }`}
+                    title="Baixar meme"
+                    className="shrink-0 p-2 rounded-lg border transition-colors text-primary-600 border-primary-200 hover:bg-primary-50 dark:text-primary-400 dark:border-primary-800 dark:hover:bg-primary-900/20"
                   >
                     <Download className="h-4 w-4" />
                   </button>

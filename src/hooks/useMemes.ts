@@ -27,22 +27,36 @@ interface FavoriteResponse {
   like_count: number;
 }
 
+const MEME_LIKED_KEY = "memesao_liked";
+
+function readLikedLocal(): string[] {
+  try {
+    const raw = localStorage.getItem(MEME_LIKED_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr : [];
+  } catch {
+    return [];
+  }
+}
+
 export function useMemes() {
   const { user } = useAuth();
   const [memes, setMemes] = useState<Meme[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [favorites, setFavorites] = useState<string[]>([]);
+  const [liked, setLiked] = useState<string[]>((): string[] =>
+    user ? [] : readLikedLocal()
+  );
 
-  const loadFavorites = useCallback(async () => {
+  const loadLiked = useCallback(async () => {
     if (!user) {
-      setFavorites([]);
+      setLiked(readLikedLocal());
       return;
     }
 
     try {
       const data = await apiGet<FavoritesResponse>("/api/favorites");
-      setFavorites(data.ids);
+      setLiked(data.ids);
     } catch (err) {
       console.error("Erro ao carregar favoritos:", err);
     }
@@ -71,8 +85,8 @@ export function useMemes() {
   }, [loadMemes]);
 
   useEffect(() => {
-    loadFavorites();
-  }, [loadFavorites]);
+    loadLiked();
+  }, [loadLiked]);
 
   const searchMemes = useCallback(
     async (query: string, category: string = ""): Promise<Meme[]> => {
@@ -126,29 +140,41 @@ export function useMemes() {
 
   const toggleFavorite = useCallback(
     async (memeId: string): Promise<void> => {
-      if (!user) return;
-
       try {
         const data = await apiPost<FavoriteResponse>(
-          `/api/memes/${memeId}/favorite`
+          `/api/memes/${memeId}/like`
         );
 
-        setFavorites((prev) =>
-          data.favorited
-            ? prev.includes(memeId)
-              ? prev
-              : [...prev, memeId]
-            : prev.filter((id) => id !== memeId)
-        );
+        if (user) {
+          setLiked((prev) =>
+            data.favorited
+              ? prev.includes(memeId)
+                ? prev
+                : [...prev, memeId]
+              : prev.filter((id) => id !== memeId)
+          );
+        } else {
+          setLiked((prev) => {
+            const next = data.favorited
+              ? prev.includes(memeId)
+                ? prev
+                : [...prev, memeId]
+              : prev.filter((id) => id !== memeId);
+            try {
+              localStorage.setItem(MEME_LIKED_KEY, JSON.stringify(next));
+            } catch {
+              /* ignore */
+            }
+            return next;
+          });
+        }
         setMemes((prev) =>
           prev.map((m) =>
-            m.id === memeId
-              ? { ...m, like_count: data.like_count }
-              : m
+            m.id === memeId ? { ...m, like_count: data.like_count } : m
           )
         );
       } catch (err) {
-        console.error("Erro ao favoritar meme:", err);
+        console.error("Erro ao curtir meme:", err);
       }
     },
     [user]
@@ -218,14 +244,14 @@ export function useMemes() {
   );
 
   const refresh = useCallback(async () => {
-    await Promise.all([loadMemes(), loadFavorites()]);
-  }, [loadMemes, loadFavorites]);
+    await Promise.all([loadMemes(), loadLiked()]);
+  }, [loadMemes, loadLiked]);
 
   return {
     memes,
     loading,
     error,
-    favorites,
+    favorites: liked,
     searchMemes,
     downloadMeme,
     toggleFavorite,

@@ -61,6 +61,13 @@ function nowIso(): string {
   return new Date().toISOString();
 }
 
+// Número estável e pseudo-aleatório para identificar uploads anónimos (Anónimo N)
+function anonNumber(id: string): number {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return (h % 90000) + 10000; // 10000..99999
+}
+
 function parseIdParam(path: string, prefix: string): string | null {
   if (!path.startsWith(prefix)) return null;
   const rest = path.slice(prefix.length);
@@ -154,7 +161,7 @@ function toMeme(row: MemeRow): MemeOut {
     like_count: row.like_count ?? 0,
     category: row.category_name ?? undefined,
     categories,
-    uploaded_by_name: username || fullName || "Anónimo",
+    uploaded_by_name: username || fullName || "Anónimo " + anonNumber(row.id),
     profile: username !== undefined || fullName !== undefined
       ? { username, full_name: fullName }
       : null,
@@ -167,7 +174,6 @@ const MEME_SELECT = `
     c.name AS category_name,
     p.username,
     p.full_name,
-    (SELECT COUNT(*) FROM user_favorites f WHERE f.meme_id = m.id) AS like_count,
     (SELECT group_concat(cat.id, '|') FROM meme_categories mc JOIN categories cat ON cat.id = mc.category_id WHERE mc.meme_id = m.id) AS cat_ids,
     (SELECT group_concat(cat.name, '|') FROM meme_categories mc JOIN categories cat ON cat.id = mc.category_id WHERE mc.meme_id = m.id) AS cat_names
   FROM memes m
@@ -325,7 +331,7 @@ async function getMeme(request: Request, env: Env, id: string): Promise<Response
   return json({ meme: toMeme(row) });
 }
 
-async function uploadMeme(request: Request, env: Env, session: SessionPayload): Promise<Response> {
+async function uploadMeme(request: Request, env: Env, session: SessionPayload | null): Promise<Response> {
   const form = await request.formData();
   const file = form.get("file");
   if (!(file instanceof File)) return error("Ficheiro em falta");
@@ -374,7 +380,7 @@ async function uploadMeme(request: Request, env: Env, session: SessionPayload): 
       extension,
       categoryId,
       ocrText,
-      session.sub,
+      session?.sub ?? null,
       createdAt,
       createdAt,
     ),
@@ -395,18 +401,64 @@ async function uploadMeme(request: Request, env: Env, session: SessionPayload): 
   return json({ success: true });
 }
 
-async function toggleFavorite(request: Request, env: Env, session: SessionPayload, id: string): Promise<Response> {
-  const existing = await env.DB.prepare("SELECT id FROM user_favorites WHERE user_id = ? AND meme_id = ?")
-    .bind(session.sub, id).first();
+const ANON_LIKES_COOKIE = "memesao_anon_likes";
 
-  if (existing) {
-    await env.DB.prepare("DELETE FROM user_favorites WHERE user_id = ? AND meme_id = ?").bind(session.sub, id).run();
-  } else {
-    await env.DB.prepare("INSERT INTO user_favorites (id, user_id, meme_id) VALUES (?, ?, ?)").bind(uuid(), session.sub, id).run();
+function readAnonLikes(request: Request): string[] {
+  const cookieHeader = request.headers.get("Cookie");
+  if (!cookieHeader) return [];
+  for (const part of cookieHeader.split(";")) {
+    const [name, ...rest] = part.trim().split("=");
+    if (name === ANON_LIKES_COOKIE && rest.length) {
+      return rest.join("=").split(",").filter(Boolean);
+    }
+  }
+  return [];
+}
+
+// Curtir é público: funciona sem conta. Logado guarda-se em user_favorites;
+// anónimo controla apenas o contador global (por cookie p/ deduplicar no dispositivo).
+async function toggleLike(request: Request, env: Env, id: string): Promise<Response> {
+  const session = await getSession(request, env);
+  let favorited: boolean;
+
+  if (session) {
+    const existing = await env.DB.prepare("SELECT id FROM user_favorites WHERE user_id = ? AND meme_id = ?")
+      .bind(session.sub, id).first();
+    if (existing) {
+      await env.DB.prepare("DELETE FROM user_favorites WHERE user_id = ? AND meme_id = ?").bind(session.sub, id).run();
+      await env.DB.prepare("UPDATE memes SET like_count = MAX(0, like_count - 1) WHERE id = ?").bind(id).run();
+      favorited = false;
+    } else {
+      await env.DB.prepare("INSERT OR IGNORE INTO user_favorites (id, user_id, meme_id) VALUES (?, ?, ?)").bind(uuid(), session.sub, id).run();
+      await env.DB.prepare("UPDATE memes SET like_count = like_count + 1 WHERE id = ?").bind(id).run();
+      favorited = true;
+    }
+    const countRow = await env.DB.prepare("SELECT like_count FROM memes WHERE id = ?").bind(id).first<{ like_count: number }>();
+    return json({ favorited, like_count: countRow?.like_count ?? 0 });
   }
 
-  const countRow = await env.DB.prepare("SELECT COUNT(*) AS c FROM user_favorites WHERE meme_id = ?").bind(id).first<{ c: number }>();
-  return json({ favorited: !existing, like_count: countRow?.c ?? 0 });
+  // Anónimo: controlo via cookie
+  const ids = readAnonLikes(request);
+  const set = new Set(ids);
+  if (set.has(id)) {
+    set.delete(id);
+    favorited = false;
+  } else {
+    set.add(id);
+    favorited = true;
+  }
+  await env.DB.prepare("UPDATE memes SET like_count = MAX(0, like_count + ?) WHERE id = ?")
+    .bind(favorited ? 1 : -1, id).run();
+  const countRow = await env.DB.prepare("SELECT like_count FROM memes WHERE id = ?").bind(id).first<{ like_count: number }>();
+
+  const secureCookie = new URL(request.url).protocol === "https:";
+  const cookieValue = Array.from(set).join(",");
+  const res = json({ favorited, like_count: countRow?.like_count ?? 0 });
+  res.headers.set(
+    "Set-Cookie",
+    `${ANON_LIKES_COOKIE}=${cookieValue}; Path=/; SameSite=Lax; Max-Age=${60 * 60 * 24 * 365}${secureCookie ? "; Secure" : ""}`
+  );
+  return res;
 }
 
 async function recordDownload(request: Request, env: Env, session: SessionPayload | null, id: string): Promise<Response> {
@@ -731,19 +783,15 @@ export default {
     // Memes
     if (pathname === "/api/memes" && method === "GET") return listMemes(request, env);
     if (pathname === "/api/memes" && method === "POST") {
-      if (!session) return error("Precisas de estar autenticado", 401);
       return uploadMeme(request, env, session);
     }
 
-    // Ações em meme (favorito/download/partilha)
-    const memeAction = pathname.match(/^\/api\/memes\/([^/]+)\/(favorite|download|share)$/);
+    // Ações em meme (like/download/partilha)
+    const memeAction = pathname.match(/^\/api\/memes\/([^/]+)\/(favorite|like|download|share)$/);
     if (memeAction && method === "POST") {
       const id = decodeURIComponent(memeAction[1]);
       const action = memeAction[2];
-      if (action === "favorite") {
-        if (!session) return error("Precisas de estar autenticado", 401);
-        return toggleFavorite(request, env, session, id);
-      }
+      if (action === "favorite" || action === "like") return toggleLike(request, env, id);
       if (action === "download") return recordDownload(request, env, session, id);
       if (action === "share") return recordShare(request, env, session, id);
     }

@@ -215,7 +215,7 @@ export default function MemePage() {
             </div>
 
             {/* Estatísticas detalhadas */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-xl">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-xl">
               <div className="text-center">
                 <div className="flex items-center justify-center mb-1">
                   <Heart className="h-5 w-5 text-red-500" />
@@ -225,18 +225,6 @@ export default function MemePage() {
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400">
                   Likes
-                </div>
-              </div>
-
-              <div className="text-center">
-                <div className="flex items-center justify-center mb-1">
-                  <Download className="h-5 w-5 text-primary-500" />
-                </div>
-                <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {(meme.download_count || 0).toLocaleString()}
-                </div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">
-                  Downloads
                 </div>
               </div>
 

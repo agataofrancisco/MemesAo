@@ -53,6 +53,7 @@ CREATE TABLE IF NOT EXISTS memes (
   uploaded_by TEXT,
   status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','rejected')),
   view_count INTEGER NOT NULL DEFAULT 0,
+  like_count INTEGER NOT NULL DEFAULT 0,
   download_count INTEGER NOT NULL DEFAULT 0,
   share_count INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
