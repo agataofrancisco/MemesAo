@@ -9,6 +9,7 @@ import {
   Check,
   Tag,
   Crop,
+  ScanText,
 } from 'lucide-react'
 import { useMemes } from '../hooks/useMemes'
 import { useAllCategories } from '../hooks/useAllCategories'
@@ -323,6 +324,10 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
                       <p className="text-xs text-gray-500">
                         PNG, JPG, GIF até 5MB cada • Máximo 10 arquivos
                       </p>
+                      <p className="text-xs text-primary-600 dark:text-primary-400 font-medium flex items-center justify-center gap-1">
+                        <ScanText className="h-3 w-3" />
+                        O texto das imagens é lido automaticamente para melhorar a pesquisa
+                      </p>
                     </div>
                     <input
                       type="file"
@@ -372,6 +377,15 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
                               {file.completed && (
                                 <div className="absolute -mt-2 -ml-2 w-6 h-6 bg-success-500 rounded-full flex items-center justify-center">
                                   <Check className="w-4 h-4 text-white" />
+                                </div>
+                              )}
+                              {/* Overlay visivel: a ler o texto da imagem via OCR */}
+                              {file.ocrStatus === 'processing' && (
+                                <div className="absolute inset-0 rounded-lg bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center gap-1 animate-pulse">
+                                  <ScanText className="w-5 h-5 text-white animate-spin" />
+                                  <span className="text-white text-[10px] font-semibold leading-tight text-center px-1">
+                                    A ler texto
+                                  </span>
                                 </div>
                               )}
                               {/* Cortar (opcional) */}
@@ -426,15 +440,23 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
                               )}
 
                               {file.ocrStatus === 'processing' && (
-                                <div className="flex items-center text-gray-400 dark:text-gray-500 text-xs">
+                                <div className="flex items-center text-primary-600 dark:text-primary-400 text-xs font-medium">
                                   <Loader className="w-3 h-3 animate-spin mr-1.5" />
                                   A ler texto da imagem...
                                 </div>
                               )}
                               {file.ocrStatus === 'done' && file.ocrText && (
-                                <p className="text-xs text-gray-400 dark:text-gray-500 line-clamp-1">
-                                  OCR: "{file.ocrText}"
-                                </p>
+                                <div className="flex items-start gap-1.5 text-xs bg-success-50 dark:bg-success-900/20 text-success-700 dark:text-success-300 border border-success-200 dark:border-success-800 px-2 py-1.5 rounded-md">
+                                  <ScanText className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                                  <span className="line-clamp-2">
+                                    Texto lido: "{file.ocrText}"
+                                  </span>
+                                </div>
+                              )}
+                              {file.ocrStatus === 'done' && !file.ocrText && (
+                                <div className="text-xs text-gray-400 dark:text-gray-500">
+                                  Sem texto visível na imagem
+                                </div>
                               )}
 
                               {file.categories.length > 0 && (
