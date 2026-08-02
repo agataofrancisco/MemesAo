@@ -7,7 +7,7 @@ interface ImageCropperProps {
   src: string
   fileName: string
   fileType: string
-  onCancel: () => void
+  onUseOriginal: () => void
   onConfirm: (croppedFile: File) => void
 }
 
@@ -86,7 +86,7 @@ export default function ImageCropper({
   src,
   fileName,
   fileType,
-  onCancel,
+  onUseOriginal,
   onConfirm,
 }: ImageCropperProps) {
   const [crop, setCrop] = useState<Point>({ x: 0, y: 0 })
@@ -159,9 +159,9 @@ export default function ImageCropper({
           </div>
           <button
             type="button"
-            onClick={onCancel}
+            onClick={onUseOriginal}
             className="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
-            aria-label="Fechar corte"
+            aria-label="Usar imagem original"
           >
             <X className="h-5 w-5" />
           </button>
@@ -235,10 +235,10 @@ export default function ImageCropper({
           <div className="flex justify-end gap-3">
             <button
               type="button"
-              onClick={onCancel}
+              onClick={onUseOriginal}
               className="px-4 py-2 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             >
-              Cancelar
+              Usar imagem original
             </button>
             <button
               type="button"

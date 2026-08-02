@@ -35,12 +35,19 @@ interface MemeFile {
   error?: string
 }
 
+interface CropTarget {
+  id: string
+  file: File
+  src: string
+}
+
 export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
   const [files, setFiles] = useState<MemeFile[]>([])
   const [globalCategories, setGlobalCategories] = useState<string[]>([])
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
-  const [cropTarget, setCropTarget] = useState<MemeFile | null>(null)
+  const [cropQueue, setCropQueue] = useState<CropTarget[]>([])
+  const [cropTarget, setCropTarget] = useState<CropTarget | null>(null)
 
   const { uploadMeme } = useMemes()
   const { categories } = useAllCategories()
@@ -62,9 +69,19 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
       setGlobalCategories([])
       setUploading(false)
       setUploadProgress(0)
+      setCropQueue([])
       setCropTarget(null)
     }
   }, [isOpen])
+
+  // Processar fila de corte: abre o cropper para cada imagem selecionada
+  useEffect(() => {
+    if (cropTarget) return
+    if (cropQueue.length === 0) return
+    const next = cropQueue[0]
+    setCropQueue((q) => q.slice(1))
+    setCropTarget(next)
+  }, [cropQueue, cropTarget])
 
   // Categorias globais aplicam-se a todos os memes, ao vivo
   useEffect(() => {
@@ -109,19 +126,14 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
     validFiles.forEach((file) => {
       const reader = new FileReader()
       reader.onload = (ev) => {
-        const memeFile: MemeFile = {
-          id: Math.random().toString(36).substring(2),
-          file,
-          preview: ev.target?.result as string,
-          title: file.name.replace(/\.[^/.]+$/, ''),
-          categories: [...globalCategories],
-          ocrText: '',
-          ocrStatus: 'processing',
-          uploading: false,
-          completed: false,
-        }
-        setFiles((prev) => [...prev, memeFile])
-        runOcr(memeFile.id, file)
+        setCropQueue((q) => [
+          ...q,
+          {
+            id: Math.random().toString(36).substring(2),
+            file,
+            src: ev.target?.result as string,
+          },
+        ])
       }
       reader.readAsDataURL(file)
     })
@@ -130,22 +142,63 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
     e.target.value = ''
   }
 
+  const addMeme = (target: CropTarget, imageFile: File, preview: string) => {
+    const memeFile: MemeFile = {
+      id: target.id,
+      file: imageFile,
+      preview,
+      title: target.file.name.replace(/\.[^/.]+$/, ''),
+      categories: [...globalCategories],
+      ocrText: '',
+      ocrStatus: 'processing',
+      uploading: false,
+      completed: false,
+    }
+    setFiles((prev) => [...prev, memeFile])
+    setCropTarget(null)
+    runOcr(memeFile.id, imageFile)
+  }
+
   const handleCropConfirm = (croppedFile: File) => {
     const target = cropTarget
     if (!target) return
 
+    const isRecrop = files.some((f) => f.id === target.id)
+
     const reader = new FileReader()
     reader.onload = (ev) => {
-      updateMemeFile(target.id, {
-        file: croppedFile,
-        preview: ev.target?.result as string,
-        ocrText: '',
-        ocrStatus: 'processing',
-      })
-      setCropTarget(null)
-      runOcr(target.id, croppedFile)
+      const preview = ev.target?.result as string
+      if (isRecrop) {
+        updateMemeFile(target.id, {
+          file: croppedFile,
+          preview,
+          ocrText: '',
+          ocrStatus: 'processing',
+        })
+        setCropTarget(null)
+        runOcr(target.id, croppedFile)
+      } else {
+        addMeme(target, croppedFile, preview)
+      }
     }
     reader.readAsDataURL(croppedFile)
+  }
+
+  const handleCropUseOriginal = () => {
+    const target = cropTarget
+    if (!target) return
+
+    const isRecrop = files.some((f) => f.id === target.id)
+    if (isRecrop) {
+      setCropTarget(null)
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      addMeme(target, target.file, ev.target?.result as string)
+    }
+    reader.readAsDataURL(target.file)
   }
 
   const updateMemeFile = (id: string, updates: Partial<MemeFile>) => {
@@ -325,7 +378,13 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
                               {!file.uploading && !file.completed && (
                                 <button
                                   type="button"
-                                  onClick={() => setCropTarget(file)}
+                                  onClick={() =>
+                                    setCropTarget({
+                                      id: file.id,
+                                      file: file.file,
+                                      src: file.preview,
+                                    })
+                                  }
                                   title="Cortar imagem"
                                   className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-1 py-1 bg-black/60 text-white text-xs rounded-b-lg opacity-0 hover:opacity-100 transition-opacity"
                                 >
@@ -472,13 +531,13 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
         </div>
       </AnimatePresence>
 
-      {/* Corte de imagem (opcional) */}
+      {/* Corte de imagem */}
       {cropTarget && (
         <ImageCropper
-          src={cropTarget.preview}
+          src={cropTarget.src}
           fileName={cropTarget.file.name}
           fileType={cropTarget.file.type}
-          onCancel={() => setCropTarget(null)}
+          onUseOriginal={handleCropUseOriginal}
           onConfirm={handleCropConfirm}
         />
       )}
