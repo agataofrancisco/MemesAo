@@ -761,8 +761,71 @@ async function serveR2(request: Request, env: Env, key: string): Promise<Respons
 }
 
 /* ------------------------------------------------------------------ */
-/* Router                                                              */
+/* Render serverside para partilhas (meta tags para os bots sociais)     */
 /* ------------------------------------------------------------------ */
+
+const PUBLIC_ORIGIN = "https://memesao.ao";
+
+const CRAWLER_RE =
+  /facebook|twitter|whatsapp|telegram|linkedin|discord|slack|pinterest|tumblr|instagram|reddit|embed|meta|fb|googlebot|bingbot|yandex|applebot|duckduckbot|vk|bot|spider|crawer|cache|crawler|twitterbot/i;
+
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+interface ShareRow {
+  title: string | null;
+  description: string | null;
+  image_url: string;
+  thumbnail_path: string | null;
+}
+
+async function renderSharePage(request: Request, env: Env, id: string): Promise<Response> {
+  const ua = request.headers.get("user-agent") || "";
+
+  // Utilizador real (browser): entregar a SPA normal.
+  if (!CRAWLER_RE.test(ua)) {
+    return env.ASSETS.fetch(request);
+  }
+
+  const row = await env.DB.prepare(
+    "SELECT title, description, image_url, thumbnail_path FROM memes WHERE id = ? AND status = 'approved' LIMIT 1",
+  ).bind(id).first<ShareRow | null>();
+
+  const title = escapeHtml(row?.title || "Meme no MemesAo");
+  const desc = escapeHtml(row?.description || "Descobre este meme engraçado no MemesAo!");
+  const img = row ? PUBLIC_ORIGIN + (row.thumbnail_path ? `/r2/${row.thumbnail_path}` : row.image_url) : "";
+  const url = `${PUBLIC_ORIGIN}/meme/${encodeURIComponent(id)}`;
+  const siteTitle = `${title} - MemesAo`;
+
+  const html = `<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>${siteTitle}</title>
+  <meta name="description" content="${desc}" />
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="MemesAo" />
+  <meta property="og:title" content="${title}" />
+  <meta property="og:description" content="${desc}" />
+  <meta property="og:url" content="${url}" />
+  ${img ? `<meta property="og:image" content="${img}" />
+  <meta name="twitter:card" content="summary_large_image" />` : `<meta name="twitter:card" content="summary" />`}
+  <meta name="twitter:title" content="${title}" />
+  <meta name="twitter:description" content="${desc}" />
+  ${img ? `<meta name="twitter:image" content="${img}" />` : ""}
+  <meta http-equiv="refresh" content="0; url=${url}" />
+</head>
+<body>
+  <p><a href="${url}">${title}</a></p>
+</body>
+</html>`;
+
+  return new Response(html, {
+    headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "public, max-age=300" },
+  });
+}
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -782,6 +845,11 @@ export default {
     }
 
     if (!pathname.startsWith("/api/")) {
+      // Página de meme partilhada: render serverside para bots de redes sociais
+      if (pathname.startsWith("/meme/")) {
+        const shareId = parseIdParam(pathname, "/meme/");
+        if (shareId) return renderSharePage(request, env, shareId);
+      }
       return env.ASSETS.fetch(request);
     }
 
