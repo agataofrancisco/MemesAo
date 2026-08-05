@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS memes (
   description TEXT,
   image_url TEXT NOT NULL,
   image_path TEXT,
+  thumbnail_path TEXT,
   file_size INTEGER,
   width INTEGER,
   height INTEGER,

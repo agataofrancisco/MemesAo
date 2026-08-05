@@ -27,6 +27,7 @@ export interface Meme {
   description: string | null;
   image_url: string;
   image_path: string | null;
+  thumbnail_url?: string | null;
   file_size: number | null;
   width: number | null;
   height: number | null;

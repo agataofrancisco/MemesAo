@@ -89,6 +89,7 @@ interface MemeOut {
   description: string | null;
   image_url: string;
   image_path: string | null;
+  thumbnail_url: string | null;
   file_size: number | null;
   width: number | null;
   height: number | null;
@@ -114,6 +115,7 @@ interface MemeRow {
   description: string | null;
   image_url: string;
   image_path: string | null;
+  thumbnail_path?: string | null;
   file_size: number | null;
   width: number | null;
   height: number | null;
@@ -146,6 +148,7 @@ function toMeme(row: MemeRow): MemeOut {
     description: row.description,
     image_url: row.image_url,
     image_path: row.image_path,
+    thumbnail_url: row.thumbnail_path ? `/r2/${row.thumbnail_path}` : null,
     file_size: row.file_size,
     width: row.width,
     height: row.height,
@@ -362,20 +365,32 @@ async function uploadMeme(request: Request, env: Env, session: SessionPayload | 
 
   await env.MEMES_BUCKET.put(path, bytes, { httpMetadata: { contentType: file.type || "image/jpeg" } });
 
+  // Thumbnail opcional (miniaturas para a feed)
+  let thumbPath: string | null = null;
+  const thumb = form.get("file_thumb");
+  if (thumb instanceof File && thumb.size > 0 && thumb.size <= 10 * 1024 * 1024) {
+    const thumbBytes = await thumb.arrayBuffer();
+    thumbPath = `thumbs/${Date.now()}-${Math.random().toString(36).substring(2)}.jpg`;
+    await env.MEMES_BUCKET.put(thumbPath, thumbBytes, {
+      httpMetadata: { contentType: thumb.type || "image/jpeg" },
+    });
+  }
+
   const memeId = uuid();
   const createdAt = nowIso();
   const uniqueCategories = Array.from(new Set([categoryId, ...categories].filter(Boolean)));
 
   const inserts: D1PreparedStatement[] = [
     env.DB.prepare(
-      `INSERT INTO memes (id, title, description, image_url, image_path, file_size, format, category_id, ocr_text, uploaded_by, status, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`
+      `INSERT INTO memes (id, title, description, image_url, image_path, thumbnail_path, file_size, format, category_id, ocr_text, uploaded_by, status, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`
     ).bind(
       memeId,
       title || file.name.replace(/\.[^/.]+$/, ""),
       description,
       `/r2/${path}`,
       path,
+      thumbPath,
       file.size,
       extension,
       categoryId,
@@ -503,7 +518,7 @@ async function updateMeme(request: Request, env: Env, id: string): Promise<Respo
 }
 
 async function deleteMeme(request: Request, env: Env, id: string): Promise<Response> {
-  const row = await env.DB.prepare("SELECT image_path FROM memes WHERE id = ?").bind(id).first<{ image_path: string | null }>();
+  const row = await env.DB.prepare("SELECT image_path, thumbnail_path FROM memes WHERE id = ?").bind(id).first<{ image_path: string | null; thumbnail_path: string | null }>();
   if (!row) return error("Meme não encontrado", 404);
 
   await env.DB.batch([
@@ -519,6 +534,9 @@ async function deleteMeme(request: Request, env: Env, id: string): Promise<Respo
 
   if (row.image_path && row.image_path.startsWith("memes/")) {
     await env.MEMES_BUCKET.delete(row.image_path).catch(() => undefined);
+  }
+  if (row.thumbnail_path && row.thumbnail_path.startsWith("thumbs/")) {
+    await env.MEMES_BUCKET.delete(row.thumbnail_path).catch(() => undefined);
   }
 
   return json({ success: true });

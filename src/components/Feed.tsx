@@ -271,7 +271,7 @@ export default function Feed({ className = '', onAuthClick: _onAuthClick }: Feed
               {/* Imagem do meme com lazy loading otimizado */}
               <div className="relative aspect-square rounded-xl overflow-hidden mb-4 bg-gray-100 dark:bg-gray-700">
                 <OptimizedImage
-                  src={meme.image_url}
+                  src={meme.thumbnail_url || meme.image_url}
                   alt={meme.title || 'Meme'}
                   className="w-full h-full group-hover:scale-110 transition-transform duration-300"
                   fallback="https://via.placeholder.com/400x400.png?text=Erro+Carregamento"

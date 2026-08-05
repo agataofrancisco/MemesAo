@@ -455,7 +455,7 @@ export default function AdminDashboard({
               className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden"
             >
               <img
-                src={meme.image_url}
+                src={meme.thumbnail_url || meme.image_url}
                 alt={meme.title || 'Meme sem título'}
                 className="w-full h-48 object-cover"
                 onError={(e) => {
@@ -571,7 +571,7 @@ export default function AdminDashboard({
                   >
                     <td className="px-4 py-3">
                       <img
-                        src={meme.image_url}
+                        src={meme.thumbnail_url || meme.image_url}
                         alt={meme.title || 'Meme'}
                         className="w-12 h-12 object-cover rounded-lg"
                         onError={(e) => {

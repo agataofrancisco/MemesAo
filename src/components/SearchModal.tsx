@@ -391,7 +391,7 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
                           className="bg-gray-50 dark:bg-gray-800 rounded-lg overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
                         >
                           <img
-                            src={result.image_url}
+                            src={result.thumbnail_url || result.image_url}
                             alt={result.title || 'Meme'}
                             className="w-full h-32 object-cover"
                           />

@@ -217,7 +217,8 @@ export function useMemes() {
       categoryId: string,
       tags: string[],
       categories: string[],
-      ocrText = ''
+      ocrText = '',
+      thumbFile?: File | null
     ): Promise<UploadResult> => {
       try {
         const form = new FormData();
@@ -228,6 +229,7 @@ export function useMemes() {
         form.append("tags", JSON.stringify(tags));
         form.append("categories", JSON.stringify(categories));
         form.append("ocr_text", ocrText);
+        if (thumbFile) form.append("file_thumb", thumbFile);
 
         await apiPost("/api/memes", form);
         return { success: true };

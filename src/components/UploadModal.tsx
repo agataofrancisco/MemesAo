@@ -23,6 +23,49 @@ interface UploadModalProps {
   onClose: () => void
 }
 
+function createThumbnail(file: File, maxSide = 480): Promise<File | null> {
+  return new Promise((resolve) => {
+    if (file.type === 'image/gif' || file.type === 'image/svg+xml' || file.type === 'image/webp') {
+      resolve(null)
+      return
+    }
+    const url = URL.createObjectURL(file)
+    const img = new Image()
+    img.onload = () => {
+      try {
+        const scale = Math.min(1, maxSide / Math.max(img.width, img.height))
+        const w = Math.max(1, Math.round(img.width * scale))
+        const h = Math.max(1, Math.round(img.height * scale))
+        const canvas = document.createElement('canvas')
+        canvas.width = w
+        canvas.height = h
+        const ctx = canvas.getContext('2d')
+        if (!ctx) {
+          resolve(null)
+          return
+        }
+        ctx.drawImage(img, 0, 0, w, h)
+        canvas.toBlob(
+          (blob) => {
+            URL.revokeObjectURL(url)
+            resolve(blob && blob.size > 0 ? new File([blob], 'thumb.jpg', { type: 'image/jpeg' }) : null)
+          },
+          'image/jpeg',
+          0.8,
+        )
+      } catch {
+        URL.revokeObjectURL(url)
+        resolve(null)
+      }
+    }
+    img.onerror = () => {
+      URL.revokeObjectURL(url)
+      resolve(null)
+    }
+    img.src = url
+  })
+}
+
 interface MemeFile {
   id: string
   file: File
@@ -240,6 +283,7 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
           [],
           file.categories,
           file.ocrText || '',
+          await createThumbnail(file.file),
         )
 
         if (result.success) {
