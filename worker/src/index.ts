@@ -764,7 +764,8 @@ async function serveR2(request: Request, env: Env, key: string): Promise<Respons
 /* Render serverside para partilhas (meta tags para os bots sociais)     */
 /* ------------------------------------------------------------------ */
 
-const PUBLIC_ORIGIN = "https://memesao.ao";
+const PUBLIC_ORIGIN = "https://memes-ao.netlify.app";
+const IMAGE_ORIGIN = "https://memesao.agataodoriafrancisco91.workers.dev";
 
 const CRAWLER_RE =
   /facebook|twitter|whatsapp|telegram|linkedin|discord|slack|pinterest|tumblr|instagram|reddit|embed|meta|fb|googlebot|bingbot|yandex|applebot|duckduckbot|vk|bot|spider|crawer|cache|crawler|twitterbot/i;
@@ -778,6 +779,8 @@ interface ShareRow {
   description: string | null;
   image_url: string;
   thumbnail_path: string | null;
+  width: number | null;
+  height: number | null;
 }
 
 async function renderSharePage(request: Request, env: Env, id: string): Promise<Response> {
@@ -789,12 +792,12 @@ async function renderSharePage(request: Request, env: Env, id: string): Promise<
   }
 
   const row = await env.DB.prepare(
-    "SELECT title, description, image_url, thumbnail_path FROM memes WHERE id = ? AND status = 'approved' LIMIT 1",
+    "SELECT title, description, image_url, thumbnail_path, width, height FROM memes WHERE id = ? AND status = 'approved' LIMIT 1",
   ).bind(id).first<ShareRow | null>();
 
   const title = escapeHtml(row?.title || "Meme no MemesAo");
   const desc = escapeHtml(row?.description || "Descobre este meme engraçado no MemesAo!");
-  const img = row ? PUBLIC_ORIGIN + (row.thumbnail_path ? `/r2/${row.thumbnail_path}` : row.image_url) : "";
+  const img = row ? IMAGE_ORIGIN + row.image_url : "";
   const url = `${PUBLIC_ORIGIN}/meme/${encodeURIComponent(id)}`;
   const siteTitle = `${title} - MemesAo`;
 
@@ -810,7 +813,7 @@ async function renderSharePage(request: Request, env: Env, id: string): Promise<
   <meta property="og:title" content="${title}" />
   <meta property="og:description" content="${desc}" />
   <meta property="og:url" content="${url}" />
-  ${img ? `<meta property="og:image" content="${img}" />
+  ${img ? `<meta property="og:image" content="${img}" />${row?.width ? `\n  <meta property="og:image:width" content="${row.width}" />` : ""}${row?.height ? `\n  <meta property="og:image:height" content="${row.height}" />` : ""}
   <meta name="twitter:card" content="summary_large_image" />` : `<meta name="twitter:card" content="summary" />`}
   <meta name="twitter:title" content="${title}" />
   <meta name="twitter:description" content="${desc}" />

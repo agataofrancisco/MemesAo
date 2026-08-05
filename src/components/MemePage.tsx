@@ -5,6 +5,7 @@ import { ArrowLeft, Heart, Download, Share2, Eye, Trophy } from 'lucide-react'
 import { useMemes } from '../hooks/useMemes'
 import { useMetaTags } from '../hooks/useMetaTags'
 import { apiGet } from '../lib/api'
+import { SHARE_ORIGIN } from '../lib/app'
 import type { Meme } from '../lib/types'
 
 export default function MemePage() {
@@ -25,7 +26,7 @@ export default function MemePage() {
     description:
       meme?.description || 'Descubra este meme engraçado no MemesAo!',
     image: meme?.image_url,
-    url: meme ? `${window.location.origin}/meme/${meme.id}` : undefined,
+    url: meme ? `${SHARE_ORIGIN}/meme/${meme.id}` : undefined,
     type: 'article',
   })
 

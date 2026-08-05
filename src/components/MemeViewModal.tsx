@@ -12,6 +12,7 @@ import {
   Loader,
 } from 'lucide-react'
 import { useMemes } from '../hooks/useMemes'
+import { SHARE_ORIGIN } from '../lib/app'
 import type { Meme } from '../lib/types'
 import toast from 'react-hot-toast'
 
@@ -54,7 +55,7 @@ export default function MemeViewModal({
       updateMetaTag(
         'property',
         'og:url',
-        `${window.location.origin}/meme/${meme.id}`,
+        `${SHARE_ORIGIN}/meme/${meme.id}`,
       )
       updateMetaTag('property', 'og:type', 'article')
 
@@ -162,7 +163,7 @@ export default function MemeViewModal({
   }
 
   const handleShare = async () => {
-    const memeUrl = `${window.location.origin}/meme/${meme.id}`
+    const memeUrl = `${SHARE_ORIGIN}/meme/${meme.id}`
 
     if (navigator.share) {
       try {
